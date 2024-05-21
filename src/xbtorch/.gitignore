@@ -1,0 +1,9 @@
+__pycache__
+binder/*
+env/*
+env3.9/*
+data/*
+device/jumptables/*
+*.csv
+.pytest_cache/*
+weight_logs/*

@@ -1,0 +1,6 @@
+[submodule "models/src/qsarray"]
+	path = models/src/qsarray
+	url = ../../danielsmw/qsarray
+[submodule "models/pybind11"]
+	path = models/pybind11
+	url = https://github.com/pybind/pybind11
