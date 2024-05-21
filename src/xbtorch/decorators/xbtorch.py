@@ -1,5 +1,10 @@
 from .. import get_xbtorch_param
 
+import torch
+import numpy as np
+
+from multiprocessing.pool import ThreadPool
+from concurrent.futures import ProcessPoolExecutor
 def alter_layer(cls):
     original_init = cls.__init__
     original_forward = cls.forward
@@ -22,6 +27,11 @@ def alter_layer(cls):
     cls.forward = xbtorch_forward
     return cls
 
+
+def process_weight_wrapper(device_args):
+    device, args = device_args
+    return device.write(*args)
+
 def alter_optimizer(cls):
     original_init = cls.__init__
     original_step = cls.step
@@ -29,14 +39,25 @@ def alter_optimizer(cls):
     def xbtorch_init(self, *args, **kwargs):
         if (not get_xbtorch_param('initialized')): raise RuntimeError('XBTorch needs to be initialized, please refer to API for instructions.')
         self.decomp_alg = get_xbtorch_param('decomposition_algorithm')
+        self.device_type = get_xbtorch_param('device_type')
         original_init(self, *args, **kwargs)
 
     def xbtorch_step(self):
         for group_idx, group in enumerate(self.param_groups):
             for param_idx, param in enumerate(group['params']):
+                group_param_idx = (group_idx, param_idx)
 
-                if (self.decomp_alg): # a decomposition algorithm has been specifiedd
-                    param.grad = self.decomp_alg.decompose(param.input, param.delta, param.grad, (group_idx, param_idx))
+                if (self.decomp_alg): # a decomposition algorithm has been specified
+                    param.grad = self.decomp_alg.decompose(param.input, param.delta, param.grad, group_param_idx)
+
+                if (self.device_type): # a device type has been specified, so we include device weight modeling
+                    pulse = self.device_type.gradient_to_pulse(param.grad)
+                    conductances = self.device_type.weight_to_conductance(param.data)
+                    conductances = self.device_type.write(conductances, -1*pulse, group_param_idx)
+                    new_weights = self.device_type.conductance_to_weight(conductances)
+                    param.grad = param.data - new_weights
+
+
     
         output = original_step(self)
         return output
@@ -44,3 +65,6 @@ def alter_optimizer(cls):
     cls.__init__ = xbtorch_init
     cls.step = xbtorch_step
     return cls
+
+if __name__ == '__main__':
+    pass

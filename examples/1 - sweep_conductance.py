@@ -31,10 +31,10 @@ deviceReal =  AnalyticalReal()
 # customized parameters can also be used
 # Here's an example of a device with non-linearity but no cycle-to-cycle variability 
 deviceRealAltered =  AnalyticalReal()
-deviceRealAltered.c2cVar = 0.0
+deviceRealAltered.c2c_var = 0.0
 
 # Alternately, fitted parameters can be directly utilized as well
-deviceCustom = AnalyticalDevice(min_conductance=3e-9, max_conductance=3.8e-9, d2d_var=0.0, c2c_var=0.02, nonlinearity_set=5, nonlinearity_reset=-5, max_level=32)
+deviceCustom = AnalyticalDevice(min_conductance=3e-9, max_conductance=3.8e-9, d2d_var=0.05, c2c_var=0.02, nonlinearity_set=5, nonlinearity_reset=-5, max_level=32)
 
 plot_G_vs_pulse(deviceIdeal, cycles=10)
 plot_G_vs_pulse(deviceReal, cycles=10)

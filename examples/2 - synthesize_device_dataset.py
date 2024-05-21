@@ -24,7 +24,7 @@ def plot_G_vs_dG(device, num_points):
     plt.xlabel('Conductance (S)')
     plt.ylabel('Conductance / pulse (S)')
 
-    plt.ylim(0, device.min_conductance)
+    # plt.ylim(0, device.min_conductance)
 
     return set_dataset, reset_dataset
 
@@ -37,6 +37,6 @@ plot_G_vs_dG(deviceReal, num_points=1000)
 # plt.show()
 
 # Tabular Device Models
-# tabularDev = TabularAnalyticalReal()
-# plot_G_vs_dG(tabularDev, num_points=10000)
+tabularDev = TabularAnalyticalReal()
+plot_G_vs_dG(tabularDev, num_points=10000)
 plt.show()

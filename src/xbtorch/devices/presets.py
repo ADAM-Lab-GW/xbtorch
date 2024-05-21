@@ -1,7 +1,7 @@
 from .base import AnalyticalDevice, TabularDevice
 from importlib.resources import files
 
-class AnalyticalIdeal:
+class AnalyticalIdeal(AnalyticalDevice):
     def __init__(self):
         self._device = AnalyticalDevice(min_conductance=3e-9, max_conductance=38e-9, d2d_var=0.0, c2c_var=0.0, nonlinearity_set=0, nonlinearity_reset=0, max_level=500)
 
@@ -12,7 +12,7 @@ class AnalyticalIdeal:
         if name != "_device": setattr(self._device, name, value)
         else: super().__setattr__(name, value)
 
-class AnalyticalReal:
+class AnalyticalReal(AnalyticalDevice):
     def __init__(self):
         self._device = AnalyticalDevice(min_conductance=3e-9, max_conductance=38e-9, d2d_var=0.0, c2c_var=0.035, nonlinearity_set=2.4, nonlinearity_reset=-4.88, max_level=500)
 
@@ -42,3 +42,5 @@ class TabularAnalyticalReal(TabularDevice):
         if name != "_device": setattr(self._device, name, value)
         else: super().__setattr__(name, value)
     
+if __name__ == '__main__':
+    pass

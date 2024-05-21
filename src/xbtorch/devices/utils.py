@@ -1,21 +1,44 @@
 import numpy as np
 import random
+import torch
 
-def find_nearest(array, value):
-    idx = (np.abs(array - value)).argmin()
-    return idx
 
-def sweep_conductance_full(device):
+def find_nearest(array, values):
+    # Expand dimensions for broadcasting
+    array = array.unsqueeze(0)  
+    values = values.unsqueeze(1) 
+    abs_diff = torch.abs(array - values)
+    indices = abs_diff.argmin(dim=1)
+    return indices
+
+def find_nearest_2d(array, values):
+    # Expand dimensions for broadcasting
+    if (array.dim() == 1): array = array.unsqueeze(0)
+
+    array = array.unsqueeze(1)  
+    values = torch.Tensor(values).unsqueeze(1).unsqueeze(2) 
+
+    abs_diff = torch.abs(array - values)  
+    indices = abs_diff.argmin(dim=2).squeeze(1)
+
+    return indices
+
+def stochastic_round(x):
+    # Simple stochastic rounding
+    a = np.floor(x)
+    return (a + ((x - a) > np.random.random()))
+
+def sweep_conductance_full(device, group_param_idx=(0, 0)):
     set_Gs = [device.min_conductance]
     G = set_Gs[0]
     for i in range(device.max_level):
-        G = device.write(G, numPulse=1).item()
+        G = device.write(torch.Tensor([G]), numPulse=torch.Tensor([1]), group_param_idx=group_param_idx).item()
         set_Gs.append(G)
 
     reset_Gs = [device.max_conductance]
     G = reset_Gs[0]
     for i in range(device.max_level):
-        G = device.write(G, numPulse=-1).item()
+        G = device.write(torch.Tensor([G]), numPulse=torch.Tensor([-1]), group_param_idx=group_param_idx).item()
         reset_Gs.append(G)
 
     return set_Gs, reset_Gs
@@ -35,7 +58,7 @@ def synthesize_G_dG_dataset(device, set=True, num_points=1000, min_delta_ratio=1
         valid = False
         while (not valid):
             G = random.uniform(device.min_conductance, device.max_conductance) # generate a random conductance value from possible device range
-            newG = device.write(G, numPulse=numPulse).item()
+            newG = device.write(torch.Tensor([G]), numPulse=torch.Tensor([numPulse])).item()
             deltaG = newG - G
             # additional constraints can be added here for experimental realism
             if (disable_filtering): valid = True
