@@ -21,7 +21,7 @@ class XBParams:
     def get_var(self, key, default=None):
         return self._global_dict.get(key, default)
     
-    def initialize(self, decomposition_algorithm=None, device_type=None, weight_range=(-1, 1)):
+    def initialize(self, decomposition_algorithm=None, device_type=None, pytorch_device='cpu', weight_range=(-1, 1)):
         print('\nInitializing XBTorch..')
         # Type checking
         if decomposition_algorithm and not issubclass(type(decomposition_algorithm), xbtorch.decomposition.base.GenericDecomposition):
@@ -34,7 +34,20 @@ class XBParams:
         self._global_dict['initialized'] = True
         self._global_dict['decomposition_algorithm'] = decomposition_algorithm
         self._global_dict['device_type'] = device_type
+        self._global_dict['pytorch_device'] = pytorch_device
         self._global_dict['weight_range'] = weight_range
+
+        # if a device_type was provided, migrate local tensors if needed
+        if (pytorch_device != 'cpu' and device_type):
+            if (issubclass(type(device_type), xbtorch.devices.base.TabularDevice)):
+                device_type.set_G = device_type.set_G.to(pytorch_device)
+                device_type.reset_G = device_type.reset_G.to(pytorch_device)
+
+                device_type.set_dG = device_type.set_dG.to(pytorch_device)
+                device_type.reset_dG = device_type.reset_dG.to(pytorch_device)
+
+                device_type.set_cdf = device_type.set_cdf.to(pytorch_device)
+                device_type.reset_cdf = device_type.reset_cdf.to(pytorch_device)
 
         print('Initialization complete..\n')
 

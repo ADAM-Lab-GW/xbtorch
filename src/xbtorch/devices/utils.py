@@ -25,8 +25,8 @@ def find_nearest_2d(array, values):
 
 def stochastic_round(x):
     # Simple stochastic rounding
-    a = np.floor(x)
-    return (a + ((x - a) > np.random.random()))
+    a = torch.floor(x)
+    return a + ((x - a) > torch.rand_like(x)).float()
 
 def sweep_conductance_full(device, group_param_idx=(0, 0)):
     set_Gs = [device.min_conductance]

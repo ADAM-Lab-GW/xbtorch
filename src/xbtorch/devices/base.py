@@ -74,22 +74,16 @@ class AnalyticalDevice(GenericDevice):
         '''
         Adapted from DNN + NeuroSim v2
         '''
-        nonlinearity = nonlinearity.numpy()
-        index = (np.abs(nonlinearity)*100).astype(int)-1
-        index = np.where(index<0, np.zeros_like(index), index)
-        index = np.where(index>899, np.ones_like(index)*899, index)
-        sign = np.sign(nonlinearity)
-
-        # todo: shift to XBParams
-        data = np.loadtxt(files('xbtorch.libdata').joinpath(f'{self.data_dir}/paramAdata.txt'), dtype=np.float32)
-
-        # extend A table to 2d or 4d
-        ADim = np.append(np.delete(index.shape,-1),1)
-        lookupdata = np.tile(data,ADim)
-        # find a value according to index from the extend table
-        y = np.take_along_axis(lookupdata, index, axis=-1)
+        index = (torch.abs(nonlinearity) * 100).long() - 1  # Use int64 for indices
+        index = torch.where(index < 0, torch.zeros_like(index), index)
+        index = torch.where(index > 899, torch.full_like(index, 899), index)
+        sign = torch.sign(nonlinearity)
+        data = torch.tensor(np.loadtxt(files('xbtorch.libdata').joinpath(f'{self.data_dir}/paramAdata.txt')), dtype=torch.float32)
+        ADim = list(index.shape) + [data.shape[0]]
+        lookupdata = data.repeat(*ADim[:-1], 1)
+        y = torch.take_along_dim(lookupdata, index.unsqueeze(-1), dim=-1).squeeze(-1)
         A = sign * y
-        return torch.from_numpy(A)
+        return A
 
     def get_param_B(self, A):
         return (self.max_conductance - self.min_conductance) / (1 - torch.exp(-self.max_level/A))
