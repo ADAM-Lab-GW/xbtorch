@@ -21,7 +21,7 @@ class XBParams:
     def get_var(self, key, default=None):
         return self._global_dict.get(key, default)
     
-    def initialize(self, decomposition_algorithm, device_type, weight_range=(-1, 1)):
+    def initialize(self, decomposition_algorithm=None, device_type=None, weight_range=(-1, 1)):
         print('\nInitializing XBTorch..')
         # Type checking
         if decomposition_algorithm and not issubclass(type(decomposition_algorithm), xbtorch.decomposition.base.GenericDecomposition):

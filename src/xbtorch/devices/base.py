@@ -80,7 +80,8 @@ class AnalyticalDevice(GenericDevice):
         index = np.where(index>899, np.ones_like(index)*899, index)
         sign = np.sign(nonlinearity)
 
-        data = np.loadtxt(files('xbtorch.data').joinpath(f'{self.data_dir}/paramAdata.txt'), dtype=np.float32)
+        # todo: shift to XBParams
+        data = np.loadtxt(files('xbtorch.libdata').joinpath(f'{self.data_dir}/paramAdata.txt'), dtype=np.float32)
 
         # extend A table to 2d or 4d
         ADim = np.append(np.delete(index.shape,-1),1)
@@ -173,7 +174,6 @@ class TabularDevice(GenericDevice):
             # sanity checks
             assert min_conductance ==  self.set_G[0]
             assert max_conductance ==  self.set_G[-1]
-
 
         super().__init__(min_conductance, max_conductance)
         self.max_level = max_level

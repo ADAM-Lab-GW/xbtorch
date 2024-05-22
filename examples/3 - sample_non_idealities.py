@@ -9,7 +9,7 @@ from xbtorch.devices.utils import synthesize_G_dG_dataset, sweep_conductance_ful
 # cycle to cycle variability
 # device to device variability
 # finite conductance states
-
+# showcase finite conductance states.. somehow
 def plot_non_idealities(num_devices, cycles, non_linearities):
 
     # Analytical Device Models

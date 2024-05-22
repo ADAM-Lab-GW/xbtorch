@@ -1,10 +1,5 @@
 from .. import get_xbtorch_param
 
-import torch
-import numpy as np
-
-from multiprocessing.pool import ThreadPool
-from concurrent.futures import ProcessPoolExecutor
 def alter_layer(cls):
     original_init = cls.__init__
     original_forward = cls.forward
@@ -26,11 +21,6 @@ def alter_layer(cls):
     cls.__init__ = xbtorch_init
     cls.forward = xbtorch_forward
     return cls
-
-
-def process_weight_wrapper(device_args):
-    device, args = device_args
-    return device.write(*args)
 
 def alter_optimizer(cls):
     original_init = cls.__init__
@@ -56,8 +46,6 @@ def alter_optimizer(cls):
                     conductances = self.device_type.write(conductances, -1*pulse, group_param_idx)
                     new_weights = self.device_type.conductance_to_weight(conductances)
                     param.grad = param.data - new_weights
-
-
     
         output = original_step(self)
         return output

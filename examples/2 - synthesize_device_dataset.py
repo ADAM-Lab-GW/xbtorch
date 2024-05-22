@@ -23,9 +23,7 @@ def plot_G_vs_dG(device, num_points):
     plt.legend()
     plt.xlabel('Conductance (S)')
     plt.ylabel('Conductance / pulse (S)')
-
-    # plt.ylim(0, device.min_conductance)
-
+    
     return set_dataset, reset_dataset
 
 # Analytical Device Models

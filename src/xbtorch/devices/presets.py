@@ -26,12 +26,12 @@ class AnalyticalReal(AnalyticalDevice):
 class TabularAnalyticalReal(TabularDevice):
     def __init__(self):
         model_name = 'synthetic/target_lc_ns_sd1.2_10000' # target tables, linear mean, constant standard deviation (1.2 nS) profile, equivalent to neurosim, constructed with 10,000 data points
-        self._device = TabularDevice(reset_g=files('xbtorch.data').joinpath(f'{super().data_dir}/{model_name}_reset_axis_level_G.txt'), 
-                                     reset_dg=files('xbtorch.data').joinpath(f'{super().data_dir}/{model_name}_reset_axis_level_dG.txt'), 
-                                     reset_cdf=files('xbtorch.data').joinpath(f'{super().data_dir}/{model_name}_reset_cdf.txt'), 
-                                     set_g=files('xbtorch.data').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_G.txt'), 
-                                     set_dg=files('xbtorch.data').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_dG.txt'), 
-                                     set_cdf=files('xbtorch.data').joinpath(f'{super().data_dir}/{model_name}_set_cdf.txt'), 
+        self._device = TabularDevice(reset_g=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_reset_axis_level_G.txt'), 
+                                     reset_dg=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_reset_axis_level_dG.txt'), 
+                                     reset_cdf=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_reset_cdf.txt'), 
+                                     set_g=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_G.txt'), 
+                                     set_dg=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_dG.txt'), 
+                                     set_cdf=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_cdf.txt'), 
                                      max_level=500,
                                      preconstructed=True)
 
