@@ -1,5 +1,8 @@
 import torch.optim as optim
-from .decorators import xbtorch
+from .patches import decorators
 
-@xbtorch.alter_optimizer
+@decorators.xbtorch_optimizer
 class SGD(optim.SGD): pass
+
+@decorators.xbtorch_optimizer
+class Adam(optim.Adam): pass

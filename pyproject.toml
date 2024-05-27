@@ -67,7 +67,7 @@ license = {file = "LICENSE.txt"}
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords = ["sample", "setuptools", "development"]
+keywords = ["xbtorch", "crossbartorch", "memristors", "setuptools", "development"]
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
@@ -117,7 +117,13 @@ classifiers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
-  "torch","numpy","matplotlib","scikit-learn", "torchvision"
+  "torch>=2.3",
+  "numpy>=1.26",
+  "matplotlib>=3.9",
+  "scikit-learn>=1.4", 
+  "torchvision>=0.18",
+  'ninja>=1.11',
+  'qtorch>=0.3'
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -158,12 +164,6 @@ test = ["coverage"]
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
-# [tool.setuptools]
-# # If there are data files included in your packages that need to be
-# # installed, specify them here.
-# package-data = {"xbtorch" = ["devices/data/analytical/*.txt"]}
-
-
 [tool.setuptools.packages.find]
 where = ["src"]
 

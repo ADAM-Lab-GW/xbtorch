@@ -1,5 +1,5 @@
 import torch.nn as nn
-from .decorators import xbtorch
+from .patches import decorators
 
-@xbtorch.alter_layer
+@decorators.xbtorch_layer
 class Linear(nn.Linear): pass

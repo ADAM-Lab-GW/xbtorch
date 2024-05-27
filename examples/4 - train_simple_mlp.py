@@ -1,3 +1,7 @@
+import numpy as np
+import random
+import time
+
 import torch
 import torch.nn as nn
 
@@ -5,29 +9,39 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
 import xbtorch
-import xbtorch.nn as xbnn
 import xbtorch.optim as xboptim
-
 from xbtorch.decomposition import FullSVD, TruncatedSVD, NMF, SBPCA, FullOuterProduct
 from xbtorch.devices import AnalyticalIdeal, AnalyticalReal, TabularAnalyticalReal
+from xbtorch.patches import xbtorch_model
+
+from xbtorch.devices.utils import test_classifier, train_classifier, print_num_unique_values
 
 class SimpleMLP(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(SimpleMLP, self).__init__()
-        self.fc1 = xbnn.Linear(input_size, hidden_size, bias=False)
-        self.fc2 = xbnn.Linear(hidden_size, output_size, bias=False)
+        self.model = nn.Sequential(
+            nn.Linear(input_size, hidden_size, bias=False),
+            nn.ReLU(),
+            nn.Linear(hidden_size, output_size, bias=False),
+        )
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.model(x)
         return x
-    
+
 if __name__ == '__main__':
+
+    seed = 0
+    fixed_all = True
+    if (fixed_all):
+        seed = 0
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed) # To control weight update jump table stochasticity
 
     # Check if CUDA is available and select the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    # device = 'cpu'
     torch.set_default_device(device)
 
     # Decomposition Algorithms
@@ -43,18 +57,38 @@ if __name__ == '__main__':
     xb_device = AnalyticalIdeal()
     xb_device = AnalyticalReal()
     xb_device = TabularAnalyticalReal()
-    # xb_device = None
+    xb_device = None
+
+    # First define number formats used in forward and backward quantization
+    # activations 
+    weight_range = (-1, +1)
+
+    # WAGE QUANTIZATION
+    wage_quantize = True
+    wage_params = { 'wl_weight':2, # 2 = ternary weights
+                    'wl_grad':8,
+                    'wl_activation':8,
+                    'wl_error':8,
+                    'rounding_weight' : 'nearest',
+                    'rounding_activation' : 'nearest',
+                    'rounding_grad' : 'nearest',
+                    'rounding_error' : 'nearest',
+                   }
 
     # todo: weight_range should be selectable from here
     # todo: rename device_type to device
     xbtorch.initialize(decomposition_algorithm=decomposition_algorithm, 
                        device_type=xb_device,
-                       pytorch_device=device
+                       pytorch_device=device,
+                       weight_range=weight_range,
+                       wage_quantize=wage_quantize,
+                       wage_params=wage_params
                        )
 
     # Define transforms to apply to the data
     transform = transforms.Compose([
         transforms.ToTensor(),  # Convert images to tensors
+        transforms.CenterCrop((18, 18)),
         transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
     ])
 
@@ -67,52 +101,25 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=1000, shuffle=False, generator=torch.Generator(device=device))
 
     # Define the model
-    input_size = 784  # 28x28 image flattened to a vector
-    hidden_size = 64
-    output_size = 10  # 10 classes (digits 0-9)
+    input_size = 18 * 18  
+    hidden_size = 50
+    output_size = 10
+
     model = SimpleMLP(input_size, hidden_size, output_size).to(device)
+    model = xbtorch_model(model)
 
     # Define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    optimizer = xboptim.SGD(model.parameters(), lr=0.1)
+    lr = 8
+    optimizer = xboptim.SGD(model.parameters(), lr=lr)
 
-    # Train the model
-    import time
-
-    num_epochs = 1
+    num_epochs = 5
     for epoch in range(num_epochs):
-        running_loss = 0.0
+        train_classifier(train_loader, model, criterion, optimizer, epoch, num_epochs, device)
+        test_classifier(test_loader, model, device)
 
-        for i, (inputs, labels) in enumerate(train_loader):
-            inputs, labels = inputs.to(device), labels.to(device)
-            start = time.time()
-            inputs = inputs.view(-1, 784)  # Flatten the input images
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-
-            optimizer.step()
-            running_loss += loss.item()
-            if i % 1 == 0:  # Print every 100 mini-batches
-                print(f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{len(train_loader)}], Loss: {running_loss/100:.4f}')
-                running_loss = 0.0
-            end = time.time()
-            print('iter time', end - start)
     print('Finished Training')
 
-    # Evaluate the model
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for inputs, labels in test_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            inputs = inputs.view(-1, 784)
-            outputs = model(inputs)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    print(f'Accuracy on test set: {100 * correct / total:.2f}%')
+    print_num_unique_values(list(model.named_parameters())[0][1].data)
+    print_num_unique_values(list(model.named_parameters())[1][1].data)
