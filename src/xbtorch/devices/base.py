@@ -8,9 +8,15 @@ from .. import get_xbtorch_param
 from .utils import stochastic_round, find_nearest, find_nearest_2d
 
 class GenericDevice(metaclass=abc.ABCMeta):
-    def __init__(self, min_conductance, max_conductance):
-        self.min_conductance = min_conductance
-        self.max_conductance = max_conductance
+    def __init__(self, min_conductance=None, max_conductance=None, min_conductance_set=None, min_conductance_reset=None, max_conductance_set=None, max_conductance_reset=None):
+        if (min_conductance and max_conductance):
+            self.min_conductance_set, self.min_conductance_reset = min_conductance, min_conductance
+            self.max_conductance_set, self.max_conductance_reset,  = max_conductance, max_conductance
+        elif (min_conductance_set and min_conductance_reset and max_conductance_set and max_conductance_reset):
+            self.min_conductance_set, self.min_conductance_reset = min_conductance_set, min_conductance_reset
+            self.max_conductance_set, self.max_conductance_reset,  = max_conductance_set, max_conductance_reset
+        else:
+            raise ValueError("")
     
     def reset_cached_params(self):
         self.params = {}
@@ -162,14 +168,17 @@ class TabularDevice(GenericDevice):
             self.set_cdf = torch.from_numpy(self.set_cdf)
             self.reset_cdf = torch.from_numpy(self.reset_cdf)
 
-            min_conductance = self.reset_G[0]
-            max_conductance = self.reset_G[-1]
+            min_conductance_reset = self.reset_G[0]
+            max_conductance_reset = self.reset_G[-1]
+
+            min_conductance_set = self.set_G[0]
+            max_conductance_set = self.set_G[-1]
 
             # sanity checks
-            assert min_conductance ==  self.set_G[0]
-            assert max_conductance ==  self.set_G[-1]
+            # assert min_conductance ==  self.set_G[0]
+            # assert max_conductance ==  self.set_G[-1] # removing for TNANO, add back
 
-        super().__init__(min_conductance, max_conductance)
+        super().__init__(min_conductance_set=min_conductance_set, max_conductance_set=max_conductance_set, min_conductance_reset=min_conductance_reset, max_conductance_reset=max_conductance_reset)
         self.max_level = max_level
 
     def write(self, G, numPulse, group_param_idx=None):
@@ -189,8 +198,8 @@ class TabularDevice(GenericDevice):
                     cdf = find_nearest_2d(self.set_cdf[near_G], prob)
                     dG = self.set_dG[cdf]
                     G[step_mask] = G[step_mask] + dG
-                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance, self.max_conductance, G[step_mask])
-                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance, self.min_conductance, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance_set, self.max_conductance_set, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance_set, self.min_conductance_set, G[step_mask])
                     numPulse[step_mask] -= 1
 
         if negative_mask.any():
@@ -203,8 +212,8 @@ class TabularDevice(GenericDevice):
                     cdf = find_nearest_2d(self.reset_cdf[near_G], prob)
                     dG = self.reset_dG[cdf]
                     G[step_mask] = G[step_mask] + dG
-                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance, self.max_conductance, G[step_mask])
-                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance, self.min_conductance, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance_reset, self.max_conductance_reset, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance_reset, self.min_conductance_reset, G[step_mask])
                     numPulse[step_mask] += 1
 
         return G

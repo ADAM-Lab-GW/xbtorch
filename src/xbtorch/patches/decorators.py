@@ -8,15 +8,61 @@ def xbtorch_layer(cls):
     def xbtorch_init(self, *args, **kwargs):
         if (not get_xbtorch_param('initialized')): raise RuntimeError('XBTorch needs to be initialized, please refer to API for instructions.')
         original_init(self, *args, **kwargs)
+
+        # decomposition
         self.weight.input, self.weight.delta = None, None
         def backward_hook(module, grad_input, grad_output):
             self.weight.delta = grad_output[0]
         self.register_full_backward_hook(backward_hook)
 
+        # deployment (inference accleration)
+        self._xb_inference = False
+        self.inference_accelerator = get_xbtorch_param('inference_accelerator')
+
     def xbtorch_forward(self, input):
-        self.weight.input = input
-        output = original_forward(self, input)
-        return output
+        # TODO: Add support for non-linear layers
+        if (self._xb_inference):
+            
+            if (not hasattr(self, '_array_mappings')):
+                # print(self.gneg.shape)
+                raise ValueError("Array mappings are not present, likely an issue during initialization.")
+
+            gnorm_scale = 1.0
+            if (not self.inference_accelerator): raise ValueError('XB inference called without proper initialization of an accelerator profile.')
+
+            # ternary mapping scheme
+            v_read = self.inference_accelerator.v_read
+            g_norm = self.inference_accelerator.g_max - self.inference_accelerator.g_min
+
+            sw_weight = self.weight.data
+
+            alpha = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-alpha, 0, alpha], and so it's important to scale either G matrices or input voltage vector
+            # gneg, gpos, _ = self.inference_accelerator._get_hw_weights(sw_weight)
+            # gneg, gpos = self.gneg, self.gpos # access G matrices (that already have device defects/ensembling parameters applied)
+
+            pos_idxs = self._array_mappings['Gpos']
+            neg_idxs = self._array_mappings['Gneg']
+
+            pos_idx = pos_idxs[0]
+            gpos = self.inference_accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
+
+            neg_idx = neg_idxs[0]
+            gneg = self.inference_accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
+                
+            # convert inputs to voltages, then quantize to DAC-based precision
+            input_voltages = input * v_read * alpha
+            input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
+            # pass to the crossbar, perform VMM
+            output = input_voltages @ gpos.T - input_voltages @ gneg.T
+            # readback currents from ADC by simulated quantization again
+            output = self.inference_accelerator.ADC_quantize(output)
+            output = output / (gnorm_scale * g_norm * v_read)
+            if (self.bias): output += self.bias.data
+            return output
+        else:
+            self.weight.input = input
+            output = original_forward(self, input)
+            return output
 
     cls.__init__ = xbtorch_init
     cls.forward = xbtorch_forward
@@ -32,7 +78,14 @@ def xbtorch_optimizer(cls):
         self.device_type = get_xbtorch_param('device_type')
         self.weight_range = get_xbtorch_param('weight_range')
         self.wage_quantize = get_xbtorch_param('wage_quantize')
-        if (self.wage_quantize): self.wage_params = get_xbtorch_param('wage_params')
+        if (self.wage_quantize): 
+            self.wage_params = get_xbtorch_param('wage_params')
+            if isinstance(self, torch.optim.Adam):
+                raise NotImplementedError("XBTorch only supports SGD optimizer with WAGE.")
+
+        if not isinstance(self, torch.optim.SGD) and not isinstance(self, torch.optim.Adam):
+            raise NotImplementedError("XBTorch only supports SGD and Adam optimizers.")
+
         original_init(self, *args, **kwargs)
 
     def xbtorch_step(self):
@@ -43,8 +96,28 @@ def xbtorch_optimizer(cls):
 
                 # gradient quantization
                 if (self.wage_quantize): # wage
+                    # quantize gradient
+                    if (not hasattr(param, 'weight_acc')): raise RuntimeError('Wage quantization used but parameters not initialized correctly. Likely an issue with model patching.')
+
                     lr = self.param_groups[group_idx]['lr']
                     param.grad.data = self.wage_params['quantizer_grad'](param.grad.data, lr).data
+                    
+                    # quantize momentum
+                    # this is experimental
+                    if isinstance(self, torch.optim.SGD):
+                        if hasattr(self, 'state'):
+                            for state in self.state.values():
+                                if state['momentum_buffer']:
+                                    # Apply the operation to the momentum buffer
+                                    state['momentum_buffer'] = self.wage_params['quantizer_grad'](state['momentum_buffer'], lr)
+                    elif isinstance(self, torch.optim.Adam):
+                        for state in self.state.values():
+                            if state['exp_avg']:
+                                # Apply the operation to the first moment estimate
+                                state['exp_avg'] = self.wage_params['quantizer_grad'](state['exp_avg'], lr)
+                            if state['exp_avg_sq'] in state:
+                                # Apply the operation to the second moment estimate
+                                state['exp_avg_sq'] = self.wage_params['quantizer_grad'](state['exp_avg_sq'], lr)
 
                 if (self.decomp_alg): # a decomposition algorithm has been specified
                     param.grad = self.decomp_alg.decompose(param.input, param.delta, param.grad, group_param_idx)
@@ -63,7 +136,6 @@ def xbtorch_optimizer(cls):
                 if (self.wage_quantize):
                     # WAGE accumulate weight in gradient precision
                     # assume no batch norm
-                    if (not hasattr(param, 'weight_acc')): raise RuntimeError('Wage quantization used but parameters not initialized correctly. Likely an issue with model patching.')
                     w_acc = self.wage_params['grad_clip'](param.weight_acc)
                     w_acc -= param.grad.data
                     param.weight_acc = w_acc

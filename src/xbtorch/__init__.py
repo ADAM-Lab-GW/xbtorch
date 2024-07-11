@@ -14,13 +14,13 @@ class XBParams:
                     'decomposition_algorithm': None,
                     'device_type': None,
                     'pytorch_device': 'cpu',
+                    'inference_accelerator': None,
                     'weight_range': (-1, 1),
-                    'quantizer_ADC': None,
                     }
     _wage_defaults = {
                     'wl_weight': 2, # 2 = ternary weights
-                    'wl_grad': 8,
                     'wl_activation': 8,
+                    'wl_grad': 8,
                     'wl_error': 8,
                     'rounding_weight' : 'nearest',
                     'rounding_activation' : 'nearest',
@@ -39,7 +39,7 @@ class XBParams:
     def get_var(self, key, default=None):
         return self._global_dict.get(key, default)
     
-    def initialize(self, decomposition_algorithm=None, device_type=None, weight_range=(-1, 1), pytorch_device='cpu', wage_quantize=False, wage_params={}):
+    def initialize(self, decomposition_algorithm=None, device_type=None, weight_range=(-1, 1), pytorch_device='cpu', wage_quantize=False, wage_params={}, inference_accelerator=None):
         print('\nInitializing XBTorch..')
         # Type checking
         if decomposition_algorithm and not issubclass(type(decomposition_algorithm), xbtorch.decomposition.base.GenericDecomposition):
@@ -86,12 +86,16 @@ class XBParams:
         if weight_range and not (type(weight_range) == tuple or len(weight_range) != 2 or weight_range[0] >= weight_range[1]):
             raise TypeError("Invalid weight range provided")
 
+        if inference_accelerator and not issubclass(type(inference_accelerator), xbtorch.deployment.base.GenericAccelerator):
+            raise TypeError("Invalid accelerator algorithm provided")
+
         # Setting the variables
         self._global_dict['initialized'] = True
         self._global_dict['decomposition_algorithm'] = decomposition_algorithm
         self._global_dict['device_type'] = device_type
         self._global_dict['pytorch_device'] = pytorch_device
         self._global_dict['weight_range'] = weight_range
+        self._global_dict['inference_accelerator'] = inference_accelerator
 
         # if a device_type was provided, migrate local tensors if needed
         if (pytorch_device != 'cpu' and device_type):
