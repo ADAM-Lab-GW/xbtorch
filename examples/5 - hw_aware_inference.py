@@ -20,13 +20,16 @@ from xbtorch.patches import xbtorch_model
 
 from xbtorch.devices.utils import test_classifier
 
-from xbtorch.deployment import Daffodil, SimpleFixedPoint
+from xbtorch.deployment import Daffodil, SimpleFixedPoint, map_random, encode_simple, encode_MAO, compute_error
+# from xbtorch.mapping import map_random
 
 import configargparse as argparse
 from datetime import datetime
 from pathlib import Path
 
 from xbtorch.nn.models import SimpleMLP
+
+from functools import partial
 
 if __name__ == '__main__':
 
@@ -80,10 +83,19 @@ if __name__ == '__main__':
     g_min = 133
     g_max = 233
 
+    # weight_encoding_scheme = encode_simple
+    weight_encoding_scheme = encode_MAO
+    mapping_scheme = partial(map_random, beta=2)
+
+    output_polling_mode = 'sum' if weight_encoding_scheme == encode_MAO else 'avg'
+
     print('gmin gmax', g_min, g_max)
     # inference_accelerator = Daffodil(g_min=g_min, g_max=g_max, v_read=0.3) # 300, 450 for Vgs 2.0
     # inference_accelerator = SimpleFixedPoint(adc_bits=12, dac_bits=12, read_noise=0, write_noise=10, stuck_percentage=0.05)
-    inference_accelerator = SimpleFixedPoint(adc_bits=12, dac_bits=12, read_noise=0, write_noise=0, stuck_percentage=0.0)
+    inference_accelerator = SimpleFixedPoint(g_min=g_min, g_max=g_max, adc_bits=12, dac_bits=12, read_noise=0, write_noise=0, 
+                                             stuck_percentage=0.2, 
+                                             weight_encoding_scheme=weight_encoding_scheme, 
+                                             xb_mapping_scheme=mapping_scheme)
 
     # todo: weight_range should be selectable from here
     # todo: rename device_type to device
@@ -136,20 +148,25 @@ if __name__ == '__main__':
 
     print('inferencing on a XBAR')
 
-    model.initialize_array_mappings()
-
-    inference_accelerator.plot_array()
-
     model.xb_eval() # function added if patching successful
 
-    cycles = 1
+    cycles = 10
     accs = np.zeros((cycles, 2))
     for cycle in range(cycles):
+
+        model.initialize_array_mappings(output_polling_mode=output_polling_mode)
+
+        # inference_accelerator.plot_array()
+        print('Errors', compute_error(model))
         acc = test_classifier(test_loader, model, device)
         drop = sw_acc - acc
         accs[cycle] = [acc, drop]
 
         print('Acc', acc, 'Drop from SW', drop)
+
+        inference_accelerator.initialize_chip()
+
+    print(np.average(accs[:, 0]))
 
         # for layer_idx_loop in layer_idxs:
         #     gneg, gpos, _ = inference_accelerator.get_hw_weights(named_params[layer_idx_loop][1].data)

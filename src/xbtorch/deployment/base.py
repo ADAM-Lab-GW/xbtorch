@@ -2,34 +2,37 @@ import abc
 import torch
 from qtorch.quant import fixed_point_quantize
 import numpy as np
-from xbtorch.deployment.mapping import get_random_index
+
+from xbtorch.deployment.mapping import map_random
+from xbtorch.deployment.encoding import encode_simple
 
 class GenericAccelerator(metaclass=abc.ABCMeta):
-    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, stuck_percentage=0.0, mapping_scheme='ternary'):
+    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, stuck_percentage=0.0, weight_encoding_scheme=encode_simple, xb_mapping_scheme=map_random):
         self.read_noise = read_noise
         self.write_noise = write_noise
         self.g_min = g_min
         self.g_max = g_max
         self.v_read = v_read
-        self.mapping_scheme = mapping_scheme
+        self.weight_encoding_scheme = weight_encoding_scheme
+        self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
-
-        if (mapping_scheme != 'ternary'):
-            raise ValueError("Not supported at the moment")
     
-        columns, rows = 500, 1000
-        self.chip = torch.ones((columns, rows)) * self.g_min
+        self.columns, self.rows = 400, 400
 
         self.stuck_low = 0
         self.stuck_high = self.g_max * 2
 
         # Create defect map
         # TODO: Separate out defect maps
-        self.defect_map = self.gen_defect_map(stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
-        self.chip[self.defect_map[0]] = self.defect_map[1]
 
-        # Array Mapping
-        self.get_map_idxs = get_random_index
+        self.name = f'cols_{self.columns}_row_{self.rows}_stuck_{self.stuck_percentage}'
+
+        self.initialize_chip()
+
+    def initialize_chip(self):
+        self.chip = torch.ones((self.columns, self.rows)) * self.g_min
+        self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
+        self.chip[self.defect_map[0]] = self.defect_map[1]
 
     def gen_defect_map(self, stuck_percentage):
 
@@ -48,38 +51,30 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         # self.chip[defect_indices] = defect_values
         return defect_indices, defect_values
 
-    def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[]):
+    def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[]):        
         # Calculate Gpos and Gneg matrices for the given sw_weight matrix and map on to the array at specified idxs
-        # ternary mapping scheme
-        Gpos = torch.clone(sw_weight)
-        Gneg = torch.clone(sw_weight)
-
         # the weight magnitude can technically be multiplied by the G matrices
         # alternately, input voltages can be scaled, which is better because it gives more control over G matrix values
-        Gpos[Gpos > 0] = self.g_max
-        Gpos[Gpos < 0] = self.g_min
+        # Finally, map the Gpos and Gneg matrices to the chip, possibly more than once
+        
+        Gposs, Gnegs =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs)
 
-        Gneg[Gneg > 0] = self.g_min
-        Gneg[Gneg < 0] = self.g_max
+        for i, pos_idx in enumerate(pos_idxs):
+            if (self.write_noise > 0):
+                # modelled as normally distributed
+                noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
+                Gposs[i] = Gposs[i] + noise
 
-        Gpos[Gpos == 0] = self.g_min
-        Gneg[Gneg == 0] = self.g_min
+            self.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]] = Gposs[i]
 
-        if (self.write_noise > 0):
-            # modelled as normally distributed
-            noise = torch.randn_like(Gpos) * self.write_noise + 0.0 # 0 mean
-            Gpos = Gpos + noise
-            noise = torch.randn_like(Gneg) * self.write_noise + 0.0 # 0 mean
-            Gneg = Gneg + noise
+        for i, neg_idx in enumerate(neg_idxs):
 
-        # Finally, map the Gpos and Gneg matrices to the chip
-        # naive mapping - single
-        # map Gon
-        pos_idx = pos_idxs[0]
-        self.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]] = Gpos
+            if (self.write_noise > 0):
+                # modelled as normally distributed
+                noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
+                Gnegs[i] = Gnegs[i] + noise
 
-        neg_idx = neg_idxs[0]
-        self.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]] = Gneg
+            self.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]] = Gnegs[i]
 
         # Add back defect map information
         self.chip[self.defect_map[0]] = self.defect_map[1]
@@ -111,8 +106,8 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
 class SimpleFixedPoint(GenericAccelerator):
 
-    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, write_noise=0, stuck_percentage=0.0, mapping_scheme='ternary'):
-        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stuck_percentage=stuck_percentage, mapping_scheme=mapping_scheme)
+    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, write_noise=0, stuck_percentage=0.0, xb_mapping_scheme=map_random, weight_encoding_scheme='regular'):
+        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stuck_percentage=stuck_percentage, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
 
@@ -126,8 +121,8 @@ class SimpleFixedPoint(GenericAccelerator):
 
 
 class Daffodil(GenericAccelerator):
-    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, mapping_scheme='ternary'):
-        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, mapping_scheme)
+    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, xb_mapping_scheme=map_random):
+        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, xb_mapping_scheme)
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation

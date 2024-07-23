@@ -39,21 +39,36 @@ def xbtorch_layer(cls):
             alpha = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-alpha, 0, alpha], and so it's important to scale either G matrices or input voltage vector
             # gneg, gpos, _ = self.inference_accelerator._get_hw_weights(sw_weight)
             # gneg, gpos = self.gneg, self.gpos # access G matrices (that already have device defects/ensembling parameters applied)
-
-            pos_idxs = self._array_mappings['Gpos']
-            neg_idxs = self._array_mappings['Gneg']
-
-            pos_idx = pos_idxs[0]
-            gpos = self.inference_accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
-
-            neg_idx = neg_idxs[0]
-            gneg = self.inference_accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
                 
             # convert inputs to voltages, then quantize to DAC-based precision
             input_voltages = input * v_read * alpha
             input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
-            # pass to the crossbar, perform VMM
-            output = input_voltages @ gpos.T - input_voltages @ gneg.T
+
+            pos_idxs = self._array_mappings['Gpos']
+            neg_idxs = self._array_mappings['Gneg']
+        
+            # pass to the crossbar, perform VMM, averaging/summing over multiple instances
+            pos_outputs = []
+            neg_outputs = []
+
+            # Todo: can be possibly batched and made faster by using torch.bmm
+            for pos_idx in pos_idxs:
+                gpos = self.inference_accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
+                pos_outputs.append(input_voltages @ gpos.T)
+
+            for neg_idx in neg_idxs:
+                gneg = self.inference_accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
+                neg_outputs.append(input_voltages @ gneg.T)
+
+            # Convert the list of tensors to a single tensor
+            pos_outputs = torch.stack(pos_outputs)
+            neg_outputs = torch.stack(neg_outputs)
+
+            # for MAO, this has to be sum, for regular mapping, this will be average
+            if (self._array_mappings['output_polling_mode'] == 'avg'):
+                output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
+            else:
+                output = torch.sum(pos_outputs, dim=0) - torch.sum(neg_outputs, dim=0)
             # readback currents from ADC by simulated quantization again
             output = self.inference_accelerator.ADC_quantize(output)
             output = output / (gnorm_scale * g_norm * v_read)

@@ -64,21 +64,37 @@ def xbtorch_model(original_model):
             for module in original_model.model:
                 module._xb_inference = True
 
-        def initialize_array_mappings():
+        def initialize_array_mappings(output_polling_mode='avg'):
+            # reset/initialize mappings of this layer on the simulated crossbar
             original_model._array_mappings_all = []
+
+            if (output_polling_mode not in ['avg', 'sum']):
+                raise ValueError("Invalid output polling mode provided. Valid options are `avg` and `sum`.")
+
             for module in original_model.model:
                 if (hasattr(module, '_array_mappings')):
                     sw_weight = module.weight.data
 
-                    pos_idxs, neg_idxs = xb_inference_accelerator.get_map_idxs(chip_shape=xb_inference_accelerator.chip.shape, 
+                    # get indices where the conductance matrices will be mapped on the simulated xbar
+                    # xb_mapping_schemes = ['random', 'layer_ensemble'] etc.
+                    pos_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 
                                                                                 layer_shape=sw_weight.shape, 
                                                                                 current_mappings=original_model._array_mappings_all)
+                    
+                    neg_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 
+                                                            layer_shape=sw_weight.shape, 
+                                                            current_mappings=original_model._array_mappings_all)
 
+                    # map the sw_weight matrix to the simulated array as device conductances at indices extracted above
+                    # internally handles conversion of the sw_weight matrix to conductance matrices
+                    # weight_encoding_schemes = ['regular', 'MAO']
                     xb_inference_accelerator.map_weights_to_array(sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs)
                     
+                    # Attach information to layer for output gathering for inference
                     module._array_mappings['Gpos'] = pos_idxs
                     module._array_mappings['Gneg'] = neg_idxs
 
+                    module._array_mappings['output_polling_mode'] = output_polling_mode
         # attach new methods to the model
         original_model.xb_eval = toggle
         original_model.initialize_array_mappings = initialize_array_mappings
