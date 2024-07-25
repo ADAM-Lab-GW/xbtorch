@@ -17,10 +17,12 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
     
-        self.columns, self.rows = 400, 400
+        self.columns, self.rows = 800, 800
 
-        self.stuck_low = 0
-        self.stuck_high = self.g_max * 2
+        # self.stuck_low = 0
+        # self.stuck_high = self.g_max * 2
+        self.stuck_low = g_min
+        self.stuck_high = g_max
 
         # Create defect map
         # TODO: Separate out defect maps
@@ -30,7 +32,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.initialize_chip()
 
     def initialize_chip(self):
-        self.chip = torch.ones((self.columns, self.rows)) * self.g_min
+        self.chip = torch.ones((self.columns, self.rows)) * -1 # uninitialized devices
         self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
         self.chip[self.defect_map[0]] = self.defect_map[1]
 
@@ -45,10 +47,11 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         )
 
         # the devices will be randomly stuck high or low
-        defect_values = torch.randint(self.stuck_low, 2, (num_elements,), dtype=torch.float32) * self.stuck_high
+        defect_values = torch.randint(0, 2, (num_elements,), dtype=torch.float32)
 
-        # Set the values at those indices to 0
-        # self.chip[defect_indices] = defect_values
+        defect_values[defect_values == 0] = self.stuck_low
+        defect_values[defect_values == 1] = self.stuck_high
+
         return defect_indices, defect_values
 
     def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[]):        
@@ -56,7 +59,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         # the weight magnitude can technically be multiplied by the G matrices
         # alternately, input voltages can be scaled, which is better because it gives more control over G matrix values
         # Finally, map the Gpos and Gneg matrices to the chip, possibly more than once
-        
+
         Gposs, Gnegs =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs)
 
         for i, pos_idx in enumerate(pos_idxs):
@@ -76,7 +79,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
             self.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]] = Gnegs[i]
 
-        # Add back defect map information
+        # Add back defect map information in case the outer method attempted to do an illegal assignment
         self.chip[self.defect_map[0]] = self.defect_map[1]
 
     @abc.abstractmethod

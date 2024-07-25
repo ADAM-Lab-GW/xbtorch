@@ -51,6 +51,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--model', default='mlp')
 
+    parser.add_argument('--weight_encoding_scheme', default='simple')
+    parser.add_argument('--xb_mapping_scheme', default='random')
+    parser.add_argument('--beta', default=1, type=int, help='Redundancy Ratio')
+    parser.add_argument('--stuck_percentage', default=0.0, type=float, help='What % of devices in the simulated chip should have stuck-at-faults?')
+
     args = parser.parse_args()
 
     print('parsed args', args)
@@ -83,9 +88,17 @@ if __name__ == '__main__':
     g_min = 133
     g_max = 233
 
-    # weight_encoding_scheme = encode_simple
-    weight_encoding_scheme = encode_MAO
-    mapping_scheme = partial(map_random, beta=2)
+    if args.xb_mapping_scheme == 'random':
+        mapping_scheme = partial(map_random, beta=args.beta)
+    else:
+        raise ValueError("Undefined XB mapping scheme")
+    
+    if (args.weight_encoding_scheme == 'simple'):
+        weight_encoding_scheme = encode_simple
+    elif (args.weight_encoding_scheme == 'MAO'):
+        weight_encoding_scheme = encode_MAO
+    else:
+        raise ValueError("Undefined weight encoding scheme")
 
     output_polling_mode = 'sum' if weight_encoding_scheme == encode_MAO else 'avg'
 
@@ -93,7 +106,7 @@ if __name__ == '__main__':
     # inference_accelerator = Daffodil(g_min=g_min, g_max=g_max, v_read=0.3) # 300, 450 for Vgs 2.0
     # inference_accelerator = SimpleFixedPoint(adc_bits=12, dac_bits=12, read_noise=0, write_noise=10, stuck_percentage=0.05)
     inference_accelerator = SimpleFixedPoint(g_min=g_min, g_max=g_max, adc_bits=12, dac_bits=12, read_noise=0, write_noise=0, 
-                                             stuck_percentage=0.2, 
+                                             stuck_percentage=args.stuck_percentage, 
                                              weight_encoding_scheme=weight_encoding_scheme, 
                                              xb_mapping_scheme=mapping_scheme)
 
@@ -150,23 +163,24 @@ if __name__ == '__main__':
 
     model.xb_eval() # function added if patching successful
 
-    cycles = 10
-    accs = np.zeros((cycles, 2))
+    cycles = 20
+    accs = np.zeros((cycles, 4)) # instead of 4, it should be 2 + num of layers for which error is being computed
     for cycle in range(cycles):
 
         model.initialize_array_mappings(output_polling_mode=output_polling_mode)
 
         # inference_accelerator.plot_array()
-        print('Errors', compute_error(model))
+        errors = compute_error(model)
+        print('Errors', errors)
         acc = test_classifier(test_loader, model, device)
         drop = sw_acc - acc
-        accs[cycle] = [acc, drop]
+        accs[cycle] = [acc, drop, np.min(errors[0]), np.min(errors[1])]
 
         print('Acc', acc, 'Drop from SW', drop)
 
         inference_accelerator.initialize_chip()
 
-    print(np.average(accs[:, 0]))
+    np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}.txt', accs)
 
         # for layer_idx_loop in layer_idxs:
         #     gneg, gpos, _ = inference_accelerator.get_hw_weights(named_params[layer_idx_loop][1].data)
