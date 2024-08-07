@@ -36,6 +36,8 @@ def xbtorch_layer(cls):
 
             sw_weight = self.weight.data
 
+            
+
             alpha = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-alpha, 0, alpha], and so it's important to scale either G matrices or input voltage vector
             # gneg, gpos, _ = self.inference_accelerator._get_hw_weights(sw_weight)
             # gneg, gpos = self.gneg, self.gpos # access G matrices (that already have device defects/ensembling parameters applied)
@@ -53,11 +55,13 @@ def xbtorch_layer(cls):
 
             # Todo: can be possibly batched and made faster by using torch.bmm
             for pos_idx in pos_idxs:
-                gpos = self.inference_accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
+                # gpos = self.inference_accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
+                gpos = self.inference_accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
                 pos_outputs.append(input_voltages @ gpos.T)
 
             for neg_idx in neg_idxs:
-                gneg = self.inference_accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
+                # gneg = self.inference_accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
+                gneg = self.inference_accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
                 neg_outputs.append(input_voltages @ gneg.T)
 
             # Convert the list of tensors to a single tensor
@@ -70,7 +74,7 @@ def xbtorch_layer(cls):
             else:
                 output = torch.sum(pos_outputs, dim=0) - torch.sum(neg_outputs, dim=0)
             # readback currents from ADC by simulated quantization again
-            output = self.inference_accelerator.ADC_quantize(output)
+            output = self.inference_accelerator.ADC_quantize(output) # equivalent to optimizing the TIA potentiometer resistance. ADC quantization 
             output = output / (gnorm_scale * g_norm * v_read)
             if (self.bias): output += self.bias.data
             return output
@@ -122,12 +126,12 @@ def xbtorch_optimizer(cls):
                     if isinstance(self, torch.optim.SGD):
                         if hasattr(self, 'state'):
                             for state in self.state.values():
-                                if state['momentum_buffer']:
+                                if state['momentum_buffer'] is not None:
                                     # Apply the operation to the momentum buffer
                                     state['momentum_buffer'] = self.wage_params['quantizer_grad'](state['momentum_buffer'], lr)
                     elif isinstance(self, torch.optim.Adam):
                         for state in self.state.values():
-                            if state['exp_avg']:
+                            if state['exp_avg'] is not None:
                                 # Apply the operation to the first moment estimate
                                 state['exp_avg'] = self.wage_params['quantizer_grad'](state['exp_avg'], lr)
                             if state['exp_avg_sq'] in state:

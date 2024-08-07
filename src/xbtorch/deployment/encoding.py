@@ -2,6 +2,7 @@ import torch
 import numpy as np 
 import math
 from .metrics import error_mapping
+
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
 def encode_simple(accelerator, sw_weight, pos_idxs=[], neg_idxs=[]):
 
@@ -62,7 +63,8 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, lo
                     Gposs[k, i, j] = accelerator.g_max
                 else:
                     # if stuck, mirror
-                    Gposs[k, i, j] = accelerator.chip[Gpos_device_idx[0], Gpos_device_idx[1]]
+                    Gposs[k, i, j] = accelerator.read_chip(Gpos_device_idx[0], 1, Gpos_device_idx[1], 1)#accelerator.chip[Gpos_device_idx[0], Gpos_device_idx[1]]
+                    # Gposs[k, i, j] = accelerator._chip[Gpos_device_idx[0], Gpos_device_idx[1]]
 
                 # then, for Gneg matrices
                 Gneg_device_idx = (i + neg_idxs[k][0], j + neg_idxs[k][1])
@@ -70,7 +72,8 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, lo
                     Gnegs[k, i, j] = accelerator.g_min
                 else:
                     # if stuck, mirror
-                    Gnegs[k, i, j] = accelerator.chip[Gneg_device_idx[0], Gneg_device_idx[1]]
+                    Gnegs[k, i, j] = accelerator.read_chip(Gneg_device_idx[0], 1, Gneg_device_idx[1], 1)#accelerator.chip[Gneg_device_idx[0], Gneg_device_idx[1]]
+                    # Gnegs[k, i, j] = accelerator._chip[Gneg_device_idx[0], Gneg_device_idx[1]]
     
     # Line 11-19
     for i in range(sw_weight.shape[0]):
@@ -101,7 +104,6 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, lo
 
                     optimal_G = (sw_parameter / alpha) * gnorm + Gneg_sum - Gpos_sum + Gposs[k, i, j]
                     optimal_G = quantize_to_nearest(x=optimal_G.numpy(), G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
-                    # optimal_G = np.clip(optimal_G, accelerator.g_min, accelerator.g_max)
                     Gposs[k, i, j] = optimal_G
                     if log: print(k, 'adjusted Gpos', Gposs[k, i, j])
 
@@ -113,7 +115,6 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, lo
 
                     optimal_G = - ((sw_parameter / alpha) * gnorm - Gpos_sum + Gneg_sum - Gnegs[k, i, j])
                     optimal_G = quantize_to_nearest(x=optimal_G.numpy(), G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
-                    # optimal_G = np.clip(optimal_G, accelerator.g_min, accelerator.g_max)
                     Gnegs[k, i, j] = optimal_G
                     if log: print(k, 'adjusted Gneg', Gnegs[k, i, j])
 

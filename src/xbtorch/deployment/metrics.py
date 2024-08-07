@@ -35,11 +35,13 @@ def error_mapping(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], pos_matrices
         gnegs = []
 
         for pos_idx in pos_idxs:
-            gpos = accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
+            # gpos = accelerator._chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
+            gpos = accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
             gposs.append(gpos)
 
         for neg_idx in neg_idxs:
-            gneg = accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
+            # gneg = accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
+            gneg = accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
             gnegs.append(gneg)
     else:
         gposs = pos_matrices

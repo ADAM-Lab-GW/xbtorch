@@ -18,7 +18,6 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.stuck_percentage = stuck_percentage
     
         self.columns, self.rows = 800, 800
-
         # self.stuck_low = 0
         # self.stuck_high = self.g_max * 2
         self.stuck_low = g_min
@@ -32,18 +31,27 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.initialize_chip()
 
     def initialize_chip(self):
-        self.chip = torch.ones((self.columns, self.rows)) * -1 # uninitialized devices
+        self._chip = torch.ones((self.columns, self.rows)) * -1 # uninitialized devices
         self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
-        self.chip[self.defect_map[0]] = self.defect_map[1]
+        self._chip[self.defect_map[0]] = self.defect_map[1]
+
+    def read_chip(self, row, n_rows, col, n_cols, fast_mode=True):
+        subarray = self._chip[row:row+n_rows, col:col+n_cols]
+        noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
+        if (fast_mode): return subarray + noise
+        else:
+            # TODO: apply V_read row/column wise to the subarray, and extract G from it.
+            raise ValueError("Not implemented")
+            return 
 
     def gen_defect_map(self, stuck_percentage):
 
         # Define the number of random indices to generate
-        num_elements = int(stuck_percentage * self.chip.numel())
+        num_elements = int(stuck_percentage * self._chip.numel())
 
         # Generate random indices
         defect_indices = np.unravel_index(
-            np.random.choice(self.chip.shape[0] * self.chip.shape[1], num_elements, replace=False), (self.chip.shape[0], self.chip.shape[1])
+            np.random.choice(self._chip.shape[0] * self._chip.shape[1], num_elements, replace=False), (self._chip.shape[0], self._chip.shape[1])
         )
 
         # the devices will be randomly stuck high or low
@@ -68,7 +76,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
                 Gposs[i] = Gposs[i] + noise
 
-            self.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]] = Gposs[i]
+            self._chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]] = Gposs[i]
 
         for i, neg_idx in enumerate(neg_idxs):
 
@@ -77,10 +85,10 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
                 Gnegs[i] = Gnegs[i] + noise
 
-            self.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]] = Gnegs[i]
+            self._chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]] = Gnegs[i]
 
         # Add back defect map information in case the outer method attempted to do an illegal assignment
-        self.chip[self.defect_map[0]] = self.defect_map[1]
+        self._chip[self.defect_map[0]] = self.defect_map[1]
 
     @abc.abstractmethod
     def DAC_quantize(self, vector):
@@ -100,9 +108,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         plt.xlabel('Column #')
         plt.ylabel('Row #')
 
-        xedges = list(range(self.chip.shape[0]))
-        yedges = list(range(self.chip.shape[1]))
-        surf = plt.pcolormesh(xedges, yedges, self.chip.T,  alpha=1, antialiased=True, linewidth=0.0, zorder=-1)
+        xedges = list(range(self._chip.shape[0]))
+        yedges = list(range(self._chip.shape[1]))
+        surf = plt.pcolormesh(xedges, yedges, self._chip.T,  alpha=1, antialiased=True, linewidth=0.0, zorder=-1)
         surf.set_edgecolor('face')
         plt.axis('image')
         plt.show()
@@ -116,11 +124,13 @@ class SimpleFixedPoint(GenericAccelerator):
 
     def DAC_quantize(self, vector):
         # given a full-precision voltage vector, quantize based on DAC precisions
-        return fixed_point_quantize(vector, wl=self.dac_bits, fl=self.dac_bits-1, symmetric=True)
+        max_val = torch.max(vector)
+        return max_val * fixed_point_quantize(vector / max_val, wl=self.dac_bits, fl=self.dac_bits-1, symmetric=True)
 
     def ADC_quantize(self, vector):
         # given a full-precision voltage vector, quantize based on DAC precisions
-        return fixed_point_quantize(vector, wl=self.adc_bits, fl=self.adc_bits-1, symmetric=True)
+        max_val = torch.max(vector)
+        return max_val * fixed_point_quantize(vector / max_val, wl=self.adc_bits, fl=self.adc_bits-1, symmetric=True)
 
 
 class Daffodil(GenericAccelerator):
@@ -184,8 +194,8 @@ class Daffodil(GenericAccelerator):
 
         # simulate read noise
         # Generate uniform noise in the specified range
-        noise = torch.empty_like(currents).uniform_(-self.read_noise, self.read_noise)
+        # noise = torch.empty_like(currents).uniform_(-self.read_noise, self.read_noise)
 
-        currents = currents + noise
+        # currents = currents + noise
 
         return currents
