@@ -15,7 +15,7 @@ from xbtorch.devices import AnalyticalIdeal, AnalyticalReal, TabularAnalyticalRe
 from xbtorch.patches import xbtorch_model
 from xbtorch.nn.models import SimpleMLP
 
-from xbtorch.devices.utils import test_classifier, train_classifier, print_num_unique_values
+from xbtorch.nn.utils import test_classifier, train_classifier, print_num_unique_values
 
 import configargparse as argparse
 from datetime import datetime
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     
     # WAGE Quantization params
-    parser.add_argument('--wage_quantize', default=True, action='store_true')
+    parser.add_argument('--wage_quantize', default=False, action='store_true')
     parser.add_argument('--wl_weight', type = int, default=2)
     parser.add_argument('--wl_activation', type = int, default=8)
     parser.add_argument('--wl_grad', type = int, default=8)
@@ -103,8 +103,6 @@ if __name__ == '__main__':
     parser.add_argument('--log_loss_landscape', default = False, action='store_true')
     parser.add_argument('--loss_reduction_method', default = 'pca')
 
-    # Tasks for FeFET Jump Tables IEEE NANO - NANOARCH 2024 follow up
-    parser.add_argument('--stuck_percent_all', default=0.0, type=float)
     parser.add_argument('--fixed_all', default=False, action='store_true')
 
     args = parser.parse_args()
@@ -178,7 +176,7 @@ if __name__ == '__main__':
     # Define transforms to apply to the data
     transform = transforms.Compose([
         transforms.ToTensor(),  # Convert images to tensors
-        transforms.CenterCrop((18, 18)),
+        # transforms.CenterCrop((18, 18)),
         transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
     ])
 
@@ -191,8 +189,8 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=10000, shuffle=False, generator=torch.Generator(device=device), num_workers=4)
 
     # Define the model
-    input_size = 18 * 18  
-    hidden_size = 50
+    input_size = 28 * 28  
+    hidden_size = 150
     output_size = 10
 
     # Model
@@ -205,6 +203,7 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
 
     lr = args.lr
+    lr_decay_rate = 0.95
     optimizer = xboptim.SGD(model.parameters(), lr=lr)
 
     start = time.time()
@@ -213,13 +212,13 @@ if __name__ == '__main__':
 
         if (args.log_data): torch.save(model.state_dict(), f'{args.out_dir}/statedict_epoch{epoch}.pt')
 
-        loss = train_classifier(train_loader, model, criterion, optimizer, epoch, args.epochs, device)
+        loss = train_classifier(train_loader, model, criterion, optimizer, epoch, args.epochs, device, lr_decay_rate=lr_decay_rate)
         acc = test_classifier(test_loader, model, device)
 
         elapsed_time = time.time() - start
 
-        # print_num_unique_values(list(model.named_parameters())[0][1].data)
-        # print_num_unique_values(list(model.named_parameters())[1][1].data)
+        print_num_unique_values(list(model.named_parameters())[0][1].data)
+        print_num_unique_values(list(model.named_parameters())[1][1].data)
 
     if (args.log_data): 
         torch.save(model.state_dict(), f'{args.out_dir}/statedict_epoch{epoch+1}.pt')

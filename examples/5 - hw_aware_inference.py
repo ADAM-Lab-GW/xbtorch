@@ -18,7 +18,7 @@ import xbtorch
 from xbtorch.devices import AnalyticalIdeal, AnalyticalReal, TabularAnalyticalReal, TabularCompactFeFETKriging, TabularExperimentalFemFETKriging
 from xbtorch.patches import xbtorch_model
 
-from xbtorch.devices.utils import test_classifier
+from xbtorch.nn.utils import test_classifier
 
 from xbtorch.deployment import Daffodil, SimpleFixedPoint, map_random, encode_simple, encode_MAO, compute_error
 # from xbtorch.mapping import map_random
@@ -30,6 +30,7 @@ from pathlib import Path
 from xbtorch.nn.models import SimpleMLP
 
 from functools import partial
+import torch.optim as optim
 
 if __name__ == '__main__':
 
@@ -41,7 +42,6 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0, help='random seed')
 
     # XBTorch params
-    parser.add_argument('--xb_patch_network', default=False, action='store_true')
     parser.add_argument('--xb_device_model', default=None) # used to figure out where the weights are for TNANO, should be modular
     # parser.add_argument('--experimental_vg', default='2.0') # used to figure out where the weights are for TNANO, should be modular
 
@@ -56,6 +56,17 @@ if __name__ == '__main__':
     parser.add_argument('--beta', default=1, type=int, help='Redundancy Ratio')
     parser.add_argument('--stuck_percentage', default=0.0, type=float, help='What % of devices in the simulated chip should have stuck-at-faults?')
 
+    # FTNNA parameters
+    parser.add_argument('--ftnna', default=False, action='store_true', help='Whether or not the FTNNA architecture should be tested')
+    parser.add_argument('--num_classifiers', type=int, default=7, 
+                        help='Number of classifiers. Default is 7.')
+    parser.add_argument('--hamming_distance', type=int, default=3, 
+                        help='Hamming distance for code-searching. Default is 3.')
+    parser.add_argument('--finetune_epochs', type=int, default=10, 
+                        help='Number of epochs for fine-tuning. Default is 10.')
+    parser.add_argument('--batch_size', type=int, default=64, 
+                        help='Batch size for fine-tune training. Default is 64.')
+    
     args = parser.parse_args()
 
     print('parsed args', args)
@@ -105,7 +116,9 @@ if __name__ == '__main__':
     print('gmin gmax', g_min, g_max)
     # inference_accelerator = Daffodil(g_min=g_min, g_max=g_max, v_read=0.3) # 300, 450 for Vgs 2.0
     # inference_accelerator = SimpleFixedPoint(adc_bits=12, dac_bits=12, read_noise=0, write_noise=10, stuck_percentage=0.05)
-    inference_accelerator = SimpleFixedPoint(g_min=g_min, g_max=g_max, adc_bits=12, dac_bits=12, read_noise=0, write_noise=0, 
+    inference_accelerator = SimpleFixedPoint(g_min=g_min, g_max=g_max, adc_bits=8, dac_bits=8, 
+                                             read_noise=20, 
+                                             write_noise=16.66, 
                                              stuck_percentage=args.stuck_percentage, 
                                              weight_encoding_scheme=weight_encoding_scheme, 
                                              xb_mapping_scheme=mapping_scheme)
@@ -121,7 +134,7 @@ if __name__ == '__main__':
     # Define transforms to apply to the data
     transform = transforms.Compose([
         transforms.ToTensor(),  # Convert images to tensors
-        transforms.CenterCrop((18, 18)),
+        # transforms.CenterCrop((18, 18)),
         transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
     ])
 
@@ -133,9 +146,15 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=10000, shuffle=False, generator=torch.Generator(device=device), num_workers=4)
 
     # Define the model
-    input_size = 18 * 18  
-    hidden_size = 50
+    input_size = 28 * 28  
+    hidden_size = 150
     output_size = 10
+
+
+    if (args.ftnna):
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device=device), num_workers=4)
+        import copy
+        from xbtorch.deployment import train_collaborative, test_collaborative, dnn_favorable_searching_code, CollaborativeLoss, add_collaborative_logistic_classifiers
 
     # Model
     if (args.model == 'mlp'): model = SimpleMLP(input_size, hidden_size, output_size).to(device)
@@ -157,13 +176,13 @@ if __name__ == '__main__':
 
     model.load_state_dict(torch.load(f'{args.in_dir}/statedict_epoch{epochs}.pt'))
 
-    sw_acc = test_classifier(test_loader, model, device)
+    sw_acc, conf_matrix = test_classifier(test_loader, model, device)
 
     print('inferencing on a XBAR')
 
     model.xb_eval() # function added if patching successful
 
-    cycles = 20
+    cycles = 5
     accs = np.zeros((cycles, 4)) # instead of 4, it should be 2 + num of layers for which error is being computed
     for cycle in range(cycles):
 
@@ -172,12 +191,36 @@ if __name__ == '__main__':
         # inference_accelerator.plot_array()
         errors = compute_error(model)
         print('Errors', errors)
-        acc = test_classifier(test_loader, model, device)
+        acc, _ = test_classifier(test_loader, model, device)
         drop = sw_acc - acc
         accs[cycle] = [acc, drop, np.min(errors[0]), np.min(errors[1])]
 
-        print('Acc', acc, 'Drop from SW', drop)
+        if (args.ftnna):
+            # Replace softmax classifiers with collaborative logistic classifiers
+            class_assignments, codeword_matrix = dnn_favorable_searching_code(conf_matrix, args.num_classifiers, hamming_distance=args.hamming_distance)
 
+            # Let's create a deep copy of the model
+            modified_model = copy.deepcopy(model)
+            
+            add_collaborative_logistic_classifiers(modified_model, args.num_classifiers)
+            
+            acc, _ = test_classifier(test_loader, modified_model, device)
+
+            collaborative_loss = CollaborativeLoss(codeword_matrix, modified_model)
+            optimizer = optim.Adam(modified_model.collaborative_classifier.parameters())
+
+            for epoch in range(args.finetune_epochs):
+                train_collaborative(modified_model, train_loader, optimizer, collaborative_loss, codeword_matrix, device)
+                accuracy = test_collaborative(modified_model, test_loader, codeword_matrix, device)
+                print(f"Fine-tune Epoch {epoch+1}/{args.finetune_epochs}, Accuracy: {accuracy:.4f}")
+
+            # Final evaluation
+            final_accuracy = test_collaborative(modified_model, test_loader, codeword_matrix, device)
+            print(f"Final Accuracy with Collaborative Logistic Classifiers: {final_accuracy:.4f}")
+
+            exit()
+        
+        print('Acc', acc, 'Drop from SW', drop)
         inference_accelerator.initialize_chip()
 
     np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}.txt', accs)
