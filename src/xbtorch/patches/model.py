@@ -64,17 +64,17 @@ def xbtorch_model(original_model):
             for module in original_model.model:
                 module._xb_inference = True
 
-        def initialize_array_mappings(output_polling_mode='avg'):
+        def initialize_array_mappings(output_polling_mode='avg', existing_mappings=[]):
+            # existing_mappings can be used as a reference to avoid conflicting mappings across unique models on the xb (primary use case: committee machines)
             # reset/initialize mappings of this layer on the simulated crossbar
-            original_model._array_mappings_all = []
+            original_model._array_mappings_all = existing_mappings
 
             if (output_polling_mode not in ['avg', 'sum']):
                 raise ValueError("Invalid output polling mode provided. Valid options are `avg` and `sum`.")
 
             for module in original_model.model:
                 if (hasattr(module, '_array_mappings')):
-                    sw_weight = module.weight.data
-
+                    sw_weight = module.weight.data # get weight data for this particular module (can be 1 or more weight matrices)
                     # get indices where the conductance matrices will be mapped on the simulated xbar
                     # xb_mapping_schemes = ['random', 'layer_ensemble'] etc.
                     pos_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 

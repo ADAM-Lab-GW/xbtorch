@@ -7,7 +7,7 @@ from xbtorch.deployment.mapping import map_random
 from xbtorch.deployment.encoding import encode_simple
 
 class GenericAccelerator(metaclass=abc.ABCMeta):
-    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, stuck_percentage=0.0, weight_encoding_scheme=encode_simple, xb_mapping_scheme=map_random):
+    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple, xb_mapping_scheme=map_random):
         self.read_noise = read_noise
         self.write_noise = write_noise
         self.g_min = g_min
@@ -17,11 +17,20 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
     
-        self.columns, self.rows = 800, 800
+        self.columns, self.rows = 2500, 2500
         # self.stuck_low = 0
         # self.stuck_high = self.g_max * 2
-        self.stuck_low = g_min
-        self.stuck_high = g_max
+        self.stuck_mode = stuck_mode
+        if stuck_mode == 'ideal':
+            self.stuck_low = g_min
+            self.stuck_high = g_max
+        elif stuck_mode == 'real':
+            # needs to be passed as args
+            self.stuck_low = 10
+            self.stuck_high = 500
+        else:
+            raise ValueError(f"Stuck mode {stuck_mode} not implemented")
+
 
         # Create defect map
         # TODO: Separate out defect maps
@@ -69,6 +78,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         # Finally, map the Gpos and Gneg matrices to the chip, possibly more than once
 
         Gposs, Gnegs =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs)
+        sw_weight_shape = sw_weight.shape
 
         for i, pos_idx in enumerate(pos_idxs):
             if (self.write_noise > 0):
@@ -76,7 +86,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
                 Gposs[i] = Gposs[i] + noise
 
-            self._chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]] = Gposs[i]
+            self._chip[pos_idx[0]:pos_idx[0]+sw_weight_shape[0], pos_idx[1]:pos_idx[1]+sw_weight_shape[1]] = Gposs[i]
 
         for i, neg_idx in enumerate(neg_idxs):
 
@@ -85,7 +95,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
                 Gnegs[i] = Gnegs[i] + noise
 
-            self._chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]] = Gnegs[i]
+            self._chip[neg_idx[0]:neg_idx[0]+sw_weight_shape[0], neg_idx[1]:neg_idx[1]+sw_weight_shape[1]] = Gnegs[i]
 
         # Add back defect map information in case the outer method attempted to do an illegal assignment
         self._chip[self.defect_map[0]] = self.defect_map[1]
@@ -117,8 +127,8 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
 class SimpleFixedPoint(GenericAccelerator):
 
-    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, write_noise=0, stuck_percentage=0.0, xb_mapping_scheme=map_random, weight_encoding_scheme='regular'):
-        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stuck_percentage=stuck_percentage, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme)
+    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, write_noise=0, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, weight_encoding_scheme='regular'):
+        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
 
@@ -134,8 +144,8 @@ class SimpleFixedPoint(GenericAccelerator):
 
 
 class Daffodil(GenericAccelerator):
-    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, xb_mapping_scheme=map_random):
-        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, xb_mapping_scheme)
+    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random):
+        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, xb_mapping_scheme)
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation

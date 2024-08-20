@@ -36,11 +36,7 @@ def xbtorch_layer(cls):
 
             sw_weight = self.weight.data
 
-            
-
             alpha = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-alpha, 0, alpha], and so it's important to scale either G matrices or input voltage vector
-            # gneg, gpos, _ = self.inference_accelerator._get_hw_weights(sw_weight)
-            # gneg, gpos = self.gneg, self.gpos # access G matrices (that already have device defects/ensembling parameters applied)
                 
             # convert inputs to voltages, then quantize to DAC-based precision
             input_voltages = input * v_read * alpha
@@ -55,12 +51,10 @@ def xbtorch_layer(cls):
 
             # Todo: can be possibly batched and made faster by using torch.bmm
             for pos_idx in pos_idxs:
-                # gpos = self.inference_accelerator.chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]
                 gpos = self.inference_accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
                 pos_outputs.append(input_voltages @ gpos.T)
 
             for neg_idx in neg_idxs:
-                # gneg = self.inference_accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]
                 gneg = self.inference_accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
                 neg_outputs.append(input_voltages @ gneg.T)
 
@@ -71,8 +65,10 @@ def xbtorch_layer(cls):
             # for MAO, this has to be sum, for regular mapping, this will be average
             if (self._array_mappings['output_polling_mode'] == 'avg'):
                 output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
-            else:
+            elif (self._array_mappings['output_polling_mode'] == 'sum'):
                 output = torch.sum(pos_outputs, dim=0) - torch.sum(neg_outputs, dim=0)
+            else:
+                raise ValueError("output_polling_mode not implemented")
             # readback currents from ADC by simulated quantization again
             output = self.inference_accelerator.ADC_quantize(output) # equivalent to optimizing the TIA potentiometer resistance. ADC quantization 
             output = output / (gnorm_scale * g_norm * v_read)

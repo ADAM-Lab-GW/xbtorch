@@ -111,7 +111,6 @@ if __name__ == '__main__':
     fixed_all = args.fixed_all
 
     if (fixed_all):
-        seed = 0
         torch.manual_seed(seed)
         np.random.seed(seed)
         random.seed(seed) # To control weight update jump table stochasticity
