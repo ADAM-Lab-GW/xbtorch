@@ -36,10 +36,10 @@ def xbtorch_layer(cls):
 
             sw_weight = self.weight.data
 
-            alpha = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-alpha, 0, alpha], and so it's important to scale either G matrices or input voltage vector
+            gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
                 
             # convert inputs to voltages, then quantize to DAC-based precision
-            input_voltages = input * v_read * alpha
+            input_voltages = input * v_read * gamma
             input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
 
             pos_idxs = self._array_mappings['Gpos']
@@ -67,6 +67,8 @@ def xbtorch_layer(cls):
                 output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
             elif (self._array_mappings['output_polling_mode'] == 'sum'):
                 output = torch.sum(pos_outputs, dim=0) - torch.sum(neg_outputs, dim=0)
+            elif (self._array_mappings['output_polling_mode'] == 'reduced_avg'):
+                output = torch.sum(pos_outputs * self._array_mappings['maskpos'], dim=0) / self._array_mappings['alpha'] - torch.sum(neg_outputs * self._array_mappings['maskneg'], dim=0) / self._array_mappings['alpha']
             else:
                 raise ValueError("output_polling_mode not implemented")
             # readback currents from ADC by simulated quantization again

@@ -64,12 +64,12 @@ def xbtorch_model(original_model):
             for module in original_model.model:
                 module._xb_inference = True
 
-        def initialize_array_mappings(output_polling_mode='avg', existing_mappings=[]):
+        def initialize_array_mappings(output_polling_mode='avg', existing_mappings=[], additional_args={}):
             # existing_mappings can be used as a reference to avoid conflicting mappings across unique models on the xb (primary use case: committee machines)
             # reset/initialize mappings of this layer on the simulated crossbar
             original_model._array_mappings_all = existing_mappings
 
-            if (output_polling_mode not in ['avg', 'sum']):
+            if (output_polling_mode not in ['avg', 'sum', 'reduced_avg']):
                 raise ValueError("Invalid output polling mode provided. Valid options are `avg` and `sum`.")
 
             for module in original_model.model:
@@ -88,13 +88,19 @@ def xbtorch_model(original_model):
                     # map the sw_weight matrix to the simulated array as device conductances at indices extracted above
                     # internally handles conversion of the sw_weight matrix to conductance matrices
                     # weight_encoding_schemes = ['regular', 'MAO']
-                    xb_inference_accelerator.map_weights_to_array(sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs)
+                    maskspos, masksneg = xb_inference_accelerator.map_weights_to_array(sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs, additional_args=additional_args)
                     
                     # Attach information to layer for output gathering for inference
                     module._array_mappings['Gpos'] = pos_idxs
                     module._array_mappings['Gneg'] = neg_idxs
 
                     module._array_mappings['output_polling_mode'] = output_polling_mode
+
+                    if (maskspos is not None and masksneg is not None):
+                        module._array_mappings['maskpos'] = maskspos.unsqueeze(1) # unsqueeze to allow broadcasting on batch dimension
+                        module._array_mappings['maskneg'] = masksneg.unsqueeze(1)
+                        module._array_mappings['alpha'] = additional_args['alpha']
+
         # attach new methods to the model
         original_model.xb_eval = toggle
         original_model.initialize_array_mappings = initialize_array_mappings

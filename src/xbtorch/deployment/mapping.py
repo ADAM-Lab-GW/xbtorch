@@ -85,6 +85,7 @@ def map_random(accelerator, layer_shape, beta=1, current_mappings=[]):
     Returns:
     tuple: Random starting index (row, col) within the original tensor
     """
+
     chip_rows, chip_cols = accelerator.rows, accelerator.columns
     layer_rows, layer_cols = layer_shape
     

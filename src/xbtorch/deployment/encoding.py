@@ -4,7 +4,7 @@ import math
 from .metrics import error_mapping
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
-def encode_simple(accelerator, sw_weight, pos_idxs=[], neg_idxs=[]):
+def encode_simple(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
 
     '''
     Given a weight matrix W, return conductances matrices G_pos and G_neg such that W ∝ (G_pos - G_neg) (all G_pos are the same, and all G_neg are the same)
@@ -23,13 +23,92 @@ def encode_simple(accelerator, sw_weight, pos_idxs=[], neg_idxs=[]):
     Gneg[Gneg == 0] = accelerator.g_min
 
     # Create copies corresponding to the times the matrix would be mapped
-    return [Gpos for _ in range(len(pos_idxs))], [Gneg for _ in range(len(neg_idxs))]
+    return [torch.clone(Gpos) for _ in range(len(pos_idxs))], [torch.clone(Gneg) for _ in range(len(neg_idxs))]
+
+# Weight encoding functions - how should a software weight matrix be converted to conductance matrices
+def encode_LEA(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
+
+    # an easy way to implement this would be to simply zero out device conductances that need to be discarded before averaging
+    # the problem with that is we'd end up violating devices on the simulated array
+    # so instead, we choose to keep the array as is, and mask out outputs before averaging
+    # in actual hw implementation, the mask out operation can be done directly by closing the gate on the output line (V_gate = 1.7 V for Daffodil), so this scheme really doesn't have a hardware overhead compared to simple averaging
+    # instead, it's likely more energy efficient since a fraction of rows on each crossbar are disabled
+    # let's first determine the ideal G matrices
+    # we can use the encode_simple scheme to accomplish this easily
+
+    # Necessary
+    beta = additional_args['beta']
+    alpha = additional_args['alpha']
+
+    assert alpha >= 1 and alpha <= beta
+
+    discard_row_count =  beta - alpha
+
+    Gposs, Gnegs = encode_simple(accelerator, sw_weight, pos_idxs=[0], neg_idxs=[0]) # indices are dummy arrays of len 1
+    ideal_Gs = [Gposs[0], Gnegs[0]]
+
+    # let's also retrieve the \beta defective copies
+    defective_Gss = [*encode_simple(accelerator, sw_weight, pos_idxs, neg_idxs)] # no longer a dummy array; actual mapped idxs, but these matrices are still ideal since encode_simple doesn't account for chip defects
+
+    # Have the defect map information in an easy-to-deal-with format
+    defect_map_zipped = list(zip(accelerator.defect_map[0][0], accelerator.defect_map[0][1]))
+    # In-fact, let's make it a hash table to make the lookups be constant, leads to a high improvement in program run-time
+    defect_map_zipped = set(defect_map_zipped)
+
+    for i in range(sw_weight.shape[0]):
+        for j in range(sw_weight.shape[1]):
+            # Loop over corresponding devices that would map this particular sw_parameter
+            # first, for Gpos matrices
+            for k in range(beta):
+                Gpos_device_idx = (i + pos_idxs[k][0], j + pos_idxs[k][1])
+
+                if (Gpos_device_idx in defect_map_zipped):
+                    defective_Gss[0][k][i, j] = accelerator.read_chip(Gpos_device_idx[0], 1, Gpos_device_idx[1], 1)
+
+                Gneg_device_idx = (i + neg_idxs[k][0], j + neg_idxs[k][1])
+                if (Gneg_device_idx in defect_map_zipped):
+                    defective_Gss[1][k][i, j] = accelerator.read_chip(Gneg_device_idx[0], 1, Gneg_device_idx[1], 1)
+
+    # next, we make these defective copies mirror actual defects from our simulated chip. In a HW implementation, this is a simple read operation.
+    # # Loop over network parameters
+    # Line 1-10: Unvectorized - much slower
+    masks = []
+    for idx, G in enumerate(ideal_Gs):
+        # A = ideal_Gs[idx]
+        defective_Gs = defective_Gss[idx]
+
+        # calculated summed G variation
+        diffs = []
+
+        for i in range(G.shape[0]):
+            row_diffs = [torch.sum(torch.abs(G[i] - B[i])) for B in defective_Gs]
+            diffs.append(torch.Tensor(row_diffs))
+
+        diffs = torch.stack(diffs)
+
+        _, rankings = torch.sort(diffs, dim=1)  # Rank in ascending order (lowest difference first)
+        mask = torch.ones((beta, G.shape[0]))
+
+        if (discard_row_count > 0):
+            for i in range(G.shape[0]):
+                # Identify the index of the most defective matrix for the current row
+                worst_index = rankings[i, -discard_row_count:]  # Last alpha indices corresponds to the alpha most defective
+                # Set the mask value for the alpha defective matrix to 0
+                mask[worst_index, i] = 0
+
+        # Masks computed
+        # TODO: Filenames for LEA should have alpha incorporated
+        masks.append(mask)
+
+    # Finally, return the original Gposs/Gnegs (still encode_simple), and the determined masks
+    Gposs, Gnegs = encode_simple(accelerator, sw_weight, pos_idxs, neg_idxs) 
+    return Gposs, Gnegs, masks[0], masks[1]
 
 def quantize_to_nearest(x, G_min, d, n):
     # O(1)
     return G_min + np.clip(round((x - G_min) / d), 0, n-1) * d
 
-def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, log=False):
+def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, additional_args={}, log=False):
     # Algorithm 1 - Mapping Algorithm with innter fault-tOlerance from: 
     # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7858421
 
@@ -64,7 +143,6 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, lo
                 else:
                     # if stuck, mirror
                     Gposs[k, i, j] = accelerator.read_chip(Gpos_device_idx[0], 1, Gpos_device_idx[1], 1)
-                    # Gposs[k, i, j] = accelerator._chip[Gpos_device_idx[0], Gpos_device_idx[1]]
 
                 # then, for Gneg matrices
                 Gneg_device_idx = (i + neg_idxs[k][0], j + neg_idxs[k][1])
@@ -73,7 +151,6 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, lo
                 else:
                     # if stuck, mirror
                     Gnegs[k, i, j] = accelerator.read_chip(Gneg_device_idx[0], 1, Gneg_device_idx[1], 1)
-                    # Gnegs[k, i, j] = accelerator._chip[Gneg_device_idx[0], Gneg_device_idx[1]]
     
     # Line 11-19
     for i in range(sw_weight.shape[0]):

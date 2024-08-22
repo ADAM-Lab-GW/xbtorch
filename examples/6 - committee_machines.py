@@ -91,7 +91,7 @@ if __name__ == '__main__':
     else:
         raise ValueError("Undefined weight encoding scheme")
 
-    read_noise = 20
+    read_noise = 10
     write_noise = 16.66
 
     print('gmin gmax', g_min, g_max)

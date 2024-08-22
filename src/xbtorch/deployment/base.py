@@ -4,7 +4,7 @@ from qtorch.quant import fixed_point_quantize
 import numpy as np
 
 from xbtorch.deployment.mapping import map_random
-from xbtorch.deployment.encoding import encode_simple
+from xbtorch.deployment.encoding import encode_simple, encode_LEA
 
 class GenericAccelerator(metaclass=abc.ABCMeta):
     def __init__(self, g_min, g_max, v_read, read_noise, write_noise, stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple, xb_mapping_scheme=map_random):
@@ -71,13 +71,15 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
         return defect_indices, defect_values
 
-    def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[]):        
+    def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):        
         # Calculate Gpos and Gneg matrices for the given sw_weight matrix and map on to the array at specified idxs
         # the weight magnitude can technically be multiplied by the G matrices
         # alternately, input voltages can be scaled, which is better because it gives more control over G matrix values
         # Finally, map the Gpos and Gneg matrices to the chip, possibly more than once
 
-        Gposs, Gnegs =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs)
+        encoded_return =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs, additional_args=additional_args)
+        Gposs, Gnegs = encoded_return[0], encoded_return[1]
+
         sw_weight_shape = sw_weight.shape
 
         for i, pos_idx in enumerate(pos_idxs):
@@ -99,6 +101,14 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
         # Add back defect map information in case the outer method attempted to do an illegal assignment
         self._chip[self.defect_map[0]] = self.defect_map[1]
+
+        masksposs, masksnegs = None, None
+
+        if (self.weight_encoding_scheme == encode_LEA):
+            # layer ensemble averaging
+            masksposs, masksnegs = encoded_return[2], encoded_return[3]
+
+        return masksposs, masksnegs
 
     @abc.abstractmethod
     def DAC_quantize(self, vector):

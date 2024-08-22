@@ -20,7 +20,7 @@ from xbtorch.patches import xbtorch_model
 
 from xbtorch.nn.utils import test_classifier
 
-from xbtorch.deployment import Daffodil, SimpleFixedPoint, map_random, encode_simple, encode_MAO, compute_error
+from xbtorch.deployment import Daffodil, SimpleFixedPoint, map_random, encode_simple, encode_MAO, encode_LEA, compute_error
 # from xbtorch.mapping import map_random
 
 import configargparse as argparse
@@ -60,6 +60,9 @@ if __name__ == '__main__':
     parser.add_argument('--stuck_percentage', default=0.0, type=float, help='What % of devices in the simulated chip should have stuck-at-faults?')
     parser.add_argument('--stuck_mode', default='real', type=str, help='Dictates how stuck devices are distributed, options: ideal or real')
 
+    # Params for LEA (Layer Ensemble Averaging)
+    parser.add_argument('--alpha', default=1, type=int, help='Out of \beta rows, how many should be used for actual averaging?')
+
     # Params for FTNNA
     parser.add_argument('--ftnna', default=False, action='store_true', help='Whether or not the FTNNA architecture should be tested')
     parser.add_argument('--num_classifiers', type=int, default=7, 
@@ -79,7 +82,6 @@ if __name__ == '__main__':
     fixed_all = args.fixed_all
 
     if (fixed_all):
-        seed = 0
         torch.manual_seed(seed)
         np.random.seed(seed)
         random.seed(seed) # To control weight update jump table stochasticity
@@ -108,17 +110,26 @@ if __name__ == '__main__':
     else:
         raise ValueError("Undefined XB mapping scheme")
     
+
+    additional_args = {}
+
     # output polling modes should be determined automatically based on the encoding scheme that is specified
+    # TODO: the output polling mode can simply be computed based on the weight encoding scheme, but we keep this as a todo iterm for later
     if (args.weight_encoding_scheme == 'simple'):
         weight_encoding_scheme = encode_simple
         output_polling_mode = 'avg'
     elif (args.weight_encoding_scheme == 'MAO'):
         weight_encoding_scheme = encode_MAO
         output_polling_mode = 'sum'
+    elif (args.weight_encoding_scheme == 'LEA'):
+        weight_encoding_scheme = encode_LEA
+        output_polling_mode = 'reduced_avg'
+        additional_args['alpha'] = args.alpha
+        additional_args['beta'] = args.beta
     else:
         raise ValueError("Undefined weight encoding scheme")
 
-    read_noise = 20
+    read_noise = 10
     write_noise = 16.66
 
     print('gmin gmax', g_min, g_max)
@@ -189,7 +200,7 @@ if __name__ == '__main__':
     accs = np.zeros((cycles, 4)) # instead of 4, it should be 2 + num of layers for which error is being computed
     for cycle in range(cycles):
 
-        model.initialize_array_mappings(output_polling_mode=output_polling_mode)
+        model.initialize_array_mappings(output_polling_mode=output_polling_mode, additional_args=additional_args, existing_mappings=[])
 
         # inference_accelerator.plot_array()
         errors = compute_error(model)
@@ -227,4 +238,7 @@ if __name__ == '__main__':
         if (args.ftnna):
             np.savetxt(f'ftnna_network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)
         else:
-            np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)
+            if (args.weight_encoding_scheme == 'LEA'):
+                np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_alpha{args.alpha}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)
+            else:
+                np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)
