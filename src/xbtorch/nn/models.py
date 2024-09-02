@@ -12,3 +12,19 @@ class SimpleMLP(nn.Module):
     def forward(self, x):
         x = self.model(x)
         return x
+    
+class YinYangMLP(nn.Module):
+    def __init__(self):
+        super(YinYangMLP, self).__init__()
+
+        self.model = nn.Sequential(
+            nn.Linear(4, 12),
+            nn.Tanh(),
+            nn.Linear(12, 6),
+            nn.Tanh(),
+            nn.Linear(6, 3)
+        )
+
+    def forward(self, x):
+        x = self.model(x)
+        return x

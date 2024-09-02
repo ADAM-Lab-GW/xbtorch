@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 import xbtorch
 
@@ -20,13 +20,12 @@ from xbtorch.patches import xbtorch_model
 
 from xbtorch.nn.utils import test_classifier
 
-from xbtorch.deployment import Daffodil, SimpleFixedPoint, map_random, encode_simple, encode_MAO, encode_LEA, compute_error
-# from xbtorch.mapping import map_random
+from xbtorch.deployment import SimpleFixedPoint, map_random, encode_simple, encode_MAO, encode_LEA1, encode_LEA2, compute_error
 
 import configargparse as argparse
 from datetime import datetime
 
-from xbtorch.nn.models import SimpleMLP
+from xbtorch.nn.models import SimpleMLP, YinYangMLP
 
 from functools import partial
 import torch.optim as optim
@@ -51,7 +50,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--in_dir', default='', help='directory where pre-trained weights are (out_dir from train_simple_mlp script)', required=True)
 
-    parser.add_argument('--model', default='mlp')
+    parser.add_argument('--model', default='mlp_mnist')
 
     # Common Params
     parser.add_argument('--weight_encoding_scheme', default='simple')
@@ -121,16 +120,82 @@ if __name__ == '__main__':
     elif (args.weight_encoding_scheme == 'MAO'):
         weight_encoding_scheme = encode_MAO
         output_polling_mode = 'sum'
-    elif (args.weight_encoding_scheme == 'LEA'):
-        weight_encoding_scheme = encode_LEA
+    elif (args.weight_encoding_scheme == 'LEA1'):
+        weight_encoding_scheme = encode_LEA1
+        output_polling_mode = 'reduced_avg'
+        additional_args['alpha'] = args.alpha
+        additional_args['beta'] = args.beta
+    elif (args.weight_encoding_scheme == 'LEA2'):
+        weight_encoding_scheme = encode_LEA2
         output_polling_mode = 'reduced_avg'
         additional_args['alpha'] = args.alpha
         additional_args['beta'] = args.beta
     else:
         raise ValueError("Undefined weight encoding scheme")
 
-    read_noise = 10
-    write_noise = 16.66
+    # Define the model
+    input_size = 28 * 28  
+    hidden_size = 150
+    output_size = 10
+
+    # load pre-trained weights
+    # Model
+    if (args.model == 'mlp_mnist'): model = SimpleMLP(input_size, hidden_size, output_size).to(device)
+    elif (args.model == 'mlp_yinyang'): model = YinYangMLP().to(device)
+    else: raise ValueError("Unspecified model")
+
+    # Load appropriate dataset
+    if (args.model == 'mlp_mnist'):
+        trained_with_wage = True # we set this to avoid mismatches between model state dicts, but we do not use wage quantization during the evaluation step
+        xb_size = (2500, 2500)
+
+        read_noise = 10
+        write_noise = 16.66
+
+        # wage_quantize = True # trained with wage quantization, so add this here to
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # Convert images to tensors
+            # transforms.CenterCrop((18, 18)),
+            transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
+        ])
+
+        # Load the MNIST training and test datasets
+        train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+        test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+        # Create data loaders for batching and shuffling
+        test_loader = DataLoader(test_dataset, batch_size=10000, shuffle=False, generator=torch.Generator(device=device), num_workers=4)
+
+        if (args.ftnna):
+            train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device=device), num_workers=4)
+            from xbtorch.deployment import train_collaborative, test_collaborative, dnn_favorable_searching_code, CollaborativeLoss, add_collaborative_logistic_classifiers
+
+    elif (args.model == 'mlp_yinyang'):
+        trained_with_wage = False
+        from yinyang_dataset import YinYangDataset
+        xb_size = (200, 200)
+
+        # Todo: Update
+        read_noise = 0
+        write_noise = 0
+
+        yinyang_train = YinYangDataset(size=5000, seed=42)
+        yinyang_validation = YinYangDataset(size=1000, seed=41)
+        yinyang_test = YinYangDataset(size=1000, seed=40)
+
+        yinyang2_train = YinYangDataset(size=5000, seed=42, offset=1)
+        yinyang2_validation = YinYangDataset(size=1000, seed=41, offset=1)
+        yinyang2_test = YinYangDataset(size=1000, seed=40, offset=1)
+
+        yinyang_testloader = DataLoader(yinyang_test, batch_size=len(yinyang_test), shuffle=False)
+        yinyang2_testloader = DataLoader(yinyang2_test, batch_size=len(yinyang_test), shuffle=False)
+
+        test_loader = [yinyang_testloader, yinyang2_testloader]
+
+        concat_test = ConcatDataset([yinyang_test, yinyang2_test])
+        test_loader = DataLoader(concat_test)
+
+        if (args.ftnna): raise ValueError("Not implemented")
 
     print('gmin gmax', g_min, g_max)
     # inference_accelerator = Daffodil(g_min=g_min, g_max=g_max, v_read=0.3) # 300, 450 for Vgs 2.0
@@ -138,6 +203,7 @@ if __name__ == '__main__':
     inference_accelerator = SimpleFixedPoint(g_min=g_min, g_max=g_max, adc_bits=8, dac_bits=8, 
                                              read_noise=read_noise, 
                                              write_noise=write_noise, 
+                                             xb_size=xb_size,
                                              stuck_percentage=args.stuck_percentage, 
                                              stuck_mode=args.stuck_mode,
                                              weight_encoding_scheme=weight_encoding_scheme, 
@@ -148,47 +214,19 @@ if __name__ == '__main__':
     xbtorch.initialize(
                        pytorch_device=device,
                        inference_accelerator=inference_accelerator,
-                       wage_quantize=True # we set this to avoid mismatches between model state dicts, but we do not use wage quantization during the evaluation step
+                       wage_quantize=trained_with_wage 
                        )
-
-    # Define transforms to apply to the data
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Convert images to tensors
-        # transforms.CenterCrop((18, 18)),
-        transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
-    ])
-
-    # Load the MNIST training and test datasets
-    train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-
-    # Create data loaders for batching and shuffling
-    test_loader = DataLoader(test_dataset, batch_size=10000, shuffle=False, generator=torch.Generator(device=device), num_workers=4)
-
-    # Define the model
-    input_size = 28 * 28  
-    hidden_size = 150
-    output_size = 10
-
-    if (args.ftnna):
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device=device), num_workers=4)
-        from xbtorch.deployment import train_collaborative, test_collaborative, dnn_favorable_searching_code, CollaborativeLoss, add_collaborative_logistic_classifiers
-
-    # load pre-trained weights
-    # Model
-    if (args.model == 'mlp'): model = SimpleMLP(input_size, hidden_size, output_size).to(device)
-    else: raise ValueError("Unspecified model")
 
     model_dir = args.in_dir
     model = xbtorch_model(model)
 
     files = glob.glob(f'{model_dir}/statedict_*.pt')
+    files.sort()
 
     # infer epochs
-    epochs = len(files) - 1
-    if (epochs < 1): raise ValueError("Unable to find pre-trained weights") # todo: should just load a state dict
+    if (len(files) < 1): raise ValueError("Unable to find pre-trained weights") # todo: should just load a state dict
 
-    model.load_state_dict(torch.load(f'{model_dir}/statedict_epoch{epochs}.pt'))
+    model.load_state_dict(torch.load(f'{files[-1]}'))
 
     print('inferencing default HWA trained weights')
     sw_acc, conf_matrix = test_classifier(test_loader, model, device)
@@ -238,7 +276,7 @@ if __name__ == '__main__':
         if (args.ftnna):
             np.savetxt(f'ftnna_network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)
         else:
-            if (args.weight_encoding_scheme == 'LEA'):
+            if (args.weight_encoding_scheme == 'LEA1' or args.weight_encoding_scheme == 'LEA2'):
                 np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_alpha{args.alpha}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)
             else:
                 np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}.txt', accs)

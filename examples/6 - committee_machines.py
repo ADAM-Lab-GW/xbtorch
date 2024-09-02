@@ -87,7 +87,7 @@ if __name__ == '__main__':
     # output polling modes should be determined automatically based on the encoding scheme that is specified
     if (args.weight_encoding_scheme == 'CM'):
         weight_encoding_scheme = encode_simple
-        output_polling_mode = 'sum' # doesn't really matter
+        output_polling_mode = 'avg' # doesn't really matter
     else:
         raise ValueError("Undefined weight encoding scheme")
 
@@ -168,6 +168,7 @@ if __name__ == '__main__':
         
         # providing this (used as a reference internally) ensures that subsequent models do not overlap with existing model mappings on the xbar
         existing_mappings = []
+        errors_all = []
         for idx, model in enumerate(all_models):
             model.xb_eval() # function added if patching successful        
             model.initialize_array_mappings(output_polling_mode=output_polling_mode, existing_mappings=existing_mappings)
@@ -175,12 +176,15 @@ if __name__ == '__main__':
         # Let's visualize the array
         # inference_accelerator.plot_array()
 
-        errors = compute_error(model)
+            errors = compute_error(model)
+            errors_all.append(errors)
+        
+        errors_all = np.average(errors_all, axis=0)
         print('Errors', errors)
         acc  = test_committee(test_loader, all_models, device)
         drop = sw_acc - acc
         
-        accs[cycle] = [acc, sw_acc - acc, np.min(errors[0]), np.min(errors[1])]
+        accs[cycle] = [acc, sw_acc - acc, np.min(errors_all[0]), np.min(errors_all[1])]
 
         print('Acc', acc, 'Drop from SW', drop)
         # re-initialize for next cycle

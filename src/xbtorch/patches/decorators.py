@@ -74,7 +74,8 @@ def xbtorch_layer(cls):
             # readback currents from ADC by simulated quantization again
             output = self.inference_accelerator.ADC_quantize(output) # equivalent to optimizing the TIA potentiometer resistance. ADC quantization 
             output = output / (gnorm_scale * g_norm * v_read)
-            if (self.bias): output += self.bias.data
+
+            if (self.bias is not None): output += self.bias.data
             return output
         else:
             self.weight.input = input

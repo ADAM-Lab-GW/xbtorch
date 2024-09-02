@@ -26,7 +26,7 @@ def encode_simple(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_a
     return [torch.clone(Gpos) for _ in range(len(pos_idxs))], [torch.clone(Gneg) for _ in range(len(neg_idxs))]
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
-def encode_LEA(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
+def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
 
     # an easy way to implement this would be to simply zero out device conductances that need to be discarded before averaging
     # the problem with that is we'd end up violating devices on the simulated array
@@ -102,6 +102,121 @@ def encode_LEA(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args
 
     # Finally, return the original Gposs/Gnegs (still encode_simple), and the determined masks
     Gposs, Gnegs = encode_simple(accelerator, sw_weight, pos_idxs, neg_idxs) 
+    return Gposs, Gnegs, masks[0], masks[1]
+
+
+def encode_LEA2(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, additional_args={}, log=False):
+
+    assert (len(pos_idxs) == len(neg_idxs))
+
+    # Initialize
+    Gposs = np.zeros((len(pos_idxs), *sw_weight.shape))
+    Gnegs = np.zeros((len(neg_idxs), *sw_weight.shape))
+
+    # Have the defect map information in an easy-to-deal-with format
+    defect_map_zipped = list(zip(accelerator.defect_map[0][0], accelerator.defect_map[0][1]))
+    # In-fact, let's make it a hash table to make the lookups be constant, leads to a high improvement in program run-time
+    defect_map_zipped = set(defect_map_zipped)
+
+    # Params for sensing conductances correctly
+    gnorm =  (accelerator.g_max - accelerator.g_min)
+    alpha = abs(torch.unique(sw_weight)[-1])
+
+    G_states = np.linspace(accelerator.g_min, accelerator.g_max, states)
+    
+    # # Loop over network parameters
+    # Line 1-10: Unvectorized - much slower
+    for i in range(sw_weight.shape[0]):
+        for j in range(sw_weight.shape[1]):
+            # Loop over corresponding devices that would map this particular sw_parameter
+            # first, for Gpos matrices
+            for k in range(len(pos_idxs)):
+                Gpos_device_idx = (i + pos_idxs[k][0], j + pos_idxs[k][1])
+
+                if (Gpos_device_idx not in defect_map_zipped):
+                    Gposs[k, i, j] = accelerator.g_max
+                else:
+                    # if stuck, mirror
+                    Gposs[k, i, j] = accelerator.read_chip(Gpos_device_idx[0], 1, Gpos_device_idx[1], 1)
+
+                # then, for Gneg matrices
+                Gneg_device_idx = (i + neg_idxs[k][0], j + neg_idxs[k][1])
+                if (Gneg_device_idx not in defect_map_zipped):
+                    Gnegs[k, i, j] = accelerator.g_min
+                else:
+                    # if stuck, mirror
+                    Gnegs[k, i, j] = accelerator.read_chip(Gneg_device_idx[0], 1, Gneg_device_idx[1], 1)
+    
+    beta = len(pos_idxs)
+
+    # Line 11-19
+    for i in range(sw_weight.shape[0]):
+        for j in range(sw_weight.shape[1]):
+            sw_parameter = sw_weight[i, j]
+
+            if (log):
+                print('\n', i, j)
+                print('original sw parameter', sw_parameter)
+                print('original HW parameter', (np.average(Gposs[:, i, j]) - np.average(Gnegs[:, i, j])) / gnorm * alpha)
+                print('original Gs', Gposs[:, i, j], Gnegs[:, i, j])
+
+            for k in range(len(pos_idxs)):
+                Gpos_device_idx = (i + pos_idxs[k][0], j + pos_idxs[k][1])
+                Gpos_stuck = Gpos_device_idx in defect_map_zipped
+
+                Gneg_device_idx = (i + neg_idxs[k][0], j + neg_idxs[k][1])
+                Gneg_stuck = Gneg_device_idx in defect_map_zipped
+
+                if (Gpos_stuck and Gneg_stuck):
+                    if (log): print('both stuck, continue')
+                    continue
+
+                if not Gpos_stuck:
+                    if log: print(k, 'adjusting Gpos', Gposs[k, i, j])
+
+
+                    diffs = []
+                    for candidate_G in G_states:
+                        diff = np.abs(sw_parameter - (( (np.average(Gposs[:, i, j]) - Gposs[k, i, j]/beta + candidate_G/beta) - np.average(Gnegs[:, i, j])) / gnorm * alpha))
+                        diffs.append(diff)
+
+                    optimal_G = G_states[np.argmin(diffs)]
+                    optimal_G = quantize_to_nearest(x=optimal_G, G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
+                    Gposs[k, i, j] = optimal_G
+                    if log: print(k, 'adjusted Gpos', Gposs[k, i, j])
+
+                if not Gneg_stuck:
+                    if log: print(k, 'adjusting Gneg', Gnegs[k, i, j])
+
+                    diffs = []
+                    for candidate_G in G_states:
+                        diff = np.abs(sw_parameter - ((np.average(Gposs[:, i, j]) - (np.average(Gnegs[:, i, j]) - Gnegs[k, i, j]/beta + candidate_G/beta)) / gnorm * alpha))
+                        diffs.append(diff)
+
+                    optimal_G = G_states[np.argmin(diffs)]
+                    optimal_G = quantize_to_nearest(x=optimal_G, G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
+                    Gnegs[k, i, j] = optimal_G
+                    if log: print(k, 'adjusted Gneg', Gnegs[k, i, j])
+
+            if (log):
+                print('adjusted sw parameter', sw_parameter)
+                print('adjusted HW parameter', (np.average(Gposs[:, i, j]) - np.average(Gnegs[:, i, j])) / gnorm * alpha)
+                exit()
+
+    # convert to pytorch tensors
+    Gposs = [torch.from_numpy(Gposs[k]) for k in range(Gposs.shape[0])]
+    Gnegs = [torch.from_numpy(Gnegs[k]) for k in range(Gnegs.shape[0])]
+
+    # return Gposs, Gnegs
+
+    masks = []
+    mask = torch.ones((len(pos_idxs), sw_weight.shape[0]))
+    # Masks computed
+    # Same for Gpos and Gneg in this scheme
+    masks.append(mask)
+    masks.append(torch.clone(mask))
+
+    # Finally, return the original Gposs/Gnegs (still encode_simple), and the determined masks
     return Gposs, Gnegs, masks[0], masks[1]
 
 def quantize_to_nearest(x, G_min, d, n):
