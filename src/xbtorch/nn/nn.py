@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from ..patches import decorators
 
@@ -20,3 +21,9 @@ class SelectLastStep(nn.Module):
         lstm_out, _ = x
         # Extract the last time step
         return lstm_out[:, -1, :]
+    
+def SSE(logits, label):
+    target = torch.zeros_like(logits)
+    target[torch.arange(target.size(0)).long(), label] = 1
+    out =  0.5*((logits-target)**2).sum()
+    return out

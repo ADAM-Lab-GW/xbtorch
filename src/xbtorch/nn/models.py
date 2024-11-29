@@ -67,6 +67,51 @@ class LeNet5(nn.Module):
     def forward(self, x):
         # Forward pass through the Sequential model
         return self.model(x)
+    
+class VGG(nn.Module):
+    def __init__(self, num_classes=10):
+        super(VGG, self).__init__()
+        # From: https://arxiv.org/pdf/1802.04680
+        # 2×(128C3)-MP2-2×(256C3)-MP2-2×(512C3)-MP2-1024FC-10SSE
+        self.model = nn.Sequential(
+            # Features
+
+            # Group 1
+            nn.Conv2d(3, 128, kernel_size=3, padding=1, bias=False),
+            nn.ReLU(),
+
+            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=False),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(),
+
+            # Group 2
+            nn.Conv2d(128, 256, kernel_size=3, padding=1, bias=False),
+            nn.ReLU(),
+
+            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=False),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(),
+
+            # Group 3
+            nn.Conv2d(256, 512, kernel_size=3, padding=1, bias=False),
+            nn.ReLU(),
+
+            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=False),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(),
+            
+            # Flatten layer to reshape the tensor
+            nn.Flatten(),
+            
+            # Classifier
+            nn.Linear(8192, 1024, bias=False),
+            nn.ReLU(),
+            nn.Linear(1024, num_classes, bias=False),
+        )
+        
+    def forward(self, x):
+        # Forward pass through the Sequential model
+        return self.model(x)
 
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
