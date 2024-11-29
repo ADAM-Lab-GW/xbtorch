@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 import xbtorch
 
@@ -26,7 +26,7 @@ from xbtorch.deployment import Daffodil, SimpleFixedPoint, map_random, encode_si
 import configargparse as argparse
 from datetime import datetime
 
-from xbtorch.nn.models import SimpleMLP
+from xbtorch.nn.models import SimpleMLP, YinYangMLP
 
 from functools import partial
 import torch.optim as optim
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # XBTorch params
     parser.add_argument('--fixed_all', default=False, action='store_true')
     parser.add_argument('--in_dir', default='', help='directory where pre-trained weights are (out_dir from train_simple_mlp script)', required=True)
-    parser.add_argument('--model', default='mlp')
+    parser.add_argument('--model', default='mlp_mnist')
 
     # Common Params
     parser.add_argument('--weight_encoding_scheme', default='simple')
@@ -53,7 +53,9 @@ if __name__ == '__main__':
     parser.add_argument('--beta', default=1, type=int, help='Redundancy Ratio')
     parser.add_argument('--stuck_percentage', default=0.0, type=float, help='What % of devices in the simulated chip should have stuck-at-faults?')
     parser.add_argument('--stuck_mode', default='real', type=str, help='Dictates how stuck devices are distributed, options: ideal or real')
-    
+
+    parser.add_argument('--alpha', default=1, type=int, help='Out of \beta rows, how many should be used for actual averaging?')
+
     args = parser.parse_args()
 
     print('parsed args', args)
@@ -96,9 +98,54 @@ if __name__ == '__main__':
 
     print('gmin gmax', g_min, g_max)
 
+    if (args.model == 'mlp_mnist'):
+        n_layers = 2
+        n_solutions = 10
+        cycles = 10
+        trained_with_wage = True # we set this to avoid mismatches between model state dicts, but we do not use wage quantization during the evaluation step
+        xb_size = (2500, 2500)
+
+        # Define transforms to apply to the data
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # Convert images to tensors
+            transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
+        ])
+
+        # Load the MNIST training and test datasets
+        train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+        test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+        # Create data loaders for batching and shuffling
+        test_loader = DataLoader(test_dataset, batch_size=10000, shuffle=False, generator=torch.Generator(device=device), num_workers=4)
+
+    elif (args.model == 'mlp_yinyang'):
+        n_layers = 3
+        n_solutions = 4
+        cycles = 20
+        trained_with_wage = False
+        from yinyang_dataset import YinYangDataset
+        xb_size = (200, 200)
+
+        yinyang_train = YinYangDataset(size=5000, seed=42)
+        yinyang_validation = YinYangDataset(size=1000, seed=41)
+        yinyang_test = YinYangDataset(size=1000, seed=40)
+
+        yinyang2_train = YinYangDataset(size=5000, seed=42, offset=1)
+        yinyang2_validation = YinYangDataset(size=1000, seed=41, offset=1)
+        yinyang2_test = YinYangDataset(size=1000, seed=40, offset=1)
+
+        yinyang_testloader = DataLoader(yinyang_test, batch_size=len(yinyang_test), shuffle=False)
+        yinyang2_testloader = DataLoader(yinyang2_test, batch_size=len(yinyang_test), shuffle=False)
+
+        test_loader = [yinyang_testloader, yinyang2_testloader]
+
+        concat_test = ConcatDataset([yinyang_test, yinyang2_test])
+        test_loader = DataLoader(concat_test)
+
     inference_accelerator = SimpleFixedPoint(g_min=g_min, g_max=g_max, adc_bits=8, dac_bits=8, 
                                              read_noise=read_noise, 
                                              write_noise=write_noise, 
+                                             xb_size=xb_size,
                                              stuck_percentage=args.stuck_percentage, 
                                              stuck_mode=args.stuck_mode,
                                              weight_encoding_scheme=weight_encoding_scheme, 
@@ -109,21 +156,8 @@ if __name__ == '__main__':
     xbtorch.initialize(
                        pytorch_device=device,
                        inference_accelerator=inference_accelerator,
-                       wage_quantize=True # we set this to avoid mismatches between model state dicts, but we do not use wage quantization during the evaluation step
+                       wage_quantize=trained_with_wage # we set this to avoid mismatches between model state dicts, but we do not use wage quantization during the evaluation step
                        )
-
-    # Define transforms to apply to the data
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Convert images to tensors
-        transforms.Normalize((0.1307,), (0.3081,))  # Normalize the image data
-    ])
-
-    # Load the MNIST training and test datasets
-    train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-
-    # Create data loaders for batching and shuffling
-    test_loader = DataLoader(test_dataset, batch_size=10000, shuffle=False, generator=torch.Generator(device=device), num_workers=4)
 
     # Define the model
     input_size = 28 * 28  
@@ -134,32 +168,37 @@ if __name__ == '__main__':
     # Model
     all_models = []
 
+    sw_accs = []
     # gather the \beta models
     for i in range(args.beta):
 
-        if (args.model == 'mlp'): model = SimpleMLP(input_size, hidden_size, output_size).to(device)
+        if (args.model == 'mlp_mnist'): model = SimpleMLP(input_size, hidden_size, output_size).to(device)
+        elif (args.model == 'mlp_yinyang'): model = YinYangMLP().to(device)
         else: raise ValueError("Unspecified model")
 
-        model_dir = args.in_dir.replace('{i}', str(i))
+        model_dir = args.in_dir.replace('{i}', str(i % n_solutions))
         model = xbtorch_model(model)
 
         files = glob.glob(f'{model_dir}/statedict_*.pt')
+        files.sort()
 
         # infer epochs
-        epochs = len(files) - 1
-        if (epochs < 1): raise ValueError("Unable to find pre-trained weights") # todo: should just load a state dict
+        if (len(files) < 1): raise ValueError("Unable to find pre-trained weights") # todo: should just load a state dict
 
-        model.load_state_dict(torch.load(f'{model_dir}/statedict_epoch{epochs}.pt'))
+        model.load_state_dict(torch.load(f'{files[-1]}'))
 
         all_models.append(model)
 
         print('inferencing default HWA trained weights')
         sw_acc, conf_matrix = test_classifier(test_loader, model, device)
+        sw_accs.append(sw_acc)
+
+    print('SW accuracies', sw_accs)
+    print('avg', np.average(sw_accs), 'std', np.std(sw_accs))
 
     # let's also test the complete committee network (still in the SW domain)
     test_committee(test_loader, all_models, device)
 
-    cycles = 10
     accs = np.zeros((cycles, 4)) # instead of 4, it should be 2 + num of layers for which error is being computed
     for cycle in range(cycles):
 
@@ -173,11 +212,18 @@ if __name__ == '__main__':
             model.xb_eval() # function added if patching successful        
             model.initialize_array_mappings(output_polling_mode=output_polling_mode, existing_mappings=existing_mappings)
 
-        # Let's visualize the array
-        # inference_accelerator.plot_array()
+            # Let's visualize the array
+            # inference_accelerator.plot_array()
 
-            errors = compute_error(model)
+            errors, matrices = compute_error(model)
             errors_all.append(errors)
+
+            for layer in range(n_layers):
+                cmapped, cideal = matrices[layer][0] # single gnorm
+                np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_alpha{args.alpha}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}_layer{layer}_cycle{cycle}_model{idx}_cmapped.txt', cmapped)
+                np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_alpha{args.alpha}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}_layer{layer}_cycle{cycle}_model{idx}_cideal.txt', cideal)
+
+        exit()
         
         errors_all = np.average(errors_all, axis=0)
         print('Errors', errors)

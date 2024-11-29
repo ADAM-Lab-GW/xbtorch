@@ -55,12 +55,12 @@ if __name__ == '__main__':
     # Common Params
     parser.add_argument('--weight_encoding_scheme', default='simple')
     parser.add_argument('--xb_mapping_scheme', default='random')
-    parser.add_argument('--beta', default=1, type=int, help='Redundancy Ratio')
+    parser.add_argument('--alpha', default=1, type=int, help='Redundancy Ratio')
     parser.add_argument('--stuck_percentage', default=0.0, type=float, help='What % of devices in the simulated chip should have stuck-at-faults?')
     parser.add_argument('--stuck_mode', default='real', type=str, help='Dictates how stuck devices are distributed, options: ideal or real')
 
     # Params for LEA (Layer Ensemble Averaging)
-    parser.add_argument('--alpha', default=1, type=int, help='Out of \beta rows, how many should be used for actual averaging?')
+    parser.add_argument('--beta', default=1, type=int, help='Out of \alpha rows, how many should be used for actual averaging?')
 
     # Params for FTNNA
     parser.add_argument('--ftnna', default=False, action='store_true', help='Whether or not the FTNNA architecture should be tested')
@@ -146,6 +146,8 @@ if __name__ == '__main__':
 
     # Load appropriate dataset
     if (args.model == 'mlp_mnist'):
+        n_layers = 2
+        cycles = 10
         trained_with_wage = True # we set this to avoid mismatches between model state dicts, but we do not use wage quantization during the evaluation step
         xb_size = (2500, 2500)
 
@@ -171,13 +173,17 @@ if __name__ == '__main__':
             from xbtorch.deployment import train_collaborative, test_collaborative, dnn_favorable_searching_code, CollaborativeLoss, add_collaborative_logistic_classifiers
 
     elif (args.model == 'mlp_yinyang'):
+
+        n_layers = 3
+        cycles = 20
         trained_with_wage = False
         from yinyang_dataset import YinYangDataset
         xb_size = (200, 200)
 
         # Todo: Update
-        read_noise = 0
-        write_noise = 0
+        dial_down_factor = 1
+        read_noise = 10 
+        write_noise = 16.66 
 
         yinyang_train = YinYangDataset(size=5000, seed=42)
         yinyang_validation = YinYangDataset(size=1000, seed=41)
@@ -234,15 +240,22 @@ if __name__ == '__main__':
     print('inferencing on a XBAR')
     model.xb_eval() # function added if patching successful        
 
-    cycles = 10
     accs = np.zeros((cycles, 4)) # instead of 4, it should be 2 + num of layers for which error is being computed
     for cycle in range(cycles):
 
         model.initialize_array_mappings(output_polling_mode=output_polling_mode, additional_args=additional_args, existing_mappings=[])
 
         # inference_accelerator.plot_array()
-        errors = compute_error(model)
+        errors, matrices = compute_error(model)
         print('Errors', errors)
+
+        for layer in range(n_layers):
+            cmapped, cideal = matrices[layer][0] # single gnorm
+            np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_alpha{args.alpha}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}_layer{layer}_cycle{cycle}_cmapped.txt', cmapped)
+            np.savetxt(f'network{args.model}_weightencoding{args.weight_encoding_scheme}_xbmapping{args.xb_mapping_scheme}_alpha{args.alpha}_beta{args.beta}_stuck{args.stuck_percentage}_stuckmode{args.stuck_mode}_readnoise{round(read_noise, 2)}_writenoise{round(write_noise, 2)}_layer{layer}_cycle{cycle}_cideal.txt', cideal)
+
+        exit()
+
         acc, _ = test_classifier(test_loader, model, device)
         drop = sw_acc - acc
 

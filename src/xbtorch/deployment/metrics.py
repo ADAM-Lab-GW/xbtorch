@@ -5,16 +5,18 @@ import xbtorch
 
 def compute_error(model):
     errors = []
+    matrices = []
     for module in model.model:
         if (hasattr(module, '_array_mappings')):
-            error = error_mapping(module.inference_accelerator, 
+            error, matrix = error_mapping(module.inference_accelerator, 
                                   module.weight.data, 
                                   pos_idxs=module._array_mappings['Gpos'], 
                                   neg_idxs=module._array_mappings['Gneg'], 
                                   polling_mode=module._array_mappings['output_polling_mode'])
             errors.append(error)
+            matrices.append(matrix)
 
-    return errors
+    return errors, matrices
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
 def error_mapping(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], pos_matrices=None, neg_matrices=None, polling_mode='avg'):
@@ -22,6 +24,7 @@ def error_mapping(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], pos_matrices
     gnorm_scales = [1.0]
     # gnorm_scales = np.logspace(-1, 1, 25)
     errors = []
+    matrices = []
 
     alpha = torch.unique(sw_weight)[-1].item()
 
@@ -54,10 +57,13 @@ def error_mapping(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], pos_matrices
         else:
             cmapped = (np.average(gposs, axis=0) - np.average(gnegs, axis=0) ) / (gnorm * gnorm_scale) * alpha
 
+        matrices.append([cmapped, cideal])
+
         cmapped = cmapped.flatten()
         cideal = cideal.flatten()
 
         error = np.linalg.norm(cmapped - cideal) / np.linalg.norm(cideal)
         errors.append(error * 100)
 
-    return errors
+
+    return errors, matrices
