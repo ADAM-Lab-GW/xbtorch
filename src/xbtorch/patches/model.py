@@ -24,13 +24,30 @@ def xbtorch_model(original_model):
     if (not hasattr(original_model, 'model')): raise RuntimeError('Unable to find module list for patching, see network training example for correct patching workflow.')
 
     new_model = []
-    if (wage_quantize): new_model.append(quantizer_act_error(wl_activation, -1))
+    if (wage_quantize): 
+        new_model.append(quantizer_act_error(wl_activation, -1))
 
     for module in original_model.model:
-        # layers
-        if (type(module) in xbtorch.layer_types): 
-            args = (module.in_features, module.out_features, module.bias is not None)
-            xbnn_layer = xbnn.Linear(*args)
+        # TODO: A cleaner way to implement this could be to specify regex patterns for layers to be patched, or just specify them as a list
+        # This should simplify model definitions, as well as patched re-creations here
+        if (type(module) in xbtorch.layer_types):
+            if (type(module)) == nn.Linear:
+                args = (module.in_features, module.out_features, module.bias is not None)
+                xbnn_layer = xbnn.Linear(*args)
+            elif (type(module)) == nn.Conv2d:
+                args = (module.in_channels, module.out_channels, module.kernel_size, module.stride, module.padding, module.dilation, module.groups, module.bias is not None, module.padding_mode)
+                xbnn_layer = xbnn.Conv2d(*args)
+
+            elif (type(module)) == nn.RNN:
+                args = (module.input_size, module.hidden_size, module.num_layers, module.nonlinearity, module.bias, module.batch_first, module.dropout, module.bidirectional)
+                xbnn_layer = xbnn.RNN(*args)
+
+            elif (type(module)) == nn.LSTM:
+                args = (module.input_size, module.hidden_size, module.num_layers, module.bias, module.batch_first, module.dropout, module.bidirectional, module.proj_size)
+                xbnn_layer = xbnn.LSTM(*args)
+            else:
+                raise ValueError(f"An xbtorch supported layer, {type(module)}, is missing an implementation.")
+            # Copy over state dictionary
             xbnn_layer.load_state_dict(module.state_dict())
             xbnn_layer._array_mappings = {} # we add this to make initialization easier later, since pre-trained weights would be loaded after patching
             new_model.append(xbnn_layer)
@@ -40,9 +57,18 @@ def xbtorch_model(original_model):
             new_model.append(module)
             if (wage_quantize): new_model.append(quantizer_act_error(wl_activation, wl_error))
 
-        # TODO: Copy state dictionary
+        elif (type(module) in xbtorch.misc_types): 
+            new_model.append(module)
 
-    if (wage_quantize): new_model.append(quantizer_act_error(-1, wl_error))
+        # else copy unpatched module, but notify user
+        else:
+            print(f'XBPatching for module {module} is not defined, using as is.')
+            new_model.append(module)
+            # exit()
+
+    if (wage_quantize and new_model[-1] not in xbtorch.activation_types): 
+        # add act/error quantizer if the last module is an activation
+        new_model.append(quantizer_act_error(-1, wl_error))
 
     original_model.model = nn.Sequential(*new_model)
 
@@ -51,8 +77,7 @@ def xbtorch_model(original_model):
         original_model.weight_scale = {}
         original_model.weight_acc = {}
         for name, param in original_model.named_parameters():
-            assert "weight" in name
-            wage_init.wage_init_(param, wl_weight, factor=1.0)
+            if ("weight" in name): wage_init.wage_init_(param, wl_weight, factor=1.0)
             param.weight_acc = param.data
 
     print('Patched XBTorch Model', original_model.model)

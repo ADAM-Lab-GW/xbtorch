@@ -136,12 +136,15 @@ activation_types = (
     nn.LogSigmoid,
     nn.SiLU,
     nn.Mish,
+    nn.LogSoftmax,
 )
 
 layer_types = (
     nn.Linear,
+    nn.Conv2d,
+    nn.RNN,
+    nn.LSTM,
     # future work
-    # nn.Conv2d,
     # nn.Conv3d,
     # nn.ConvTranspose2d,
     # nn.ConvTranspose3d,
@@ -154,24 +157,30 @@ layer_types = (
     # nn.LayerNorm,
     # nn.GroupNorm,
     # nn.Embedding,
-    # nn.RNN,
-    # nn.LSTM,
     # nn.GRU,
-    # nn.Dropout,
-    # nn.Dropout2d,
-    # nn.Dropout3d,
-    # nn.MaxPool1d,
-    # nn.MaxPool2d,
-    # nn.MaxPool3d,
-    # nn.AvgPool1d,
-    # nn.AvgPool2d,
-    # nn.AvgPool3d,
-    # nn.AdaptiveMaxPool1d,
-    # nn.AdaptiveMaxPool2d,
-    # nn.AdaptiveMaxPool3d,
-    # nn.AdaptiveAvgPool1d,
-    # nn.AdaptiveAvgPool2d,
-    # nn.AdaptiveAvgPool3d,
+)
+
+# Parameter-less layers
+misc_types = (
+    # Dropout
+    nn.Dropout,
+    nn.Dropout2d,
+    nn.Dropout3d,
+    # Pooling
+    nn.MaxPool1d,
+    nn.MaxPool2d,
+    nn.MaxPool3d,
+    nn.AvgPool1d,
+    nn.AvgPool2d,
+    nn.AvgPool3d,
+    nn.AdaptiveMaxPool1d,
+    nn.AdaptiveMaxPool2d,
+    nn.AdaptiveMaxPool3d,
+    nn.AdaptiveAvgPool1d,
+    nn.AdaptiveAvgPool2d,
+    nn.AdaptiveAvgPool3d,
+    # Flatten
+    nn.Flatten,
 )
 
 __all__ = ['initialize']

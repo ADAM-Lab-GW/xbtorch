@@ -1,5 +1,6 @@
 from xbtorch import get_xbtorch_param
 import torch
+import torch.nn as nn
 
 def xbtorch_layer(cls):
     original_init = cls.__init__
@@ -9,11 +10,15 @@ def xbtorch_layer(cls):
         if (not get_xbtorch_param('initialized')): raise RuntimeError('XBTorch needs to be initialized, please refer to API for instructions.')
         original_init(self, *args, **kwargs)
 
-        # decomposition
-        self.weight.input, self.weight.delta = None, None
-        def backward_hook(module, grad_input, grad_output):
-            self.weight.delta = grad_output[0]
-        self.register_full_backward_hook(backward_hook)
+        # for decomposition; currently not supported for multi-weight cells such as LSTM
+        # TODO: Move this to lib's __init__ and do an in-based check
+        if (hasattr(self, 'weight')):
+            self.weight.input, self.weight.delta = None, None
+            def backward_hook(module, grad_input, grad_output):
+                self.weight.delta = grad_output[0]
+            self.register_full_backward_hook(backward_hook)
+        else:
+            print(f'Multi-weight cell {type(self)} is currently not supported with decomposition algorithms.')
 
         # deployment (inference accleration)
         self._xb_inference = False
@@ -24,7 +29,6 @@ def xbtorch_layer(cls):
         if (self._xb_inference):
             
             if (not hasattr(self, '_array_mappings')):
-                # print(self.gneg.shape)
                 raise ValueError("Array mappings are not present, likely an issue during initialization.")
 
             gnorm_scale = 1.0
@@ -78,7 +82,7 @@ def xbtorch_layer(cls):
             if (self.bias is not None): output += self.bias.data
             return output
         else:
-            self.weight.input = input
+            if (hasattr(self, 'weight')): self.weight.input = input
             output = original_forward(self, input)
             return output
 
@@ -98,8 +102,6 @@ def xbtorch_optimizer(cls):
         self.wage_quantize = get_xbtorch_param('wage_quantize')
         if (self.wage_quantize): 
             self.wage_params = get_xbtorch_param('wage_params')
-            if isinstance(self, torch.optim.Adam):
-                raise NotImplementedError("XBTorch only supports SGD optimizer with WAGE.")
 
         if not isinstance(self, torch.optim.SGD) and not isinstance(self, torch.optim.Adam):
             raise NotImplementedError("XBTorch only supports SGD and Adam optimizers.")
@@ -118,6 +120,9 @@ def xbtorch_optimizer(cls):
                     if (not hasattr(param, 'weight_acc')): raise RuntimeError('Wage quantization used but parameters not initialized correctly. Likely an issue with model patching.')
 
                     lr = self.param_groups[group_idx]['lr']
+                
+                    # if (param.grad is None): param.grad = torch.zeros_like(param) # avoid undefined errors for tensors not requiring grad (hidden states for example in RNNs)
+
                     param.grad.data = self.wage_params['quantizer_grad'](param.grad.data, lr).data
                     
                     # quantize momentum
@@ -142,7 +147,7 @@ def xbtorch_optimizer(cls):
 
                 if (self.device_type): # a device type has been specified, so we include device weight modeling
                     pulse = self.device_type.gradient_to_pulse(param.grad)
-                    if (torch.max(abs(pulse)) == 0 and group_idx == 0 and param_idx == 0): 
+                    if (torch.max(abs(pulse)) == 0 and group_idx == 0 and param_idx == 0):
                         print('Gradient during device update is becoming zero. Consider increasing learning rate if this continues.')
                     elif (torch.max(abs(pulse)) > 100 and group_idx == 0 and param_idx == 0):
                         print('Gradient during device update is exploding. Consider decreasing learning rate if this continues.')
@@ -151,7 +156,7 @@ def xbtorch_optimizer(cls):
                     new_weights = self.device_type.conductance_to_weight(conductances)
                     param.grad = param.data - new_weights
 
-                if (self.wage_quantize):
+                if (self.wage_quantize and param.ndimension() > 1): # skip over biases
                     # WAGE accumulate weight in gradient precision
                     # assume no batch norm
                     w_acc = self.wage_params['grad_clip'](param.weight_acc)
