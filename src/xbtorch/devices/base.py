@@ -17,6 +17,10 @@ class GenericDevice(metaclass=abc.ABCMeta):
             self.max_conductance_set, self.max_conductance_reset,  = max_conductance_set, max_conductance_reset
         else:
             raise ValueError("")
+
+        # Make min/max values symmetrical
+        self.min_conductance = max(self.min_conductance_set, self.min_conductance_reset)
+        self.max_conductance = min(self.max_conductance_set, self.max_conductance_reset)
     
     def reset_cached_params(self):
         self.params = {}
@@ -182,6 +186,7 @@ class TabularDevice(GenericDevice):
         self.max_level = max_level
 
     def write(self, G, numPulse, group_param_idx=None):
+        
         # Ensure numPulse is an integer tensor
         numPulse = numPulse.int()
 
@@ -198,8 +203,8 @@ class TabularDevice(GenericDevice):
                     cdf = find_nearest_2d(self.set_cdf[near_G], prob)
                     dG = self.set_dG[cdf]
                     G[step_mask] = G[step_mask] + dG
-                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance_set, self.max_conductance_set, G[step_mask])
-                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance_set, self.min_conductance_set, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance, self.max_conductance, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance, self.min_conductance, G[step_mask])
                     numPulse[step_mask] -= 1
 
         if negative_mask.any():
@@ -212,8 +217,8 @@ class TabularDevice(GenericDevice):
                     cdf = find_nearest_2d(self.reset_cdf[near_G], prob)
                     dG = self.reset_dG[cdf]
                     G[step_mask] = G[step_mask] + dG
-                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance_reset, self.max_conductance_reset, G[step_mask])
-                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance_reset, self.min_conductance_reset, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] > self.max_conductance, self.max_conductance, G[step_mask])
+                    G[step_mask] = torch.where(G[step_mask] < self.min_conductance, self.min_conductance, G[step_mask])
                     numPulse[step_mask] += 1
 
         return G
