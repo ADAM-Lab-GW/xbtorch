@@ -1,12 +1,11 @@
 import torch
 from sklearn.metrics import confusion_matrix
 
-def train_classifier(dataloader, model, criterion, optimizer, epoch, num_epochs, device, lr_decay_rate=1.0):
+def train_classifier(dataloader, model, criterion, optimizer, epoch, num_epochs, device, lr_decay_rate=1.0, log=True):
     running_loss = 0.0
     epoch_loss = 0.0
     for i, (inputs, labels) in enumerate(dataloader):
         inputs, labels = inputs.to(device), labels.to(device)
-        inputs = torch.flatten(inputs, start_dim=1)
 
         outputs = model(inputs)
         loss = criterion(outputs, labels)
@@ -17,7 +16,7 @@ def train_classifier(dataloader, model, criterion, optimizer, epoch, num_epochs,
         optimizer.step()
         running_loss += loss.item()
         epoch_loss += loss.item()
-        if i % 1 == 0:  # Print every 100 mini-batches
+        if log:  # Print every 100 mini-batches
             print(f'Epoch [{epoch}/{num_epochs}], Step [{i+1}/{len(dataloader)}], Loss: {running_loss/1:.4f}')
             running_loss = 0.0
 
@@ -27,16 +26,18 @@ def train_classifier(dataloader, model, criterion, optimizer, epoch, num_epochs,
 
     return running_loss
 
-def test_classifier(dataloader, model, device):
+def test_classifier(dataloader, model, device, compute_cm=False, log=True):
+    # TODO: This really shouldn't be test "classifier"
     # Evaluate the model
     correct = 0
     total = 0
     all_preds = []
     all_labels = []
+    cm = None
     with torch.no_grad():
         for inputs, labels in dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
-            inputs = torch.flatten(inputs, start_dim=1)
+            # inputs = torch.flatten(inputs, start_dim=1)
             outputs = model(inputs)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
@@ -45,8 +46,9 @@ def test_classifier(dataloader, model, device):
             all_labels.extend(labels.cpu().numpy())
 
     acc = 100 * correct / total
-    print(f'Accuracy on test set: {acc:.2f}%')
-    return acc, confusion_matrix(all_labels, all_preds)
+    if (log): print(f'Accuracy on test set: {acc:.2f}%')
+    if (compute_cm): cm = confusion_matrix(all_labels, all_preds)
+    return acc, cm
 
 def print_num_unique_values(tensor):
     unique_values = torch.unique(tensor)
