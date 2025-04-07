@@ -53,11 +53,13 @@ def compute_grid_loss(model, full_weights, param_name, x_range, y_range, reduced
 
     dummy_optimizer = optim.SGD(model.parameters(), lr=0)
 
+    if (log): print("\n")
+
     for i in range(loss_grid.shape[0]):
         for j in range(loss_grid.shape[1]):
 
             if (log):
-                print(f"Computing loss grid  ({i+1}, {j+1})/({loss_grid.shape[0]}, {loss_grid.shape[1]})")
+                print(f"Computing loss grid:  ({i+1}, {j+1})/({loss_grid.shape[0]}, {loss_grid.shape[1]})")
 
             # initialize network with post-training weights
             for name, parameter in model.named_parameters():
@@ -74,38 +76,3 @@ def compute_grid_loss(model, full_weights, param_name, x_range, y_range, reduced
             loss_grid[i, j] = loss
 
     return xv, yv, loss_grid
-
-def compute_loss_at_grid_point(xv, yv, i, j, reduced_dirs, model, layer_idx, full_weights, train_loader, criterion, device, epoch, fast=True):
-    
-
-
-    # acc = test_classifier(train_loader, model, device) # sanity check; can remove perturbations to ensure accuracy matches expected performance
-
-    # Initialize the total loss for the grid point
-    total_loss = 0.0
-    total_samples = 0
-    correct = 0
-
-    # TODO: Use test_classifier instead
-    # Iterate over the entire dataset
-    for images, labels in train_loader:
-        images = torch.flatten(images, start_dim=1).to(device)
-        labels = labels.to(device)
-
-        # Forward pass
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        _, predicted = torch.max(outputs.data, 1)
-
-        # Accumulate the total loss and sample count
-        total_loss += loss.item() * images.size(0)
-        total_samples += images.size(0)
-        correct += (predicted == labels).sum().item()
-
-        if (fast): break # only use first mini-batch
-
-    acc = 100 * correct / total_samples
-    
-    # Average the total loss over the number of samples
-    avg_loss = total_loss / total_samples
-    return (i, j, avg_loss)
