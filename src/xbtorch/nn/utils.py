@@ -1,12 +1,15 @@
 import torch
 from sklearn.metrics import confusion_matrix
 
-def train_classifier(dataloader, model, criterion, optimizer, epoch, num_epochs, device, lr_decay_rate=1.0, log=True):
+def train_classifier(data_loader, model, criterion, optimizer, epoch, num_epochs=0, device="cpu", lr_decay_rate=1.0, log=True, fast=False):
     running_loss = 0.0
     epoch_loss = 0.0
-    for i, (inputs, labels) in enumerate(dataloader):
+    total_samples = 0
+    for i, (inputs, labels) in enumerate(data_loader):
         inputs, labels = inputs.to(device), labels.to(device)
 
+        # inputs = torch.flatten(inputs, start_dim=1)
+        inputs = inputs.view(1, -1)
         outputs = model(inputs)
         loss = criterion(outputs, labels)
 
@@ -17,16 +20,20 @@ def train_classifier(dataloader, model, criterion, optimizer, epoch, num_epochs,
         running_loss += loss.item()
         epoch_loss += loss.item()
         if log:  # Print every 100 mini-batches
-            print(f'Epoch [{epoch}/{num_epochs}], Step [{i+1}/{len(dataloader)}], Loss: {running_loss/1:.4f}')
+            print(f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{len(data_loader)}], Loss: {running_loss/1:.4f}')
             running_loss = 0.0
+
+        total_samples += inputs.size(0)
+
+        if fast: break
 
     if (lr_decay_rate != 1.0):
         for param_group in optimizer.param_groups:
             param_group['lr'] *= lr_decay_rate
 
-    return running_loss
+    return epoch_loss / total_samples
 
-def test_classifier(dataloader, model, device, compute_cm=False, log=True):
+def test_classifier(data_loader, model, device, compute_cm=False, log=True):
     # TODO: This really shouldn't be test "classifier"
     # Evaluate the model
     correct = 0
@@ -35,7 +42,7 @@ def test_classifier(dataloader, model, device, compute_cm=False, log=True):
     all_labels = []
     cm = None
     with torch.no_grad():
-        for inputs, labels in dataloader:
+        for inputs, labels in data_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             # inputs = torch.flatten(inputs, start_dim=1)
             outputs = model(inputs)

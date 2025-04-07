@@ -43,8 +43,7 @@ class TabularAnalyticalReal(TabularDevice):
         else: super().__setattr__(name, value)
     
 
-# FeFET device models used for T-NANO
-
+# Tabular FeFET device model presets from https://ieeexplore.ieee.org/abstract/document/10932692
 class TabularCompactFeFETKriging(TabularDevice):
     def __init__(self, name):
         filename = name.split('_')

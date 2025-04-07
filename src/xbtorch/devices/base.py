@@ -35,7 +35,7 @@ class GenericDevice(metaclass=abc.ABCMeta):
 
     def conductance_to_weight(self, conductance):
         weight_range = get_xbtorch_param('weight_range')
-        return (conductance - self.min_conductance) / (self.max_conductance-self.min_conductance) * (weight_range[1] - weight_range[0]) + weight_range[0]
+        return (conductance - self.min_conductance) / (self.max_conductance - self.min_conductance) * (weight_range[1] - weight_range[0]) + weight_range[0]
 
     def gradient_to_pulse(self, gradient):
         weight_range = get_xbtorch_param('weight_range')
@@ -99,6 +99,7 @@ class AnalyticalDevice(GenericDevice):
         return (self.max_conductance - self.min_conductance) / (1 - torch.exp(-self.max_level/A))
     
     def write(self, G, numPulse, group_param_idx=(0, 0)):
+
         if (group_param_idx not in self.params['param_A_set']):
             # caching parameters for making write faster
             d2dVariation = torch.normal(torch.zeros_like(G), self.d2d_var*torch.ones_like(G))
@@ -177,10 +178,6 @@ class TabularDevice(GenericDevice):
 
             min_conductance_set = self.set_G[0]
             max_conductance_set = self.set_G[-1]
-
-            # sanity checks
-            # assert min_conductance ==  self.set_G[0]
-            # assert max_conductance ==  self.set_G[-1] # removing for TNANO, add back
 
         super().__init__(min_conductance_set=min_conductance_set, max_conductance_set=max_conductance_set, min_conductance_reset=min_conductance_reset, max_conductance_reset=max_conductance_reset)
         self.max_level = max_level
