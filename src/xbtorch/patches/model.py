@@ -87,7 +87,7 @@ def xbtorch_model(original_model):
         def toggle(enable=True):
             original_model.xb_forward = enable
             for module in original_model.model:
-                module._xb_inference = True
+                module._xb_inference = enable
 
         def initialize_array_mappings(output_polling_mode='avg', existing_mappings=[], additional_args={}):
             # existing_mappings can be used as a reference to avoid conflicting mappings across unique models on the xb (primary use case: committee machines)
@@ -126,8 +126,17 @@ def xbtorch_model(original_model):
                         module._array_mappings['maskneg'] = masksneg.unsqueeze(1)
                         module._array_mappings['alpha'] = additional_args['alpha']
 
+        def get_array_mappings():
+            # If new encoding methods are added, this would have to be adjusted.
+            output_dict = []
+            for module in original_model.model:
+                if (hasattr(module, '_array_mappings')):
+                    output_dict.append({"Gpos": module._array_mappings["Gpos"], "Gneg": module._array_mappings["Gneg"],})
+            return output_dict
+
         # attach new methods to the model
         original_model.xb_eval = toggle
         original_model.initialize_array_mappings = initialize_array_mappings
+        original_model.get_array_mappings = get_array_mappings
 
     return original_model

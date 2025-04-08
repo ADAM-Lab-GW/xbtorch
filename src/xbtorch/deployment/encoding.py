@@ -4,26 +4,28 @@ import math
 from .metrics import error_mapping
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
-def encode_simple(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
+def encode_simple_binary(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
 
     '''
     Given a weight matrix W, return conductances matrices G_pos and G_neg such that W ∝ (G_pos - G_neg) (all G_pos are the same, and all G_neg are the same)
+    NOTE: This scheme makes an assumption that each weight has to be represented by 2 possible conductance states. Support for multi-bit encodings will be added in the future.
     '''
+
+    zero_tol = additional_args.get("zero_tol", 1e-3) # 0.001
 
     Gpos = torch.clone(sw_weight)
 
-    Gpos[Gpos > 0] = accelerator.g_max
-    Gpos[Gpos < 0] = accelerator.g_min
-    Gpos[Gpos == 0] = accelerator.g_min
+    Gpos[Gpos > zero_tol] = accelerator.g_max                    # significantly positive
+    Gpos[Gpos < -zero_tol] = accelerator.g_min                   # significantly negative
+    Gpos[torch.abs(Gpos) < zero_tol] = accelerator.g_min          # close to zero
 
     Gneg = torch.clone(sw_weight)
-    
-    Gneg[Gneg > 0] = accelerator.g_min
-    Gneg[Gneg < 0] = accelerator.g_max
-    Gneg[Gneg == 0] = accelerator.g_min
+    Gneg[torch.abs(Gneg) < zero_tol] = accelerator.g_min          # close to zero
+    Gneg[Gneg > zero_tol] = accelerator.g_min                    # significantly positive
+    Gneg[Gneg < -zero_tol] = accelerator.g_max                   # significantly negative
 
     # Create copies corresponding to the times the matrix would be mapped
-    return [torch.clone(Gpos) for _ in range(len(pos_idxs))], [torch.clone(Gneg) for _ in range(len(neg_idxs))]
+    return [torch.clone(Gpos) for _ in range(max(1, len(pos_idxs)))], [torch.clone(Gneg) for _ in range(max(1, len(pos_idxs)))]
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
 def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
@@ -34,7 +36,7 @@ def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_arg
     # in actual hw implementation, the mask out operation can be done directly by closing the gate on the output line (V_gate = 1.7 V for Daffodil), so this scheme really doesn't have a hardware overhead compared to simple averaging
     # instead, it's likely more energy efficient since a fraction of rows on each crossbar are disabled
     # let's first determine the ideal G matrices
-    # we can use the encode_simple scheme to accomplish this easily
+    # we can use the encode_simple_binary scheme to accomplish this easily
 
     # Necessary
     beta = additional_args['beta']
@@ -44,11 +46,11 @@ def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_arg
 
     discard_row_count =  beta - alpha
 
-    Gposs, Gnegs = encode_simple(accelerator, sw_weight, pos_idxs=[0], neg_idxs=[0]) # indices are dummy arrays of len 1
+    Gposs, Gnegs = encode_simple_binary(accelerator, sw_weight, pos_idxs=[0], neg_idxs=[0]) # indices are dummy arrays of len 1
     ideal_Gs = [Gposs[0], Gnegs[0]]
 
     # let's also retrieve the \beta defective copies
-    defective_Gss = [*encode_simple(accelerator, sw_weight, pos_idxs, neg_idxs)] # no longer a dummy array; actual mapped idxs, but these matrices are still ideal since encode_simple doesn't account for chip defects
+    defective_Gss = [*encode_simple_binary(accelerator, sw_weight, pos_idxs, neg_idxs)] # no longer a dummy array; actual mapped idxs, but these matrices are still ideal since encode_simple_binary doesn't account for chip defects
 
     # Have the defect map information in an easy-to-deal-with format
     defect_map_zipped = list(zip(accelerator.defect_map[0][0], accelerator.defect_map[0][1]))
@@ -100,8 +102,8 @@ def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_arg
         # TODO: Filenames for LEA should have alpha incorporated
         masks.append(mask)
 
-    # Finally, return the original Gposs/Gnegs (still encode_simple), and the determined masks
-    Gposs, Gnegs = encode_simple(accelerator, sw_weight, pos_idxs, neg_idxs) 
+    # Finally, return the original Gposs/Gnegs (still encode_simple_binary), and the determined masks
+    Gposs, Gnegs = encode_simple_binary(accelerator, sw_weight, pos_idxs, neg_idxs) 
     return Gposs, Gnegs, masks[0], masks[1]
 
 
@@ -216,7 +218,7 @@ def encode_LEA2(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, a
     masks.append(mask)
     masks.append(torch.clone(mask))
 
-    # Finally, return the original Gposs/Gnegs (still encode_simple), and the determined masks
+    # Finally, return the original Gposs/Gnegs (still encode_simple_binary), and the determined masks
     return Gposs, Gnegs, masks[0], masks[1]
 
 def quantize_to_nearest(x, G_min, d, n):

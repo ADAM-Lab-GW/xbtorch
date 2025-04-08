@@ -34,42 +34,6 @@ def check_overlap(start1, shape1, start2, shape2):
     
     return True
 
-def probability_row_no_defects(n, m, r, defect_proportion):
-    """
-    Calculate the probability of finding a row of length `r` (in the same column) with no defects
-    in a 2D grid of size `n x m` with a specified defect proportion.
-
-    Parameters:
-    - n: int, number of rows in the 2D grid
-    - m: int, number of columns in the 2D grid
-    - r: int, length of the row where no defects are desired
-    - defect_proportion: float, proportion of cells in the grid that are defective (0 to 1)
-
-    Returns:
-    - float, probability of finding such a row
-
-    >>> probability_row_no_defects(400, 400, 324, 0.05)
-    2.4238338971471762e-05
-    >>> probability_row_no_defects(400, 400, 324, 0.02)
-    0.43725992923543056
-
-    """
-    p = defect_proportion
-
-    # Probability that a specific cell has no defect
-    p_no_defect = 1 - p
-
-    # Probability that a specific column has a row of length `r` with no defects
-    p_column_no_defect = p_no_defect ** r
-
-    # Probability that no column has a row of length `r` with no defects
-    p_no_column = (1 - p_column_no_defect) ** m
-
-    # Probability of finding at least one column with a row of length `r` with no defects
-    probability = 1 - p_no_column
-
-    return probability
-
 # XB Mapping functions - where should a particular weight matrix be mapped on the simulated chip?
 def map_random(accelerator, layer_shape, beta=1, current_mappings=[]):
     """

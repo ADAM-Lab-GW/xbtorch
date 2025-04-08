@@ -4,10 +4,10 @@ from qtorch.quant import fixed_point_quantize
 import numpy as np
 
 from xbtorch.deployment.mapping import map_random
-from xbtorch.deployment.encoding import encode_simple, encode_LEA1, encode_LEA2
+from xbtorch.deployment.encoding import encode_simple_binary, encode_LEA1, encode_LEA2
 
 class GenericAccelerator(metaclass=abc.ABCMeta):
-    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, xb_size=(2500, 2500), stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple, xb_mapping_scheme=map_random):
+    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, xb_size=(2500, 2500), stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple_binary, xb_mapping_scheme=map_random):
         self.read_noise = read_noise
         self.write_noise = write_noise
         self.g_min = g_min
@@ -47,11 +47,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
     def read_chip(self, row, n_rows, col, n_cols, fast_mode=True):
         subarray = self._chip[row:row+n_rows, col:col+n_cols]
         noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
-        if (fast_mode): return subarray + noise
-        else:
-            # TODO: apply V_read row/column wise to the subarray, and extract G from it.
-            raise ValueError("Not implemented")
-            return 
+        if (not fast_mode): raise ValueError("Not implemented")
+        if (self.read_noise > 0): subarray = subarray + noise
+        return subarray
 
     def gen_defect_map(self, stuck_percentage):
 
@@ -120,7 +118,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         # given a full-precision voltage vector, quantize based on DAC precisions
         pass
     
-    def plot_array(self):
+    def plot_array(self, x_start=None, x_count=None, y_start=None, y_count=None, title=None):
         import matplotlib.pyplot as plt
 
         fig = plt.figure()
@@ -128,12 +126,23 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         plt.xlabel('Column #')
         plt.ylabel('Row #')
 
-        xedges = list(range(self._chip.shape[0]))
-        yedges = list(range(self._chip.shape[1]))
-        surf = plt.pcolormesh(xedges, yedges, self._chip.T,  alpha=1, antialiased=True, linewidth=0.0, zorder=-1)
+        if (x_start is None or x_count is None or y_start is None or y_count is None):
+            # read the full array
+            xedges = list(range(self._chip.shape[0]))
+            yedges = list(range(self._chip.shape[1]))
+            read_chip = self.read_chip(0, self._chip.shape[0], 0, self._chip.shape[1], fast_mode=True)
+        else:
+            # read only requested subset of the array
+            xedges = list(range(x_count))
+            yedges = list(range(y_count))
+            read_chip = self.read_chip(x_start, x_count, y_start, y_count, fast_mode=True)
+        surf = plt.pcolormesh(xedges, yedges, read_chip.T,  alpha=1, antialiased=True, linewidth=0.0, zorder=-1)
         surf.set_edgecolor('face')
         plt.axis('image')
+        if (title):
+            plt.title(title)
         plt.show()
+        return read_chip
 
 class SimpleFixedPoint(GenericAccelerator):
 
@@ -176,6 +185,8 @@ class Daffodil(GenericAccelerator):
         
         self.dpot_r = -0.5*10**3
         self.currentscale = 10**8
+
+        print("The Daffodil accelerator is currently experimental. Use with caution.")
 
     # Helper methods adapted from NIST/GW/WD's Daffodil prototyping system
     # https://arxiv.org/abs/2404.15621

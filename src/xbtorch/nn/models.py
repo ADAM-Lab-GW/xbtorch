@@ -2,22 +2,6 @@ import torch
 import torch.nn as nn
 import xbtorch.nn as xbnn
     
-class YinYangMLP(nn.Module):
-    def __init__(self):
-        super(YinYangMLP, self).__init__()
-
-        self.model = nn.Sequential(
-            nn.Linear(4, 12),
-            nn.Tanh(),
-            nn.Linear(12, 6),
-            nn.Tanh(),
-            nn.Linear(6, 3)
-        )
-
-    def forward(self, x):
-        x = self.model(x)
-        return x
-    
 # Define the LeNet-5 model
 class LeNet5(nn.Module):
     def __init__(self):

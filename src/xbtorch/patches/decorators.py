@@ -41,7 +41,7 @@ def xbtorch_layer(cls):
             sw_weight = self.weight.data
 
             gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
-                
+
             # convert inputs to voltages, then quantize to DAC-based precision
             input_voltages = input * v_read * gamma
             input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
