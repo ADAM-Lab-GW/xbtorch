@@ -27,7 +27,6 @@ def xbtorch_layer(cls):
     def xbtorch_forward(self, input):
         # TODO: Add support for non-linear layers
         if (self._xb_inference):
-            
             if (not hasattr(self, '_array_mappings')):
                 raise ValueError("Array mappings are not present, likely an issue during initialization.")
 
@@ -82,7 +81,8 @@ def xbtorch_layer(cls):
             if (self.bias is not None): output += self.bias.data
             return output
         else:
-            if (hasattr(self, 'weight')): self.weight.input = input
+            if (hasattr(self, 'weight')): 
+                self.weight.input = input
             output = original_forward(self, input)
             return output
 
@@ -143,6 +143,7 @@ def xbtorch_optimizer(cls):
                                 state['exp_avg_sq'] = self.wage_params['quantizer_grad'](state['exp_avg_sq'], lr)
 
                 if (self.decomp_alg): # a decomposition algorithm has been specified
+                    if (not hasattr(param, 'input')): raise RuntimeError('Decomposition algorithm used but parameters not initialized correctly. Likely an issue with model patching.')
                     param.grad = self.decomp_alg.decompose(param.input, param.delta, param.grad, group_param_idx)
 
                 if (self.device_type): # a device type has been specified, so we include device weight modeling
