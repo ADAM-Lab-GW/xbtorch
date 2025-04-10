@@ -25,7 +25,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
             self.stuck_low = g_min
             self.stuck_high = g_max
         elif stuck_mode == 'real':
-            # needs to be passed as args
+            # could be passed as args
             self.stuck_low = 10
             self.stuck_high = 500
         else:

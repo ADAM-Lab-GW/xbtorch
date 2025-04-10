@@ -1,7 +1,7 @@
 import torch
 from sklearn.metrics import confusion_matrix
 
-def train_classifier(data_loader, model, criterion, optimizer, epoch, num_epochs=0, device="cpu", lr_decay_rate=1.0, log=True, fast=False):
+def train_classifier(data_loader, model, criterion, optimizer, epoch, num_epochs=0, device="cpu", lr_decay_rate=1.0, log=False, fast=False):
     running_loss = 0.0
     epoch_loss = 0.0
     total_samples = 0
@@ -33,7 +33,7 @@ def train_classifier(data_loader, model, criterion, optimizer, epoch, num_epochs
 
     return epoch_loss / total_samples
 
-def test_classifier(data_loader, model, device, compute_cm=False, log=True):
+def test_classifier(data_loader, model, device, compute_cm=False, log=False):
     # TODO: This really shouldn't be test "classifier"
     # Evaluate the model
     correct = 0

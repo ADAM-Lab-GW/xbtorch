@@ -80,7 +80,7 @@ def xbtorch_model(original_model):
             if ("weight" in name): wage_init.wage_init_(param, wl_weight, factor=1.0)
             param.weight_acc = param.data
 
-    print('Patched XBTorch Model', original_model.model)
+    # print('Patched XBTorch Model', original_model.model)
 
     if (xb_inference_accelerator):
         # if initialization included an inference accelerator

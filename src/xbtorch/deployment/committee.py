@@ -29,5 +29,5 @@ def test_committee(dataloader, all_models, device):
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
     acc = 100 * correct / total
-    print(f'Committee Accuracy: {acc:.2f}%')
+    # print(f'Committee Accuracy: {acc:.2f}%')
     return acc

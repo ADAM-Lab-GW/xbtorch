@@ -40,7 +40,7 @@ class XBParams:
         return self._global_dict.get(key, default)
     
     def initialize(self, decomposition_algorithm=None, device_type=None, weight_range=(-1, 1), pytorch_device='cpu', wage_quantize=False, wage_params={}, inference_accelerator=None):
-        print('\nInitializing XBTorch..')
+        # print('\nInitializing XBTorch..')
         # Type checking
         if decomposition_algorithm and not issubclass(type(decomposition_algorithm), xbtorch.decomposition.base.GenericDecomposition):
             raise TypeError("Invalid decomposition algorithm provided")
@@ -109,7 +109,7 @@ class XBParams:
                 device_type.set_cdf = device_type.set_cdf.to(pytorch_device)
                 device_type.reset_cdf = device_type.reset_cdf.to(pytorch_device)
 
-        print('Initialization complete..\n')
+        # print('Initialization complete..\n')
 
 def get_xbtorch_param(key, default=None):
     return XBParams().get_var(key, default)
