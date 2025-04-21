@@ -32,8 +32,7 @@ class TabularAnalyticalReal(TabularDevice):
                                      set_g=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_G.txt'), 
                                      set_dg=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_dG.txt'), 
                                      set_cdf=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_cdf.txt'), 
-                                     max_level=500,
-                                     preconstructed=True)
+                                     max_level=500)
 
     def __getattr__(self, name):
         return getattr(self._device, name)
@@ -55,15 +54,14 @@ class TabularCompactFeFETKriging(TabularDevice):
                                      set_g=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set{vgs}V_{sd}_SD_axis_level_G.txt'), 
                                      set_dg=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_axis_level_dG.txt'), 
                                      set_cdf=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set{vgs}V_{sd}_SD_cdf.txt'), 
-                                     max_level=32,
-                                     preconstructed=True)
+                                     max_level=32)
 
     def __getattr__(self, name):
         return getattr(self._device, name)
 
     def __setattr__(self, name, value):
         if name != "_device": setattr(self._device, name, value)
-        else: super().__setattr__(name, value)
+        else: super().__setattr__(name, value) 
 
 class TabularExperimentalFemFETKriging(TabularDevice):
     def __init__(self, name):
@@ -76,8 +74,7 @@ class TabularExperimentalFemFETKriging(TabularDevice):
                                      set_g=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_vg{vg}_axis_level_G.txt'), 
                                      set_dg=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_vg{vg}_axis_level_dG.txt'), 
                                      set_cdf=files('xbtorch.libdata').joinpath(f'{super().data_dir}/{model_name}_set_vg{vg}_cdf.txt'), 
-                                     max_level=50,
-                                     preconstructed=True)
+                                     max_level=50)
 
     def __getattr__(self, name):
         return getattr(self._device, name)

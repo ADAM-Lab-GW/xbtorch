@@ -2,6 +2,8 @@ import numpy as np
 import random
 import torch
 
+from statistics import NormalDist
+from smt.surrogate_models import KRG
 
 def find_nearest(array, values):
     # Expand dimensions for broadcasting
@@ -96,3 +98,93 @@ def synthesize_G_dG_dataset(device, set=True, num_points=1000, min_delta_ratio=1
             dataset[point] = [G, deltaG]
 
     return dataset
+
+def get_kriging_profiles(g, dg, axis_size=100, epsilon=1e-10, **kwargs):
+
+    """Generate mean and standard deviation jump table model profiles based on provided yt(xt) data using Kriging interpolation.
+    Inspiration: 
+
+    Parameters
+    ----------
+    g : list[float]
+        List of initial device conductances
+    dg : list[float]
+        List of device conductance changes / applied voltage pulse (corresponding to initial conductances in g)
+    axis_size : int
+        Total size of the G and dG axes that the final jump table must have (dictates the size of the CDF array)
+    min_delta_ratio : float
+        Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid
+    kwargs : dict
+        Arguments for SMT's kriging model. See KRG's documentation for full details: https://smt.readthedocs.io/en/latest/_src_docs/surrogate_models/gpr/krg.html
+    Returns
+    -------
+    G_axis[axis_size] : list[float]
+        The G axis of the jump table model
+    dG_axis[axis_size] : list[float]
+        The dG axis of the jump table model
+    mean_profile[axis_size] : list[float]
+        The overall mean profile of the jump table (as a function of g)
+    std_profile[axis_size] : list[float]
+        The overall std profile of the jump table (as a function of g)
+    """
+
+    # sanity checks
+    assert (len(g) == len(dg))
+
+    defaults = {
+        'theta0': [1e-2],
+        'noise0': [1]
+    }
+
+    combined_kwargs = {**defaults, **kwargs}
+
+    sm = KRG(**combined_kwargs) # may pass noise0 and other params
+    sm.set_training_values(g, dg)
+    sm.train()
+
+    dg_max = np.max(abs(dg))
+    G_axis = np.linspace(min(g), max(g), axis_size)
+    dG_axis = np.linspace(-dg_max, +dg_max, axis_size) # can be kept same/different for different models, would need absolute values 
+    
+    # mean profile
+    mean_profile = sm.predict_values(G_axis)
+    mean_profile = np.ravel(mean_profile)
+
+    # std profile
+    s2 = sm.predict_variances(G_axis)
+    std_profile = np.sqrt(s2)
+    std_profile = np.ravel(std_profile) + epsilon
+
+    return G_axis, dG_axis, mean_profile, std_profile
+
+def construct_cdf(G_axis, dG_axis, mean_profile, std_profile):
+
+    """Generate a CDF array for a jump table model given its G, dG axes and mean, std profiles.
+    Inspiration: 
+
+    Parameters
+    ----------
+    G_axis[axis_size] : list[float]
+        The G axis of the jump table model
+    dG_axis[axis_size] : list[float]
+        The dG axis of the jump table model
+    cdf_array[axis_size, axis_size] : list[list[float]]
+        The CDF array mapping the G axis to the dG axis
+    mean_profile[axis_size] : list[float]
+        The overall mean profile of the jump table (as a function of g)
+    std_profile[axis_size] : list[float]
+        The overall std profile of the jump table (as a function of g)
+    Returns
+    -------
+    cdf_array[axis_size, axis_size] : list[list[float]]
+        The CDF array mapping the G axis to the dG axis
+    """
+
+    cdf_array = np.zeros((len(G_axis), len(dG_axis)))
+
+    for G_idx in range(len(G_axis)):
+        dist = NormalDist(mu=mean_profile[G_idx], sigma=std_profile[G_idx])
+        for dG_idx in range(len(dG_axis)):
+            cdf_array[G_idx, dG_idx] = (dist.cdf(dG_axis[dG_idx]))
+
+    return cdf_array

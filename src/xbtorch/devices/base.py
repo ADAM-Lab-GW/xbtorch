@@ -154,30 +154,27 @@ class AnalyticalDevice(GenericDevice):
 
 class TabularDevice(GenericDevice):
     data_dir = 'tabular'
-    def __init__(self, reset_g, reset_dg, reset_cdf, set_g, set_dg, set_cdf, max_level, preconstructed=True):
+    def __init__(self, reset_g, reset_dg, reset_cdf, set_g, set_dg, set_cdf, max_level):
 
-        if (not preconstructed):
-            raise NotImplementedError("Only preconstructed tabular models are possible.")
-        else:
-            self.reset_G, self.set_G = np.loadtxt(reset_g, dtype=np.float32), np.loadtxt(set_g, dtype=np.float32) # Read gTable
-            self.reset_dG, self.set_dG = np.loadtxt(reset_dg, dtype=np.float32), np.loadtxt(set_dg, dtype=np.float32) # Read dgTable
-            self.reset_cdf, self.set_cdf = np.loadtxt(reset_cdf, dtype=np.float32), np.loadtxt(set_cdf, dtype=np.float32)  # Read cdfTable
+        self.reset_G, self.set_G = np.loadtxt(reset_g, dtype=np.float32), np.loadtxt(set_g, dtype=np.float32) # Read gTable
+        self.reset_dG, self.set_dG = np.loadtxt(reset_dg, dtype=np.float32), np.loadtxt(set_dg, dtype=np.float32) # Read dgTable
+        self.reset_cdf, self.set_cdf = np.loadtxt(reset_cdf, dtype=np.float32), np.loadtxt(set_cdf, dtype=np.float32)  # Read cdfTable
 
-            # convert to pytorch tensors
-            self.set_G = torch.from_numpy(self.set_G)
-            self.reset_G = torch.from_numpy(self.reset_G)
+        # convert to pytorch tensors
+        self.set_G = torch.from_numpy(self.set_G)
+        self.reset_G = torch.from_numpy(self.reset_G)
 
-            self.set_dG = torch.from_numpy(self.set_dG)
-            self.reset_dG = torch.from_numpy(self.reset_dG)
+        self.set_dG = torch.from_numpy(self.set_dG)
+        self.reset_dG = torch.from_numpy(self.reset_dG)
 
-            self.set_cdf = torch.from_numpy(self.set_cdf)
-            self.reset_cdf = torch.from_numpy(self.reset_cdf)
+        self.set_cdf = torch.from_numpy(self.set_cdf)
+        self.reset_cdf = torch.from_numpy(self.reset_cdf)
 
-            min_conductance_reset = self.reset_G[0]
-            max_conductance_reset = self.reset_G[-1]
+        min_conductance_reset = self.reset_G[0]
+        max_conductance_reset = self.reset_G[-1]
 
-            min_conductance_set = self.set_G[0]
-            max_conductance_set = self.set_G[-1]
+        min_conductance_set = self.set_G[0]
+        max_conductance_set = self.set_G[-1]
 
         super().__init__(min_conductance_set=min_conductance_set, max_conductance_set=max_conductance_set, min_conductance_reset=min_conductance_reset, max_conductance_reset=max_conductance_reset)
         self.max_level = max_level
