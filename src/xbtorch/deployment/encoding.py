@@ -89,7 +89,7 @@ def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_arg
         diffs = torch.stack(diffs)
 
         _, rankings = torch.sort(diffs, dim=1)  # Rank in ascending order (lowest difference first)
-        mask = torch.ones((beta, G.shape[0]))
+        mask = torch.ones((beta, G.shape[0]), device=sw_weight.device)
 
         if (discard_row_count > 0):
             for i in range(G.shape[0]):
@@ -103,7 +103,7 @@ def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_arg
         masks.append(mask)
 
     # Finally, return the original Gposs/Gnegs (still encode_simple_binary), and the determined masks
-    Gposs, Gnegs = encode_simple_binary(accelerator, sw_weight, pos_idxs, neg_idxs) 
+    Gposs, Gnegs = encode_simple_binary(accelerator, sw_weight, pos_idxs, neg_idxs)
     return Gposs, Gnegs, masks[0], masks[1]
 
 
@@ -297,7 +297,7 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, ad
                     Gneg_sum = np.sum(Gnegs[:, i, j])
 
                     optimal_G = (sw_parameter / alpha) * gnorm + Gneg_sum - Gpos_sum + Gposs[k, i, j]
-                    optimal_G = quantize_to_nearest(x=optimal_G.numpy(), G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
+                    optimal_G = quantize_to_nearest(x=optimal_G.cpu().numpy(), G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
                     Gposs[k, i, j] = optimal_G
                     if log: print(k, 'adjusted Gpos', Gposs[k, i, j])
 
@@ -308,7 +308,7 @@ def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, ad
                     Gneg_sum = np.sum(Gnegs[:, i, j])
 
                     optimal_G = - ((sw_parameter / alpha) * gnorm - Gpos_sum + Gneg_sum - Gnegs[k, i, j])
-                    optimal_G = quantize_to_nearest(x=optimal_G.numpy(), G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
+                    optimal_G = quantize_to_nearest(x=optimal_G.cpu().numpy(), G_min=G_states[0], d=G_states[1]-G_states[0], n=states)
                     Gnegs[k, i, j] = optimal_G
                     if log: print(k, 'adjusted Gneg', Gnegs[k, i, j])
 

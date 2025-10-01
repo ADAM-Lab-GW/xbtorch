@@ -7,7 +7,7 @@ from xbtorch.deployment.mapping import map_random
 from xbtorch.deployment.encoding import encode_simple_binary, encode_LEA1, encode_LEA2
 
 class GenericAccelerator(metaclass=abc.ABCMeta):
-    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, xb_size=(2500, 2500), stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple_binary, xb_mapping_scheme=map_random):
+    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, xb_size=(2500, 2500), stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple_binary, xb_mapping_scheme=map_random, device="cpu"):
         self.read_noise = read_noise
         self.write_noise = write_noise
         self.g_min = g_min
@@ -37,10 +37,12 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
         self.name = f'cols_{self.columns}_row_{self.rows}_stuck_{self.stuck_percentage}'
 
+        self.device = device
+
         self.initialize_chip()
 
     def initialize_chip(self):
-        self._chip = torch.ones((self.columns, self.rows)) * -1 # uninitialized devices
+        self._chip = torch.ones((self.columns, self.rows)).to(self.device) * -1 # uninitialized devices
         self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
         self._chip[self.defect_map[0]] = self.defect_map[1]
 
@@ -67,7 +69,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         defect_values[defect_values == 0] = self.stuck_low
         defect_values[defect_values == 1] = self.stuck_high
 
-        return defect_indices, defect_values
+        return defect_indices, defect_values.to(self.device)
 
     def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):        
         # Calculate Gpos and Gneg matrices for the given sw_weight matrix and map on to the array at specified idxs
@@ -130,12 +132,12 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
             # read the full array
             xedges = list(range(self._chip.shape[0]))
             yedges = list(range(self._chip.shape[1]))
-            read_chip = self.read_chip(0, self._chip.shape[0], 0, self._chip.shape[1], fast_mode=True)
+            read_chip = self.read_chip(0, self._chip.shape[0], 0, self._chip.shape[1], fast_mode=True).cpu()
         else:
             # read only requested subset of the array
             xedges = list(range(x_count))
             yedges = list(range(y_count))
-            read_chip = self.read_chip(x_start, x_count, y_start, y_count, fast_mode=True)
+            read_chip = self.read_chip(x_start, x_count, y_start, y_count, fast_mode=True).cpu()
         surf = plt.pcolormesh(xedges, yedges, read_chip.T,  alpha=1, antialiased=True, linewidth=0.0, zorder=-1)
         surf.set_edgecolor('face')
         plt.axis('image')
@@ -146,8 +148,8 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
 class SimpleFixedPoint(GenericAccelerator):
 
-    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, xb_size=(2500, 2500), write_noise=0, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, weight_encoding_scheme='regular'):
-        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme)
+    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, xb_size=(2500, 2500), write_noise=0, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, weight_encoding_scheme='regular', device='cpu'):
+        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
 
@@ -163,8 +165,8 @@ class SimpleFixedPoint(GenericAccelerator):
 
 
 class Daffodil(GenericAccelerator):
-    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random):
-        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, xb_mapping_scheme)
+    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, device='cpu'):
+        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, xb_mapping_scheme, device=device)
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation

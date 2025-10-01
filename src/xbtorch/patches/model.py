@@ -6,6 +6,8 @@ import torch.nn as nn
 import xbtorch.nn as xbnn
 import xbtorch
 
+import torch
+
 def xbtorch_model(original_model):
     # TODO: This should be used if a model was already created i.e. on an instance
     # Copies state dictionary as well
@@ -14,6 +16,13 @@ def xbtorch_model(original_model):
     wage_quantize = get_xbtorch_param('wage_quantize')
     xb_inference_accelerator = get_xbtorch_param('inference_accelerator')
     original_model.xb_forward = False # declare this to be false, xb_eval() has to be explicitly called
+    
+    # detect the device from the original model
+    try:
+        device = next(original_model.parameters()).device
+    except StopIteration:
+        device = torch.device("cpu")  # fallback if model has no parameters
+    
     if (wage_quantize):
         wage_params = get_xbtorch_param('wage_params')
         quantizer_act_error = wage_params['quantizer_act_error']
@@ -47,7 +56,9 @@ def xbtorch_model(original_model):
                 xbnn_layer = xbnn.LSTM(*args)
             else:
                 raise ValueError(f"An xbtorch supported layer, {type(module)}, is missing an implementation.")
-            # Copy over state dictionary
+
+            # move to device before loading weights
+            xbnn_layer = xbnn_layer.to(device)
             xbnn_layer.load_state_dict(module.state_dict())
             xbnn_layer._array_mappings = {} # we add this to make initialization easier later, since pre-trained weights would be loaded after patching
             new_model.append(xbnn_layer)
@@ -103,12 +114,12 @@ def xbtorch_model(original_model):
                     # get indices where the conductance matrices will be mapped on the simulated xbar
                     # xb_mapping_schemes = ['random', 'layer_ensemble'] etc.
                     pos_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 
-                                                                                layer_shape=sw_weight.shape, 
-                                                                                current_mappings=original_model._array_mappings_all)
+                                                                          layer_shape=sw_weight.shape, 
+                                                                          current_mappings=original_model._array_mappings_all)
                     
                     neg_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 
-                                                            layer_shape=sw_weight.shape, 
-                                                            current_mappings=original_model._array_mappings_all)
+                                                                          layer_shape=sw_weight.shape,
+                                                                          current_mappings=original_model._array_mappings_all)
 
                     # map the sw_weight matrix to the simulated array as device conductances at indices extracted above
                     # internally handles conversion of the sw_weight matrix to conductance matrices

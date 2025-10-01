@@ -21,9 +21,9 @@ class SBPCA(GenericDecomposition):
             for key in self.info.keys(): self.info[key] = {}
             
         if (group_param_idx not in self.info['X'].keys()):
-            self.info['X'][group_param_idx] = nn.init.orthogonal_(torch.empty(gradient.shape[1], self.rank))
-            self.info['sigma'][group_param_idx] = torch.ones(self.rank)
-            self.info['DELTA'][group_param_idx] = nn.init.orthogonal_(torch.empty(gradient.shape[0], self.rank))
+            self.info['X'][group_param_idx] = nn.init.orthogonal_(torch.empty(gradient.shape[1], self.rank)).to(gradient.device)
+            self.info['sigma'][group_param_idx] = torch.ones(self.rank).to(gradient.device)
+            self.info['DELTA'][group_param_idx] = nn.init.orthogonal_(torch.empty(gradient.shape[0], self.rank)).to(gradient.device)
 
         batch_size = input.shape[0]
 

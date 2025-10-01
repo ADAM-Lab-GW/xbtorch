@@ -18,7 +18,13 @@ def find_nearest_2d(array, values):
     if (array.dim() == 1): array = array.unsqueeze(0)
 
     array = array.unsqueeze(1)  
-    values = torch.Tensor(values).unsqueeze(1).unsqueeze(2) 
+
+    if isinstance(values, torch.Tensor):
+        values = values.to(device=array.device, dtype=array.dtype)
+    else:
+        values = torch.as_tensor(values, device=array.device, dtype=array.dtype)
+
+    values = values.unsqueeze(1).unsqueeze(2)
 
     abs_diff = torch.abs(array - values)  
     indices = abs_diff.argmin(dim=2).squeeze(1)

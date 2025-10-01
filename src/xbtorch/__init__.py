@@ -98,8 +98,8 @@ class XBParams:
         self._global_dict['inference_accelerator'] = inference_accelerator
 
         # if a device_type was provided, migrate local tensors if needed
-        if (pytorch_device != 'cpu' and device_type):
-            if (issubclass(type(device_type), xbtorch.devices.base.TabularDevice)):
+        if (pytorch_device != 'cpu'):
+            if (device_type and issubclass(type(device_type), xbtorch.devices.base.TabularDevice)):
                 device_type.set_G = device_type.set_G.to(pytorch_device)
                 device_type.reset_G = device_type.reset_G.to(pytorch_device)
 
@@ -108,6 +108,9 @@ class XBParams:
 
                 device_type.set_cdf = device_type.set_cdf.to(pytorch_device)
                 device_type.reset_cdf = device_type.reset_cdf.to(pytorch_device)
+
+                device_type.min_conductance = device_type.min_conductance.to(pytorch_device)
+                device_type.max_conductance = device_type.max_conductance.to(pytorch_device)
 
         # print('Initialization complete..\n')
 

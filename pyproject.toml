@@ -122,8 +122,9 @@ dependencies = [
   "matplotlib>=3.9",
   "scikit-learn>=1.4", 
   "torchvision>=0.18",
-  'ninja>=1.11',
-  'qtorch>=0.3'
+  "ninja>=1.11",
+  "qtorch>=0.3",
+  "smt>=2.9.4",
 ]
 
 # List additional groups of dependencies here (e.g. development
