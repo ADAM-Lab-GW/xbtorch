@@ -1,3 +1,14 @@
+"""
+XBTorch root package
+=====================
+
+This module provides the root API for XBTorch, including:
+
+- The `XBParams` singleton class for global configuration.
+- Helper functions to get/set parameters and initialize the library.
+- Lists of supported activation layers, parameterized layers, and parameter-less layers.
+"""
+
 from functools import partial
 
 import torch.nn as nn
@@ -6,9 +17,19 @@ import xbtorch
 import xbtorch.quant.wage_qtorch as wage_qtorch
 
 class XBParams:
-    '''
-    Singleton class
-    '''
+    """
+    Singleton class to store global XBTorch parameters.
+
+    This class ensures a single global configuration dictionary that controls
+    decomposition, device, quantization, weight ranges, and accelerators.
+
+    Attributes
+    ----------
+    _global_dict : dict
+        Dictionary storing all global parameters and flags.
+    _wage_defaults : dict
+        Default settings for WAGE quantization.
+    """
     _instance = None
     _global_dict = {'initialized': False,
                     'decomposition_algorithm': None,
@@ -40,8 +61,35 @@ class XBParams:
         return self._global_dict.get(key, default)
     
     def initialize(self, decomposition_algorithm=None, device_type=None, weight_range=(-1, 1), pytorch_device='cpu', wage_quantize=False, wage_params={}, inference_accelerator=None):
-        # print('\nInitializing XBTorch..')
-        # Type checking
+        """
+        Initialize the XBTorch environment.
+
+        Sets up decomposition algorithm, device, weight ranges, WAGE quantization,
+        and optional inference accelerators. Also migrates tensors to the selected device.
+
+        Parameters
+        ----------
+        decomposition_algorithm : xbtorch.decomposition.base.GenericDecomposition, optional
+            Decomposition algorithm to use for layers (default is None).
+        device_type : xbtorch.devices.base.GenericDevice, optional
+            Hardware device abstraction (default is None).
+        weight_range : tuple of float, optional
+            Min and max allowed weights, default is (-1, 1).
+        pytorch_device : str or torch.device, optional
+            PyTorch device for tensor allocation (default 'cpu').
+        wage_quantize : bool, optional
+            Whether to enable WAGE quantization (default False).
+        wage_params : dict, optional
+            Overrides for WAGE quantization defaults.
+        inference_accelerator : xbtorch.deployment.base.GenericAccelerator, optional
+            Inference accelerator to use.
+
+        Raises
+        ------
+        TypeError
+            If provided decomposition_algorithm, device_type, or inference_accelerator
+            is not of the expected type, or weight_range is invalid.
+        """
         if decomposition_algorithm and not issubclass(type(decomposition_algorithm), xbtorch.decomposition.base.GenericDecomposition):
             raise TypeError("Invalid decomposition algorithm provided")
         if device_type and not issubclass(type(device_type), xbtorch.devices.base.GenericDevice):
@@ -115,9 +163,35 @@ class XBParams:
         # print('Initialization complete..\n')
 
 def get_xbtorch_param(key, default=None):
+    """
+    Retrieve a global XBTorch parameter.
+
+    Convenience function to access the `XBParams` singleton.
+
+    Parameters
+    ----------
+    key : str
+        Name of the parameter to retrieve.
+    default : any, optional
+        Value to return if key is not found (default None).
+
+    Returns
+    -------
+    any
+        The value of the requested parameter.
+    """
     return XBParams().get_var(key, default)
 
 def initialize(*args, **kwargs):
+    """
+    Initialize the XBTorch library.
+
+    Convenience function that calls `XBParams.initialize`.
+
+    See Also
+    --------
+    XBParams.initialize
+    """
     XBParams().initialize(*args, **kwargs)
 
 activation_types = (
@@ -186,4 +260,4 @@ misc_types = (
     nn.Flatten,
 )
 
-__all__ = ['initialize']
+__all__ = ['initialize', 'XBParams']
