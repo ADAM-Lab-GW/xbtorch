@@ -1,9 +1,41 @@
+"""
+Predefined neural network architectures for use with XBTorch.
+
+This module provides implementations of standard models such as LeNet-5, VGG,
+and RNN/LSTM-based models suitable for image classification and sequential data tasks.
+
+Classes
+-------
+- :class:`LeNet5` : Classic CNN for small images (e.g., MNIST).
+- :class:`VGG` : Deep CNN for image classification tasks (VGG-like).
+- :class:`RNN` : Simple RNN model with linear output layer.
+- :class:`SimpleLSTM` : LSTM model with linear output for time-series tasks.
+"""
+
 import torch
 import torch.nn as nn
 import xbtorch.nn as xbnn
     
 # Define the LeNet-5 model
 class LeNet5(nn.Module):
+    """
+    Classic LeNet-5 CNN architecture for grayscale image classification.
+
+    Architecture:
+        - 32C5: Conv2d(1, 32, 5x5), ReLU
+        - MP2: MaxPool2d(2x2)
+        - 64C5: Conv2d(32, 64, 5x5), ReLU
+        - MP2: MaxPool2d(2x2)
+        - Flatten
+        - 512FC: Linear(1024->512), ReLU
+        - 10SSE: Linear(512->10)
+
+    Methods
+    -------
+    forward(x)
+        Forward pass through the network.
+    """
+
     def __init__(self):
         super(LeNet5, self).__init__()
         
@@ -39,6 +71,28 @@ class LeNet5(nn.Module):
         return self.model(x)
     
 class VGG(nn.Module):
+    """
+    VGG-like CNN architecture for image classification.
+
+    Default architecture:
+        - 2 × (128C3) - MP2
+        - 2 × (256C3) - MP2
+        - 2 × (512C3) - MP2
+        - Flatten
+        - 1024FC
+        - num_classes output
+
+    Parameters
+    ----------
+    num_classes : int
+        Number of output classes (default: 10).
+
+    Methods
+    -------
+    forward(x)
+        Forward pass through the network.
+    """
+
     def __init__(self, num_classes=10):
         super(VGG, self).__init__()
         # From: https://arxiv.org/pdf/1802.04680
@@ -84,6 +138,31 @@ class VGG(nn.Module):
         return self.model(x)
 
 class RNN(nn.Module):
+    """
+    Simple RNN model for sequential data classification.
+
+    Architecture:
+        - nn.RNN
+        - xbnn.SelectLastStep()  : select last hidden state
+        - Linear(hidden_size -> output_size)
+
+    Parameters
+    ----------
+    input_size : int
+        Number of input features per time step.
+    hidden_size : int
+        Number of hidden units in the RNN.
+    num_layers : int
+        Number of RNN layers.
+    output_size : int
+        Number of output classes.
+
+    Methods
+    -------
+    forward(x)
+        Forward pass through the network.
+    """
+
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(RNN, self).__init__()
 
@@ -102,6 +181,31 @@ class RNN(nn.Module):
 
 # A Simple LSTM suitable for (simple) time-series datasets
 class SimpleLSTM(nn.Module):
+    """
+    LSTM model suitable for simple time-series or sequence classification tasks.
+
+    Architecture:
+        - nn.LSTM
+        - xbnn.SelectLastStep() : select last hidden state
+        - Linear(hidden_size -> output_size)
+
+    Parameters
+    ----------
+    input_size : int
+        Number of input features per time step.
+    hidden_size : int
+        Number of hidden units in the LSTM.
+    num_layers : int
+        Number of LSTM layers.
+    output_size : int
+        Number of output classes.
+
+    Methods
+    -------
+    forward(x)
+        Forward pass through the network.
+    """
+    
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(SimpleLSTM, self).__init__()
 

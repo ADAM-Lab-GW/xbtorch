@@ -1,3 +1,29 @@
+"""
+Weight encoding schemes for mapping software weight matrices
+to crossbar conductance arrays.
+
+This module implements different strategies for converting
+software weights into positive/negative conductance matrices
+(`G_pos`, `G_neg`), including support for fault tolerance in the
+presence of device-level stuck-at defects.
+
+Functions
+---------
+- :func:`encode_simple_binary` : Basic 2-state binary encoding.
+- :func:`encode_LEA1` : Layer Ensemble Averaging (LEA-1) with row masking.
+- :func:`encode_LEA2` : Layer Ensemble Averaging (LEA-2) with defect-aware
+  adjustments.
+- :func:`encode_MAO` : Mapping Algorithm with inner Fault-tOlerance (MAO).
+- :func:`quantize_to_nearest` : Utility for nearest-level conductance quantization.
+
+References
+----------
+- LEA schemes: D. Niu et al., *"Ensemble Learning for Memristive Neural
+  Networks"*, ACM, 2023.
+- MAO scheme: C. Yu et al., *"Mapping Algorithm With Fault-Tolerance for
+  Memristor Crossbar"*, IEEE TVLSI, 2016.
+"""
+
 import torch
 import numpy as np 
 import math
@@ -5,12 +31,32 @@ from .metrics import error_mapping
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
 def encode_simple_binary(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
+    """
+    Encode weights using a simple binary scheme.
 
-    '''
-    Given a weight matrix W, return conductances matrices G_pos and G_neg such that W ∝ (G_pos - G_neg) (all G_pos are the same, and all G_neg are the same)
-    NOTE: This scheme makes an assumption that each weight has to be represented by 2 possible conductance states. Support for multi-bit encodings will be added in the future.
-    '''
+    Each software weight is represented by two possible conductance states:
+    - Positive weights → `G_pos = g_max`, `G_neg = g_min`
+    - Negative weights → `G_pos = g_min`, `G_neg = g_max`
+    - Near-zero weights → `G_pos = G_neg = g_min`
 
+    Parameters
+    ----------
+    accelerator : GenericAccelerator
+        Crossbar accelerator instance providing hardware parameters
+        (`g_min`, `g_max`).
+    sw_weight : torch.Tensor
+        Software weight matrix.
+    pos_idxs, neg_idxs : list of tuple[int, int], optional
+        Array mapping positions for positive and negative conductances.
+    additional_args : dict, optional
+        Extra parameters, supports:
+        - ``zero_tol`` (float): Threshold below which weights are treated as zero.
+
+    Returns
+    -------
+    list[torch.Tensor], list[torch.Tensor]
+        Lists of positive and negative conductance matrices.
+    """
     zero_tol = additional_args.get("zero_tol", 1e-3) # 0.001
 
     Gpos = torch.clone(sw_weight)
@@ -29,15 +75,32 @@ def encode_simple_binary(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], addit
 
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
 def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
+    """
+    Encode weights using Layer Ensemble Averaging (LEA-1).
 
-    # an easy way to implement this would be to simply zero out device conductances that need to be discarded before averaging
-    # the problem with that is we'd end up violating devices on the simulated array
-    # so instead, we choose to keep the array as is, and mask out outputs before averaging
-    # in actual hw implementation, the mask out operation can be done directly by closing the gate on the output line (V_gate = 1.7 V for Daffodil), so this scheme really doesn't have a hardware overhead compared to simple averaging
-    # instead, it's likely more energy efficient since a fraction of rows on each crossbar are disabled
-    # let's first determine the ideal G matrices
-    # we can use the encode_simple_binary scheme to accomplish this easily
+    In LEA-1, each weight is redundantly mapped across multiple
+    crossbar rows/columns (beta copies). Rows corresponding to the most
+    defective devices are masked out, preserving accuracy while reducing
+    hardware variability impact.
 
+    Parameters
+    ----------
+    accelerator : GenericAccelerator
+        Crossbar accelerator instance.
+    sw_weight : torch.Tensor
+        Software weight matrix.
+    pos_idxs, neg_idxs : list of tuple[int, int]
+        Mapping indices for redundant weight placement.
+    additional_args : dict
+        Must include:
+        - ``alpha`` (int): Number of rows to keep.
+        - ``beta`` (int): Total number of redundant rows.
+
+    Returns
+    -------
+    list[torch.Tensor], list[torch.Tensor], torch.Tensor, torch.Tensor
+        Positive and negative conductance matrices, and corresponding row masks.
+    """
     # Necessary
     beta = additional_args['beta']
     alpha = additional_args['alpha']
@@ -108,7 +171,34 @@ def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_arg
 
 
 def encode_LEA2(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, additional_args={}, log=False):
+    """
+    Encode weights using Layer Ensemble Averaging (LEA-2).
 
+    LEA-2 adaptively adjusts conductances in the presence of
+    stuck-at defects. Each weight is distributed across redundant
+    devices, with defective elements compensated by tuning remaining
+    devices toward nearest available conductance states.
+
+    Parameters
+    ----------
+    accelerator : GenericAccelerator
+        Crossbar accelerator instance.
+    sw_weight : torch.Tensor
+        Software weight matrix.
+    pos_idxs, neg_idxs : list of tuple[int, int]
+        Mapping indices for redundant weight placement.
+    states : int, optional
+        Number of available conductance states (default: 2).
+    additional_args : dict, optional
+        Extra configuration parameters.
+    log : bool, optional
+        If True, prints debugging information during adjustment.
+
+    Returns
+    -------
+    list[torch.Tensor], list[torch.Tensor], torch.Tensor, torch.Tensor
+        Positive and negative conductance matrices, and row masks.
+    """
     assert (len(pos_idxs) == len(neg_idxs))
 
     # Initialize
@@ -222,13 +312,56 @@ def encode_LEA2(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, a
     return Gposs, Gnegs, masks[0], masks[1]
 
 def quantize_to_nearest(x, G_min, d, n):
-    # O(1)
+    """
+    Quantize a conductance value to the nearest available state.
+
+    Parameters
+    ----------
+    x : float
+        Target conductance value.
+    G_min : float
+        Minimum conductance.
+    d : float
+        Step size between quantization levels.
+    n : int
+        Number of quantization levels.
+
+    Returns
+    -------
+    float
+        Quantized conductance value.
+    """
     return G_min + np.clip(round((x - G_min) / d), 0, n-1) * d
 
 def encode_MAO(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], states=2**1, additional_args={}, log=False):
-    # Algorithm 1 - Mapping Algorithm with innter fault-tOlerance from: 
-    # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7858421
+    """
+    Encode weights using the Mapping Algorithm with inner Fault-tOlerance (MAO).
 
+    MAO (Yu et al., 2016) is a defect-aware mapping scheme
+    where conductance values are analytically adjusted in redundant
+    devices to approximate the target software weight even when some
+    devices are stuck.
+
+    Parameters
+    ----------
+    accelerator : GenericAccelerator
+        Crossbar accelerator instance.
+    sw_weight : torch.Tensor
+        Software weight matrix.
+    pos_idxs, neg_idxs : list of tuple[int, int]
+        Mapping indices for redundant weight placement.
+    states : int, optional
+        Number of available conductance states (default: 2).
+    additional_args : dict, optional
+        Extra configuration parameters.
+    log : bool, optional
+        If True, prints debugging information during adjustment.
+
+    Returns
+    -------
+    list[torch.Tensor], list[torch.Tensor]
+        Adjusted positive and negative conductance matrices.
+    """
     assert (len(pos_idxs) == len(neg_idxs))
 
     # Initialize

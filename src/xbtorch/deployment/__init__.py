@@ -1,3 +1,6 @@
+"""
+Deployment (mapping, encoding, etc.) of solutions to inference accelerators  
+"""
 from .base import Daffodil, SimpleFixedPoint
 from .mapping import map_random
 from .encoding import encode_simple_binary, encode_MAO, encode_LEA1, encode_LEA2

@@ -1,3 +1,6 @@
+"""
+Utility functions for neural network training and testing.
+"""
 import torch
 from sklearn.metrics import confusion_matrix
 

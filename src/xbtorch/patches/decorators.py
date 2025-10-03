@@ -1,8 +1,50 @@
+"""
+Decorators for patching PyTorch layers and optimizers to make them compatible
+with XBTorch simulation, hardware mapping, and specialized training routines.
+
+This module provides:
+
+- `xbtorch_layer`: Wraps a PyTorch layer to support:
+    - Gradient decomposition algorithms
+    - Device-level weight simulation
+    - Inference acceleration via crossbar arrays
+    - WAGE quantization (optional)
+    
+- `xbtorch_optimizer`: Wraps a PyTorch optimizer to support:
+    - Gradient decomposition
+    - Device-aware weight updates
+    - WAGE-style quantization and accumulation
+    - Optional SW clipping
+
+Both decorators replace the original `__init__` and `forward` (for layers) or `step` (for optimizers)
+with XBTorch-aware versions.
+"""
+
 from xbtorch import get_xbtorch_param
 import torch
 import torch.nn as nn
 
 def xbtorch_layer(cls):
+    """
+    Decorator to patch a PyTorch layer for XBTorch compatibility.
+
+    This decorator modifies the layer to support:
+    - XBTorch device simulations (conductance mapping)
+    - Gradient decomposition algorithms
+    - Inference acceleration on crossbar arrays
+    - Optional WAGE quantization
+
+    Parameters
+    ----------
+    cls : class
+        The PyTorch layer class to decorate (e.g., nn.Linear, nn.Conv2d).
+
+    Returns
+    -------
+    cls : class
+        The patched layer class with modified `__init__` and `forward` methods.
+    """
+
     original_init = cls.__init__
     original_forward = cls.forward
 
@@ -91,6 +133,27 @@ def xbtorch_layer(cls):
     return cls
 
 def xbtorch_optimizer(cls):
+    """
+    Decorator to patch a PyTorch optimizer for XBTorch compatibility.
+
+    This decorator modifies the optimizer to support:
+
+    - Gradient decomposition algorithms
+    - Device-level weight simulation and pulse-based updates
+    - WAGE-style quantization for gradients and weights
+    - Optional software clipping of weights
+
+    Parameters
+    ----------
+    cls : class
+        A PyTorch optimizer class (currently only SGD or Adam are supported).
+
+    Returns
+    -------
+    cls : class
+        The patched optimizer class with modified `__init__` and `step` methods.
+    """
+
     original_init = cls.__init__
     original_step = cls.step
 
@@ -109,7 +172,16 @@ def xbtorch_optimizer(cls):
         original_init(self, *args, **kwargs)
 
     def xbtorch_step(self):
+        """
+        Custom step function implementing:
 
+        - Gradient decomposition
+        - Device weight updates
+        - WAGE quantization
+        - Optional SW clipping
+        - Calls original optimizer step at the end
+        
+        """
         for group_idx, group in enumerate(self.param_groups):
             for param_idx, param in enumerate(group['params']):
                 group_param_idx = (group_idx, param_idx)

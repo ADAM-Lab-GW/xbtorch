@@ -1,3 +1,7 @@
+"""
+Decorators for patching PyTorch models to make them compatible
+with XBTorch operations.
+"""
 from xbtorch import get_xbtorch_param
 
 import xbtorch.quant.wage_init as wage_init
