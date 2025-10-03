@@ -3,12 +3,13 @@ name: Build and Deploy Docs
 on:
   push:
     branches:
-      - main  # Or the branch you want to trigger doc builds
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -16,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'  # Your Python version
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
@@ -25,8 +26,8 @@ jobs:
           pip3 install .
 
       - name: Build docs
-        working-directory: docs  # Assuming Sphinx conf.py is in docs/
-        run: make html
+        working-directory: docs 
+        run: rm -rf _autosummary/ && make clean && make html
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
