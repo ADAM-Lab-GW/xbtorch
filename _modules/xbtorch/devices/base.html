@@ -77,7 +77,28 @@
            <div itemprop="articleBody">
              
   <h1>Source code for xbtorch.devices.base</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Base device classes for crossbar simulations.</span>
+
+<span class="sd">This module provides abstract and concrete device models used to</span>
+<span class="sd">simulate non-ideal analog memory devices. It defines the</span>
+<span class="sd">`GenericDevice` base class and two primary implementations:</span>
+
+<span class="sd">- :class:`AnalyticalDevice` : Nonlinear device model using analytical formulas.</span>
+<span class="sd">- :class:`TabularDevice` : Empirical device model using tabulated measurements.</span>
+
+<span class="sd">These classes handle conductance-to-weight conversion, pulse-based writes,</span>
+<span class="sd">device-to-device (d2d) and cycle-to-cycle (c2c) variations, and nonlinear</span>
+<span class="sd">weight update behavior.</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+<span class="sd">All device classes assume that `weight_range` is defined globally via</span>
+<span class="sd">:func:`get_xbtorch_param`. The write methods modify tensors in-place</span>
+<span class="sd">and enforce device conductance bounds.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w">  </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">abc</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span> <span class="c1"># compatible with Python 3.10 - https://setuptools.pypa.io/en/latest/userguide/datafiles.html</span>
@@ -89,6 +110,33 @@
 <div class="viewcode-block" id="GenericDevice">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GenericDevice</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for analog memory devices.</span>
+
+<span class="sd">    Handles conversion between software weights and device conductance,</span>
+<span class="sd">    gradient-to-pulse conversion, and caching of device parameters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    min_conductance : float, optional</span>
+<span class="sd">        Minimum conductance of the device (used for both set and reset).</span>
+<span class="sd">    max_conductance : float, optional</span>
+<span class="sd">        Maximum conductance of the device (used for both set and reset).</span>
+<span class="sd">    min_conductance_set : float, optional</span>
+<span class="sd">        Minimum conductance during set operation.</span>
+<span class="sd">    min_conductance_reset : float, optional</span>
+<span class="sd">        Minimum conductance during reset operation.</span>
+<span class="sd">    max_conductance_set : float, optional</span>
+<span class="sd">        Maximum conductance during set operation.</span>
+<span class="sd">    max_conductance_reset : float, optional</span>
+<span class="sd">        Maximum conductance during reset operation.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If insufficient conductance bounds are provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_conductance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_conductance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_conductance_set</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_conductance_reset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_conductance_set</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_conductance_reset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">min_conductance</span> <span class="ow">and</span> <span class="n">max_conductance</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_reset</span> <span class="o">=</span> <span class="n">min_conductance</span><span class="p">,</span> <span class="n">min_conductance</span>
@@ -106,6 +154,9 @@
 <div class="viewcode-block" id="GenericDevice.reset_cached_params">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.reset_cached_params">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reset_cached_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset cached device parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{}</span></div>
 
 
@@ -113,12 +164,35 @@
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.write">[docs]</a>
     <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">pulse</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract method to apply pulses to update conductance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        G : torch.Tensor</span>
+<span class="sd">            Conductance tensor to update.</span>
+<span class="sd">        pulse : torch.Tensor</span>
+<span class="sd">            Number of pulses to apply.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="GenericDevice.weight_to_conductance">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.weight_to_conductance">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">weight_to_conductance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a software weight to device conductance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        weight : torch.Tensor</span>
+<span class="sd">            Software weight tensor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Corresponding conductance tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">weight</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span></div>
 
@@ -126,6 +200,19 @@
 <div class="viewcode-block" id="GenericDevice.conductance_to_weight">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.conductance_to_weight">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">conductance_to_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conductance</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert device conductance back to software weight.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conductance : torch.Tensor</span>
+<span class="sd">            Conductance tensor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Corresponding software weight tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
@@ -133,6 +220,19 @@
 <div class="viewcode-block" id="GenericDevice.gradient_to_pulse">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.gradient_to_pulse">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">gradient_to_pulse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gradient</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a weight gradient to the number of device pulses using stochastic rounding.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        gradient : torch.Tensor</span>
+<span class="sd">            Weight gradient tensor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Integer tensor of pulses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
         <span class="n">pulse</span> <span class="o">=</span> <span class="n">stochastic_round</span><span class="p">(</span> <span class="p">(</span><span class="n">gradient</span> <span class="o">/</span> <span class="p">(</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_level</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pulse</span></div>
@@ -142,7 +242,32 @@
 <div class="viewcode-block" id="AnalyticalDevice">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AnalyticalDevice</span><span class="p">(</span><span class="n">GenericDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Analytical nonlinear device model.</span>
+
+<span class="sd">    Uses exponential nonlinear weight update functions and supports</span>
+<span class="sd">    device-to-device (d2d) and cycle-to-cycle (c2c) variations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    min_conductance : float</span>
+<span class="sd">        Minimum conductance.</span>
+<span class="sd">    max_conductance : float</span>
+<span class="sd">        Maximum conductance.</span>
+<span class="sd">    d2d_var : float</span>
+<span class="sd">        Device-to-device variation.</span>
+<span class="sd">    c2c_var : float</span>
+<span class="sd">        Cycle-to-cycle variation.</span>
+<span class="sd">    nonlinearity_set : float</span>
+<span class="sd">        Nonlinearity of set operation.</span>
+<span class="sd">    nonlinearity_reset : float</span>
+<span class="sd">        Nonlinearity of reset operation.</span>
+<span class="sd">    max_level : int</span>
+<span class="sd">        Maximum number of pulse levels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">data_dir</span> <span class="o">=</span> <span class="s1">&#39;analytical&#39;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_conductance</span><span class="p">,</span> <span class="n">max_conductance</span><span class="p">,</span> <span class="n">d2d_var</span><span class="p">,</span> <span class="n">c2c_var</span><span class="p">,</span> <span class="n">nonlinearity_set</span><span class="p">,</span> <span class="n">nonlinearity_reset</span><span class="p">,</span> <span class="n">max_level</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">max_conductance</span><span class="p">)</span>
 
@@ -158,30 +283,37 @@
 <div class="viewcode-block" id="AnalyticalDevice.reset_cached_params">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.reset_cached_params">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reset_cached_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset cached parameters for pulse-conductance calculations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;param_A_reset&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;param_B_set&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;param_B_reset&#39;</span><span class="p">:</span> <span class="p">{}}</span></div>
 
 
 <div class="viewcode-block" id="AnalyticalDevice.set_c2c_var">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_c2c_var">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_c2c_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set cycle-to-cycle variation.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c2c_var</span> <span class="o">=</span> <span class="n">var</span></div>
 
 
 <div class="viewcode-block" id="AnalyticalDevice.set_d2d_var">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_d2d_var">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_d2d_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set device-to-device variation.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">d2d_var</span> <span class="o">=</span> <span class="n">var</span></div>
 
 
 <div class="viewcode-block" id="AnalyticalDevice.set_nonlinearity_set">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_set">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_nonlinearity_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nl_set</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set nonlinearity for set operation.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_set</span> <span class="o">=</span> <span class="n">nl_set</span> <span class="k">if</span> <span class="n">nl_set</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1e-9</span></div>
 
 
 <div class="viewcode-block" id="AnalyticalDevice.set_nonlinearity_reset">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_reset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_nonlinearity_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nl_reset</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set nonlinearity for reset operation.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_reset</span> <span class="o">=</span> <span class="n">nl_reset</span> <span class="k">if</span> <span class="n">nl_reset</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1e-9</span></div>
 
 
@@ -189,6 +321,23 @@
 <div class="viewcode-block" id="AnalyticalDevice.pulse_to_conductance">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.pulse_to_conductance">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pulse_to_conductance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xPulse</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map pulse position to conductance using nonlinear function.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xPulse : torch.Tensor</span>
+<span class="sd">            Pulse position tensor.</span>
+<span class="sd">        A : torch.Tensor</span>
+<span class="sd">            Parameter A.</span>
+<span class="sd">        B : torch.Tensor</span>
+<span class="sd">            Parameter B.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Conductance tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">B</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">xPulse</span><span class="o">/</span><span class="n">A</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span></div>
 
 
@@ -197,15 +346,42 @@
 <div class="viewcode-block" id="AnalyticalDevice.conductance_to_pulse">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.conductance_to_pulse">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">conductance_to_pulse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inverse of pulse_to_conductance: map conductance to pulse position.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        G : torch.Tensor</span>
+<span class="sd">            Conductance tensor.</span>
+<span class="sd">        A : torch.Tensor</span>
+<span class="sd">            Parameter A.</span>
+<span class="sd">        B : torch.Tensor</span>
+<span class="sd">            Parameter B.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Pulse position tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">A</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">G</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span><span class="o">/</span><span class="n">B</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="AnalyticalDevice.get_param_A">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.get_param_A">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_param_A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Adapted from DNN + NeuroSim v2</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get parameter A from nonlinearity using tabulated data (based on DNN + NeuroSim v2).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nonlinearity : torch.Tensor</span>
+<span class="sd">            Nonlinearity tensor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Parameter A tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nonlinearity</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># Use int64 for indices</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">index</span><span class="p">),</span> <span class="n">index</span><span class="p">)</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">index</span> <span class="o">&gt;</span> <span class="mi">899</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="mi">899</span><span class="p">),</span> <span class="n">index</span><span class="p">)</span>
@@ -221,13 +397,42 @@
 <div class="viewcode-block" id="AnalyticalDevice.get_param_B">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.get_param_B">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_param_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute parameter B from A and max/min conductance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        A : torch.Tensor</span>
+<span class="sd">            Parameter A tensor.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Parameter B tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">max_level</span><span class="o">/</span><span class="n">A</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="AnalyticalDevice.write">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.write">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">numPulse</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply pulses to update the device conductance tensor.</span>
 
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        G : torch.Tensor</span>
+<span class="sd">            Conductance tensor to update.</span>
+<span class="sd">        numPulse : torch.Tensor</span>
+<span class="sd">            Number of pulses for each element.</span>
+<span class="sd">        group_param_idx : tuple, optional</span>
+<span class="sd">            Index used for parameter caching (default: (0, 0)).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Updated conductance tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">group_param_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">]):</span>
             <span class="c1"># caching parameters for making write faster</span>
             <span class="n">d2dVariation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">G</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">d2d_var</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G</span><span class="p">))</span>
@@ -285,7 +490,32 @@
 <div class="viewcode-block" id="TabularDevice">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TabularDevice</span><span class="p">(</span><span class="n">GenericDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Device model using tabulated empirical measurements.</span>
+
+<span class="sd">    Uses gTable, dGTable, and cdfTable to simulate stochastic</span>
+<span class="sd">    weight updates with cycle-to-cycle variations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    reset_g : str</span>
+<span class="sd">        Path to reset conductance table.</span>
+<span class="sd">    reset_dg : str</span>
+<span class="sd">        Path to reset dG table.</span>
+<span class="sd">    reset_cdf : str</span>
+<span class="sd">        Path to reset CDF table.</span>
+<span class="sd">    set_g : str</span>
+<span class="sd">        Path to set conductance table.</span>
+<span class="sd">    set_dg : str</span>
+<span class="sd">        Path to set dG table.</span>
+<span class="sd">    set_cdf : str</span>
+<span class="sd">        Path to set CDF table.</span>
+<span class="sd">    max_level : int</span>
+<span class="sd">        Maximum pulse level.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">data_dir</span> <span class="o">=</span> <span class="s1">&#39;tabular&#39;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset_g</span><span class="p">,</span> <span class="n">reset_dg</span><span class="p">,</span> <span class="n">reset_cdf</span><span class="p">,</span> <span class="n">set_g</span><span class="p">,</span> <span class="n">set_dg</span><span class="p">,</span> <span class="n">set_cdf</span><span class="p">,</span> <span class="n">max_level</span><span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">reset_g</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">set_g</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="c1"># Read gTable</span>
@@ -314,7 +544,23 @@
 <div class="viewcode-block" id="TabularDevice.write">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice.write">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">numPulse</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply pulses using tabulated device behavior.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        G : torch.Tensor</span>
+<span class="sd">            Conductance tensor to update.</span>
+<span class="sd">        numPulse : torch.Tensor</span>
+<span class="sd">            Number of pulses for each element.</span>
+<span class="sd">        group_param_idx : None</span>
+<span class="sd">            Not used for TabularDevice.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Updated conductance tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Ensure numPulse is an integer tensor</span>
         <span class="n">numPulse</span> <span class="o">=</span> <span class="n">numPulse</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
 

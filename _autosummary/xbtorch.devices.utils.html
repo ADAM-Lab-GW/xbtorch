@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.devices.base.html">xbtorch.devices.base</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.devices.presets.html">xbtorch.devices.presets</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.devices.utils</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.devices.utils.construct_cdf"><code class="docutils literal notranslate"><span class="pre">construct_cdf()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.devices.utils.find_nearest"><code class="docutils literal notranslate"><span class="pre">find_nearest()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.devices.utils.find_nearest_2d"><code class="docutils literal notranslate"><span class="pre">find_nearest_2d()</span></code></a></li>
@@ -108,53 +109,71 @@
              
   <section id="module-xbtorch.devices.utils">
 <span id="xbtorch-devices-utils"></span><h1>xbtorch.devices.utils<a class="headerlink" href="#module-xbtorch.devices.utils" title="Link to this heading"></a></h1>
+<p>Utility functions for device modeling, dataset generation, and interpolation.</p>
+<p>This module provides low-level helpers for XBTorch device simulations, including:</p>
+<ul class="simple">
+<li><p>Conductance table search and nearest-neighbor functions.</p></li>
+<li><p>Stochastic rounding for pulse calculations.</p></li>
+<li><p>Device conductance sweeps for SET and RESET phases.</p></li>
+<li><p>Synthetic dataset generation for device characterization.</p></li>
+<li><p>Kriging-based interpolation and CDF construction for jump table models.</p></li>
+</ul>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.find_nearest" title="xbtorch.devices.utils.find_nearest"><code class="xref py py-func docutils literal notranslate"><span class="pre">find_nearest()</span></code></a> : Find nearest indices in a 1D array.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.find_nearest_2d" title="xbtorch.devices.utils.find_nearest_2d"><code class="xref py py-func docutils literal notranslate"><span class="pre">find_nearest_2d()</span></code></a> : Find nearest indices in a 2D array.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.stochastic_round" title="xbtorch.devices.utils.stochastic_round"><code class="xref py py-func docutils literal notranslate"><span class="pre">stochastic_round()</span></code></a> : Stochastically round values to nearest integer.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.sweep_conductance_full" title="xbtorch.devices.utils.sweep_conductance_full"><code class="xref py py-func docutils literal notranslate"><span class="pre">sweep_conductance_full()</span></code></a> : Sweep device conductances through SET and RESET trajectories.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.synthesize_G_dG_dataset" title="xbtorch.devices.utils.synthesize_G_dG_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">synthesize_G_dG_dataset()</span></code></a> : Generate synthetic (G, dG) datasets for a device model.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.get_kriging_profiles" title="xbtorch.devices.utils.get_kriging_profiles"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_kriging_profiles()</span></code></a> : Generate mean and standard deviation profiles using Kriging interpolation.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.utils.construct_cdf" title="xbtorch.devices.utils.construct_cdf"><code class="xref py py-func docutils literal notranslate"><span class="pre">construct_cdf()</span></code></a> : Construct a CDF array mapping G to dG for jump table devices.</p></li>
+</ul>
+</section>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.utils.construct_cdf" title="xbtorch.devices.utils.construct_cdf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">construct_cdf</span></code></a>(G_axis, dG_axis, mean_profile, ...)</p></td>
-<td><p>Generate a CDF array for a jump table model given its G, dG axes and mean, std profiles.</p></td>
+<td><p>Construct a cumulative distribution function (CDF) array for a jump table.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.devices.utils.find_nearest" title="xbtorch.devices.utils.find_nearest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_nearest</span></code></a>(array, values)</p></td>
-<td><p></p></td>
+<td><p>Find the indices of the nearest elements in a 1D array for each value.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.utils.find_nearest_2d" title="xbtorch.devices.utils.find_nearest_2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_nearest_2d</span></code></a>(array, values)</p></td>
-<td><p></p></td>
+<td><p>Find nearest indices in a 2D array for each value (broadcastable).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.devices.utils.get_kriging_profiles" title="xbtorch.devices.utils.get_kriging_profiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_kriging_profiles</span></code></a>(g, dg[, axis_size, epsilon])</p></td>
-<td><p>Generate mean and standard deviation jump table model profiles based on provided yt(xt) data using Kriging interpolation.</p></td>
+<td><p>Generate mean and standard deviation profiles using Kriging interpolation.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.utils.stochastic_round" title="xbtorch.devices.utils.stochastic_round"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stochastic_round</span></code></a>(x)</p></td>
-<td><p></p></td>
+<td><p>Stochastically round values to the nearest integer with probability proportional to fractional part.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.devices.utils.sweep_conductance_full" title="xbtorch.devices.utils.sweep_conductance_full"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sweep_conductance_full</span></code></a>(device[, group_param_idx])</p></td>
-<td><p>Sweep conductance trajectories of a given device model for SET and RESET phases For SET, start at the device's minimum conductance, applying positive direction pulses and reading back device conductances.</p></td>
+<td><p>Sweep conductance trajectories of a device for SET and RESET operations.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.utils.synthesize_G_dG_dataset" title="xbtorch.devices.utils.synthesize_G_dG_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">synthesize_G_dG_dataset</span></code></a>(device[, set, ...])</p></td>
-<td><p>Synthetic Device Dataset Generation Algorithm.</p></td>
+<td><p>Generate a synthetic (G, dG) dataset for a device model.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.construct_cdf">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">construct_cdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dG_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_profile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std_profile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#construct_cdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.construct_cdf" title="Link to this definition"></a></dt>
-<dd><p>Generate a CDF array for a jump table model given its G, dG axes and mean, std profiles.
-Inspiration:</p>
+<dd><p>Construct a cumulative distribution function (CDF) array for a jump table.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>G_axis</strong><strong>[</strong><strong>axis_size</strong><strong>]</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – The G axis of the jump table model</p></li>
-<li><p><strong>dG_axis</strong><strong>[</strong><strong>axis_size</strong><strong>]</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – The dG axis of the jump table model</p></li>
-<li><p><strong>cdf_array</strong><strong>[</strong><strong>axis_size</strong> (<em>list</em><em>[</em><em>list</em><em>[</em><em>float</em><em>]</em><em>]</em>) – The CDF array mapping the G axis to the dG axis</p></li>
-<li><p><strong>axis_size</strong><strong>]</strong> (<em>list</em><em>[</em><em>list</em><em>[</em><em>float</em><em>]</em><em>]</em>) – The CDF array mapping the G axis to the dG axis</p></li>
-<li><p><strong>mean_profile</strong><strong>[</strong><strong>axis_size</strong><strong>]</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – The overall mean profile of the jump table (as a function of g)</p></li>
-<li><p><strong>std_profile</strong><strong>[</strong><strong>axis_size</strong><strong>]</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – The overall std profile of the jump table (as a function of g)</p></li>
+<li><p><strong>G_axis</strong> (<em>np.ndarray</em>) – The G axis of the jump table.</p></li>
+<li><p><strong>dG_axis</strong> (<em>np.ndarray</em>) – The dG axis of the jump table.</p></li>
+<li><p><strong>mean_profile</strong> (<em>np.ndarray</em>) – Mean conductance change profile.</p></li>
+<li><p><strong>std_profile</strong> (<em>np.ndarray</em>) – Standard deviation profile.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>cdf_array[axis_size, axis_size]</strong> – The CDF array mapping the G axis to the dG axis</p>
+<dd class="field-even"><p>2D array mapping G to dG probabilities (CDF).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[list[float]]</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -162,36 +181,62 @@ Inspiration:</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.find_nearest">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">find_nearest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#find_nearest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.find_nearest" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Find the indices of the nearest elements in a 1D array for each value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array</strong> (<em>torch.Tensor</em>) – 1D tensor of reference values.</p></li>
+<li><p><strong>values</strong> (<em>torch.Tensor</em>) – Tensor of values to match.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Indices in <cite>array</cite> closest to each element in <cite>values</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.find_nearest_2d">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">find_nearest_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#find_nearest_2d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.find_nearest_2d" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Find nearest indices in a 2D array for each value (broadcastable).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array</strong> (<em>torch.Tensor</em>) – 1D or 2D tensor of reference values.</p></li>
+<li><p><strong>values</strong> (<em>torch.Tensor</em><em> or </em><em>array-like</em>) – Values to match against the array.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Indices of the nearest elements along the last axis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.get_kriging_profiles">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">get_kriging_profiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-10</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#get_kriging_profiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.get_kriging_profiles" title="Link to this definition"></a></dt>
-<dd><p>Generate mean and standard deviation jump table model profiles based on provided yt(xt) data using Kriging interpolation.
-Inspiration:</p>
+<dd><p>Generate mean and standard deviation profiles using Kriging interpolation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>g</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – List of initial device conductances</p></li>
-<li><p><strong>dg</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – List of device conductance changes / applied voltage pulse (corresponding to initial conductances in g)</p></li>
-<li><p><strong>axis_size</strong> (<em>int</em>) – Total size of the G and dG axes that the final jump table must have (dictates the size of the CDF array)</p></li>
-<li><p><strong>min_delta_ratio</strong> (<em>float</em>) – Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid</p></li>
-<li><p><strong>kwargs</strong> (<em>dict</em>) – Arguments for SMT’s kriging model. See KRG’s documentation for full details: <a class="reference external" href="https://smt.readthedocs.io/en/latest/_src_docs/surrogate_models/gpr/krg.html">https://smt.readthedocs.io/en/latest/_src_docs/surrogate_models/gpr/krg.html</a></p></li>
+<li><p><strong>g</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Initial conductances.</p></li>
+<li><p><strong>dg</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Conductance changes corresponding to <cite>g</cite>.</p></li>
+<li><p><strong>axis_size</strong> (<em>int</em>) – Size of G and dG axes for the jump table.</p></li>
+<li><p><strong>epsilon</strong> (<em>float</em>) – Small value to ensure non-zero standard deviation.</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – Additional parameters for SMT KRG surrogate model.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>G_axis[axis_size]</strong> (<em>list[float]</em>) – The G axis of the jump table model</p></li>
-<li><p><strong>dG_axis[axis_size]</strong> (<em>list[float]</em>) – The dG axis of the jump table model</p></li>
-<li><p><strong>mean_profile[axis_size]</strong> (<em>list[float]</em>) – The overall mean profile of the jump table (as a function of g)</p></li>
-<li><p><strong>std_profile[axis_size]</strong> (<em>list[float]</em>) – The overall std profile of the jump table (as a function of g)</p></li>
-</ul>
-</p>
+<dd class="field-even"><p>G_axis, dG_axis, mean_profile, std_profile arrays.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -199,23 +244,35 @@ Inspiration:</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.stochastic_round">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">stochastic_round</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#stochastic_round"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.stochastic_round" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Stochastically round values to the nearest integer with probability proportional to fractional part.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor of floating-point numbers.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Stochastically rounded integers.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.sweep_conductance_full">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">sweep_conductance_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_param_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#sweep_conductance_full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.sweep_conductance_full" title="Link to this definition"></a></dt>
-<dd><p>Sweep conductance trajectories of a given device model for SET and RESET phases
-For SET, start at the device’s minimum conductance, applying positive direction pulses and reading back device conductances.
-For RESET, start at the device’s maximum conductance, applying opposite direction pulses and reading back device conductances</p>
+<dd><p>Sweep conductance trajectories of a device for SET and RESET operations.</p>
+<p>SET starts from minimum conductance and applies positive pulses.
+RESET starts from maximum conductance and applies negative pulses.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>device</strong> (<em>xbtorch.devices.GenericDevice</em>) – An XBTorch device model object</p></li>
-<li><p><strong>group_param_idx</strong> (<em>tuple</em><em>(</em><em>int</em><em>, </em><em>int</em><em>)</em>) – Optional parameter used internally by XBTorch during neural network simulations. This should not be used when explicitly sweeping a device model.</p></li>
+<li><p><strong>device</strong> (<em>xbtorch.devices.GenericDevice</em>) – An XBTorch device model.</p></li>
+<li><p><strong>group_param_idx</strong> (<em>tuple</em><em>(</em><em>int</em><em>, </em><em>int</em><em>)</em>) – Optional internal index used during neural network simulations.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>(set_Gs, reset_Gs)</strong> – Conductance trajectories for SET and RESET phases as a tuple.</p>
+<dd class="field-even"><p>Conductance trajectories for SET and RESET as a tuple.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple[list[float], list[float]]</p>
@@ -226,24 +283,23 @@ For RESET, start at the device’s maximum conductance, applying opposite direct
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.devices.utils.synthesize_G_dG_dataset">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.devices.utils.</span></span><span class="sig-name descname"><span class="pre">synthesize_G_dG_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_delta_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_filtering</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/utils.html#synthesize_G_dG_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.utils.synthesize_G_dG_dataset" title="Link to this definition"></a></dt>
-<dd><p>Synthetic Device Dataset Generation Algorithm. Iteratively samples delta conductance points uniformly within valid initial conductance values in the device, optionally checking for physical realism.
-Analogous to Algorithm 2 from: Device Modeling Bias in ReRAM-based Neural Network Simulations, <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/10024104">https://ieeexplore.ieee.org/abstract/document/10024104</a>
-Instead of using known mean and standard deviation profiles, we just use the device write operation, making the sampling device model-agnostic.</p>
+<dd><p>Generate a synthetic (G, dG) dataset for a device model.</p>
+<p>Iteratively samples delta conductance points from the device by applying pulses.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>device</strong> (<em>xbtorch.devices.GenericDevice</em>) – An XBTorch device model object</p></li>
-<li><p><strong>set</strong> (<em>boolean</em>) – Whether or not the sampling should be done in the positive direction (set) or negative direction (reset)</p></li>
-<li><p><strong>num_points</strong> (<em>int</em>) – Total number of voltage pulses to apply to the device</p></li>
-<li><p><strong>min_delta_ratio</strong> (<em>float</em>) – Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid</p></li>
-<li><p><strong>disable_filtering</strong> (<em>bool</em>) – Whether or not to filter sampled candidate points for physical realism. If False, all sampled points are included in the final list.</p></li>
+<li><p><strong>device</strong> (<em>xbtorch.devices.GenericDevice</em>) – The target device model.</p></li>
+<li><p><strong>set</strong> (<em>bool</em>) – Sample in SET (True) or RESET (False) direction.</p></li>
+<li><p><strong>num_points</strong> (<em>int</em>) – Number of points to generate.</p></li>
+<li><p><strong>min_delta_ratio</strong> (<em>float</em>) – Minimum ratio deltaG/G to consider a point valid.</p></li>
+<li><p><strong>disable_filtering</strong> (<em>bool</em>) – If True, include all points without filtering for physical realism.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>dataset[num_points]</strong> – Dataset D containing num_points many (initial conductance, delta conductance / pulse) or (G, dG) data points.</p>
+<dd class="field-even"><p>Array of shape (num_points, 2) containing (G, dG) points.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[list[2]]</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>

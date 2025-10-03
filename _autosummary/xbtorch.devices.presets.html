@@ -57,6 +57,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.devices.base.html">xbtorch.devices.base</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.devices.presets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.devices.presets.AnalyticalIdeal"><code class="docutils literal notranslate"><span class="pre">AnalyticalIdeal</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.devices.presets.AnalyticalReal"><code class="docutils literal notranslate"><span class="pre">AnalyticalReal</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.devices.presets.TabularAnalyticalReal"><code class="docutils literal notranslate"><span class="pre">TabularAnalyticalReal</span></code></a></li>
@@ -106,23 +107,43 @@
              
   <section id="module-xbtorch.devices.presets">
 <span id="xbtorch-devices-presets"></span><h1>xbtorch.devices.presets<a class="headerlink" href="#module-xbtorch.devices.presets" title="Link to this heading"></a></h1>
+<p>Predefined device model presets for analog crossbar simulations.</p>
+<p>This module provides ready-to-use instances of analytical and tabular
+device models with fixed parameters for benchmarking, testing, or
+hardware-aware training. Each preset wraps a specific device configuration
+and provides attribute forwarding to the underlying device instance.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#xbtorch.devices.presets.AnalyticalIdeal" title="xbtorch.devices.presets.AnalyticalIdeal"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnalyticalIdeal</span></code></a> : Ideal analytical device with zero variations.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.presets.AnalyticalReal" title="xbtorch.devices.presets.AnalyticalReal"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnalyticalReal</span></code></a> : Realistic analytical device with typical c2c variations.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.presets.TabularAnalyticalReal" title="xbtorch.devices.presets.TabularAnalyticalReal"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularAnalyticalReal</span></code></a> : Synthetic tabular device mimicking realistic analytical behavior.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.presets.TabularCompactFeFETKriging" title="xbtorch.devices.presets.TabularCompactFeFETKriging"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularCompactFeFETKriging</span></code></a> : Compact FeFET tabular device with Kriging interpolation.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.presets.TabularExperimentalFemFETKriging" title="xbtorch.devices.presets.TabularExperimentalFemFETKriging"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularExperimentalFemFETKriging</span></code></a> : Experimental FeFET tabular device based on measured data.</p></li>
+</ul>
+<p class="rubric">Notes</p>
+<p>All preset devices wrap the corresponding <code class="xref py py-class docutils literal notranslate"><span class="pre">AnalyticalDevice</span></code> or
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TabularDevice</span></code> and forward attribute access using <cite>__getattr__</cite>
+and <cite>__setattr__</cite>. This allows presets to behave like normal device
+instances while keeping the preset parameters fixed.</p>
+</section>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.presets.AnalyticalIdeal" title="xbtorch.devices.presets.AnalyticalIdeal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnalyticalIdeal</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Ideal analytical device with zero device-to-device (d2d) and cycle-to-cycle (c2c) variations.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.devices.presets.AnalyticalReal" title="xbtorch.devices.presets.AnalyticalReal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnalyticalReal</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Realistic analytical device with typical cycle-to-cycle variations.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.presets.TabularAnalyticalReal" title="xbtorch.devices.presets.TabularAnalyticalReal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularAnalyticalReal</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Synthetic tabular device simulating realistic analytical behavior.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.devices.presets.TabularCompactFeFETKriging" title="xbtorch.devices.presets.TabularCompactFeFETKriging"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularCompactFeFETKriging</span></code></a>(name)</p></td>
-<td><p></p></td>
+<td><p>Compact FeFET tabular device using Kriging interpolation.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.presets.TabularExperimentalFemFETKriging" title="xbtorch.devices.presets.TabularExperimentalFemFETKriging"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularExperimentalFemFETKriging</span></code></a>(name)</p></td>
-<td><p></p></td>
+<td><p>Experimental FeFET tabular device model based on measured data.</p></td>
 </tr>
 </tbody>
 </table>
@@ -130,30 +151,63 @@
 <dt class="sig sig-object py" id="xbtorch.devices.presets.AnalyticalIdeal">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.presets.</span></span><span class="sig-name descname"><span class="pre">AnalyticalIdeal</span></span><a class="reference internal" href="../_modules/xbtorch/devices/presets.html#AnalyticalIdeal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.presets.AnalyticalIdeal" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice" title="xbtorch.devices.base.AnalyticalDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnalyticalDevice</span></code></a></p>
+<p>Ideal analytical device with zero device-to-device (d2d) and
+cycle-to-cycle (c2c) variations.</p>
+<p>Conductance range: 3 nS to 38 nS.
+Nonlinearity: set to zero.
+Maximum pulse level: 500.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.devices.presets.AnalyticalReal">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.presets.</span></span><span class="sig-name descname"><span class="pre">AnalyticalReal</span></span><a class="reference internal" href="../_modules/xbtorch/devices/presets.html#AnalyticalReal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.presets.AnalyticalReal" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice" title="xbtorch.devices.base.AnalyticalDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnalyticalDevice</span></code></a></p>
+<p>Realistic analytical device with typical cycle-to-cycle variations.</p>
+<p>Conductance range: 3 nS to 38 nS.
+Nonlinearity: set = 2.4, reset = -4.88.
+c2c variation: 0.035.
+Maximum pulse level: 500.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.devices.presets.TabularAnalyticalReal">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.presets.</span></span><span class="sig-name descname"><span class="pre">TabularAnalyticalReal</span></span><a class="reference internal" href="../_modules/xbtorch/devices/presets.html#TabularAnalyticalReal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.presets.TabularAnalyticalReal" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice" title="xbtorch.devices.base.TabularDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularDevice</span></code></a></p>
+<p>Synthetic tabular device simulating realistic analytical behavior.</p>
+<p>Uses predefined target tables with linear mean and constant standard
+deviation. Equivalent to NeuroSim synthetic dataset with 10,000 samples.
+Maximum pulse level: 500.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.devices.presets.TabularCompactFeFETKriging">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.presets.</span></span><span class="sig-name descname"><span class="pre">TabularCompactFeFETKriging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/presets.html#TabularCompactFeFETKriging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.presets.TabularCompactFeFETKriging" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice" title="xbtorch.devices.base.TabularDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularDevice</span></code></a></p>
+<p>Compact FeFET tabular device using Kriging interpolation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – Name encoding voltage and standard deviation, e.g., ‘fefet_reset_1.2V_32_SD’.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Uses 10,000 data points to construct the tabular model, consistent with
+synthetic Neuromorphic simulations.
+Maximum pulse level: 32.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.devices.presets.TabularExperimentalFemFETKriging">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.presets.</span></span><span class="sig-name descname"><span class="pre">TabularExperimentalFemFETKriging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/presets.html#TabularExperimentalFemFETKriging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.presets.TabularExperimentalFemFETKriging" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice" title="xbtorch.devices.base.TabularDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularDevice</span></code></a></p>
+<p>Experimental FeFET tabular device model based on measured data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – Name encoding gate voltage, e.g., ‘femfet_vg3’.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Uses experimental data for reset/set conductances, dG, and CDF tables.
+Maximum pulse level: 50.</p>
 </dd></dl>
 
 </section>

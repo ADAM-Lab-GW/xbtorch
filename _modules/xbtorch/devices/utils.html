@@ -77,7 +77,29 @@
            <div itemprop="articleBody">
              
   <h1>Source code for xbtorch.devices.utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utility functions for device modeling, dataset generation, and interpolation.</span>
+
+<span class="sd">This module provides low-level helpers for XBTorch device simulations, including:</span>
+
+<span class="sd">- Conductance table search and nearest-neighbor functions.</span>
+<span class="sd">- Stochastic rounding for pulse calculations.</span>
+<span class="sd">- Device conductance sweeps for SET and RESET phases.</span>
+<span class="sd">- Synthetic dataset generation for device characterization.</span>
+<span class="sd">- Kriging-based interpolation and CDF construction for jump table models.</span>
+
+<span class="sd">Functions</span>
+<span class="sd">---------</span>
+<span class="sd">- :func:`find_nearest` : Find nearest indices in a 1D array.</span>
+<span class="sd">- :func:`find_nearest_2d` : Find nearest indices in a 2D array.</span>
+<span class="sd">- :func:`stochastic_round` : Stochastically round values to nearest integer.</span>
+<span class="sd">- :func:`sweep_conductance_full` : Sweep device conductances through SET and RESET trajectories.</span>
+<span class="sd">- :func:`synthesize_G_dG_dataset` : Generate synthetic (G, dG) datasets for a device model.</span>
+<span class="sd">- :func:`get_kriging_profiles` : Generate mean and standard deviation profiles using Kriging interpolation.</span>
+<span class="sd">- :func:`construct_cdf` : Construct a CDF array mapping G to dG for jump table devices.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
@@ -87,6 +109,21 @@
 <div class="viewcode-block" id="find_nearest">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.find_nearest">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">find_nearest</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the indices of the nearest elements in a 1D array for each value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    array : torch.Tensor</span>
+<span class="sd">        1D tensor of reference values.</span>
+<span class="sd">    values : torch.Tensor</span>
+<span class="sd">        Tensor of values to match.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        Indices in `array` closest to each element in `values`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Expand dimensions for broadcasting</span>
     <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  
     <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> 
@@ -98,6 +135,21 @@
 <div class="viewcode-block" id="find_nearest_2d">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.find_nearest_2d">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">find_nearest_2d</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find nearest indices in a 2D array for each value (broadcastable).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    array : torch.Tensor</span>
+<span class="sd">        1D or 2D tensor of reference values.</span>
+<span class="sd">    values : torch.Tensor or array-like</span>
+<span class="sd">        Values to match against the array.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        Indices of the nearest elements along the last axis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Expand dimensions for broadcasting</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span> <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
@@ -119,6 +171,19 @@
 <div class="viewcode-block" id="stochastic_round">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.stochastic_round">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">stochastic_round</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stochastically round values to the nearest integer with probability proportional to fractional part.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : torch.Tensor</span>
+<span class="sd">        Input tensor of floating-point numbers.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        Stochastically rounded integers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span></div>
 
@@ -126,20 +191,23 @@
 <div class="viewcode-block" id="sweep_conductance_full">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.sweep_conductance_full">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">sweep_conductance_full</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sweep conductance trajectories of a given device model for SET and RESET phases</span>
-<span class="sd">    For SET, start at the device&#39;s minimum conductance, applying positive direction pulses and reading back device conductances.</span>
-<span class="sd">    For RESET, start at the device&#39;s maximum conductance, applying opposite direction pulses and reading back device conductances </span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sweep conductance trajectories of a device for SET and RESET operations.</span>
+
+<span class="sd">    SET starts from minimum conductance and applies positive pulses.</span>
+<span class="sd">    RESET starts from maximum conductance and applies negative pulses.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    device : xbtorch.devices.GenericDevice</span>
-<span class="sd">        An XBTorch device model object</span>
+<span class="sd">        An XBTorch device model.</span>
 <span class="sd">    group_param_idx : tuple(int, int)</span>
-<span class="sd">        Optional parameter used internally by XBTorch during neural network simulations. This should not be used when explicitly sweeping a device model.</span>
+<span class="sd">        Optional internal index used during neural network simulations.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    (set_Gs, reset_Gs) : tuple[list[float], list[float]]</span>
-<span class="sd">        Conductance trajectories for SET and RESET phases as a tuple.</span>
+<span class="sd">    tuple[list[float], list[float]]</span>
+<span class="sd">        Conductance trajectories for SET and RESET as a tuple.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">set_Gs</span> <span class="o">=</span> <span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">min_conductance_set</span><span class="p">]</span>
     <span class="n">G</span> <span class="o">=</span> <span class="n">set_Gs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -159,29 +227,29 @@
 <div class="viewcode-block" id="synthesize_G_dG_dataset">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.synthesize_G_dG_dataset">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">synthesize_G_dG_dataset</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="nb">set</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_delta_ratio</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="n">disable_filtering</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a synthetic (G, dG) dataset for a device model.</span>
 
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Synthetic Device Dataset Generation Algorithm. Iteratively samples delta conductance points uniformly within valid initial conductance values in the device, optionally checking for physical realism.</span>
-<span class="sd">    Analogous to Algorithm 2 from: Device Modeling Bias in ReRAM-based Neural Network Simulations, https://ieeexplore.ieee.org/abstract/document/10024104</span>
-<span class="sd">    Instead of using known mean and standard deviation profiles, we just use the device write operation, making the sampling device model-agnostic.</span>
+<span class="sd">    Iteratively samples delta conductance points from the device by applying pulses.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    device : xbtorch.devices.GenericDevice</span>
-<span class="sd">        An XBTorch device model object</span>
-<span class="sd">    set : boolean</span>
-<span class="sd">        Whether or not the sampling should be done in the positive direction (set) or negative direction (reset)</span>
+<span class="sd">        The target device model.</span>
+<span class="sd">    set : bool</span>
+<span class="sd">        Sample in SET (True) or RESET (False) direction.</span>
 <span class="sd">    num_points : int</span>
-<span class="sd">        Total number of voltage pulses to apply to the device</span>
+<span class="sd">        Number of points to generate.</span>
 <span class="sd">    min_delta_ratio : float</span>
-<span class="sd">        Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid</span>
+<span class="sd">        Minimum ratio deltaG/G to consider a point valid.</span>
 <span class="sd">    disable_filtering : bool</span>
-<span class="sd">        Whether or not to filter sampled candidate points for physical realism. If False, all sampled points are included in the final list.</span>
+<span class="sd">        If True, include all points without filtering for physical realism.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    dataset[num_points] : list[list[2]]</span>
-<span class="sd">        Dataset D containing num_points many (initial conductance, delta conductance / pulse) or (G, dG) data points.</span>
+<span class="sd">    np.ndarray</span>
+<span class="sd">        Array of shape (num_points, 2) containing (G, dG) points.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="c1"># generate (G, dG) dataset with total points specified by `num_points`</span>
     <span class="n">numPulse</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="nb">set</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
@@ -202,34 +270,27 @@
 <div class="viewcode-block" id="get_kriging_profiles">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.get_kriging_profiles">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_kriging_profiles</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">dg</span><span class="p">,</span> <span class="n">axis_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate mean and standard deviation jump table model profiles based on provided yt(xt) data using Kriging interpolation.</span>
-<span class="sd">    Inspiration: </span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate mean and standard deviation profiles using Kriging interpolation.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    g : list[float]</span>
-<span class="sd">        List of initial device conductances</span>
+<span class="sd">        Initial conductances.</span>
 <span class="sd">    dg : list[float]</span>
-<span class="sd">        List of device conductance changes / applied voltage pulse (corresponding to initial conductances in g)</span>
+<span class="sd">        Conductance changes corresponding to `g`.</span>
 <span class="sd">    axis_size : int</span>
-<span class="sd">        Total size of the G and dG axes that the final jump table must have (dictates the size of the CDF array)</span>
-<span class="sd">    min_delta_ratio : float</span>
-<span class="sd">        Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid</span>
+<span class="sd">        Size of G and dG axes for the jump table.</span>
+<span class="sd">    epsilon : float</span>
+<span class="sd">        Small value to ensure non-zero standard deviation.</span>
 <span class="sd">    kwargs : dict</span>
-<span class="sd">        Arguments for SMT&#39;s kriging model. See KRG&#39;s documentation for full details: https://smt.readthedocs.io/en/latest/_src_docs/surrogate_models/gpr/krg.html</span>
+<span class="sd">        Additional parameters for SMT KRG surrogate model.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    G_axis[axis_size] : list[float]</span>
-<span class="sd">        The G axis of the jump table model</span>
-<span class="sd">    dG_axis[axis_size] : list[float]</span>
-<span class="sd">        The dG axis of the jump table model</span>
-<span class="sd">    mean_profile[axis_size] : list[float]</span>
-<span class="sd">        The overall mean profile of the jump table (as a function of g)</span>
-<span class="sd">    std_profile[axis_size] : list[float]</span>
-<span class="sd">        The overall std profile of the jump table (as a function of g)</span>
+<span class="sd">    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]</span>
+<span class="sd">        G_axis, dG_axis, mean_profile, std_profile arrays.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="c1"># sanity checks</span>
     <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dg</span><span class="p">))</span>
 
@@ -263,30 +324,26 @@
 <div class="viewcode-block" id="construct_cdf">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.construct_cdf">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">construct_cdf</span><span class="p">(</span><span class="n">G_axis</span><span class="p">,</span> <span class="n">dG_axis</span><span class="p">,</span> <span class="n">mean_profile</span><span class="p">,</span> <span class="n">std_profile</span><span class="p">):</span>
-
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a CDF array for a jump table model given its G, dG axes and mean, std profiles.</span>
-<span class="sd">    Inspiration: </span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct a cumulative distribution function (CDF) array for a jump table.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    G_axis[axis_size] : list[float]</span>
-<span class="sd">        The G axis of the jump table model</span>
-<span class="sd">    dG_axis[axis_size] : list[float]</span>
-<span class="sd">        The dG axis of the jump table model</span>
-<span class="sd">    cdf_array[axis_size, axis_size] : list[list[float]]</span>
-<span class="sd">        The CDF array mapping the G axis to the dG axis</span>
-<span class="sd">    mean_profile[axis_size] : list[float]</span>
-<span class="sd">        The overall mean profile of the jump table (as a function of g)</span>
-<span class="sd">    std_profile[axis_size] : list[float]</span>
-<span class="sd">        The overall std profile of the jump table (as a function of g)</span>
+<span class="sd">    G_axis : np.ndarray</span>
+<span class="sd">        The G axis of the jump table.</span>
+<span class="sd">    dG_axis : np.ndarray</span>
+<span class="sd">        The dG axis of the jump table.</span>
+<span class="sd">    mean_profile : np.ndarray</span>
+<span class="sd">        Mean conductance change profile.</span>
+<span class="sd">    std_profile : np.ndarray</span>
+<span class="sd">        Standard deviation profile.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    cdf_array[axis_size, axis_size] : list[list[float]]</span>
-<span class="sd">        The CDF array mapping the G axis to the dG axis</span>
+<span class="sd">    np.ndarray</span>
+<span class="sd">        2D array mapping G to dG probabilities (CDF).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">cdf_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">G_axis</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dG_axis</span><span class="p">)))</span>
-
     <span class="k">for</span> <span class="n">G_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">G_axis</span><span class="p">)):</span>
         <span class="n">dist</span> <span class="o">=</span> <span class="n">NormalDist</span><span class="p">(</span><span class="n">mu</span><span class="o">=</span><span class="n">mean_profile</span><span class="p">[</span><span class="n">G_idx</span><span class="p">],</span> <span class="n">sigma</span><span class="o">=</span><span class="n">std_profile</span><span class="p">[</span><span class="n">G_idx</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">dG_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dG_axis</span><span class="p">)):</span>

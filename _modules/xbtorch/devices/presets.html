@@ -77,12 +77,45 @@
            <div itemprop="articleBody">
              
   <h1>Source code for xbtorch.devices.presets</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalyticalDevice</span><span class="p">,</span> <span class="n">TabularDevice</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Predefined device model presets for analog crossbar simulations.</span>
+
+<span class="sd">This module provides ready-to-use instances of analytical and tabular</span>
+<span class="sd">device models with fixed parameters for benchmarking, testing, or</span>
+<span class="sd">hardware-aware training. Each preset wraps a specific device configuration</span>
+<span class="sd">and provides attribute forwarding to the underlying device instance.</span>
+
+<span class="sd">Classes</span>
+<span class="sd">-------</span>
+<span class="sd">- :class:`AnalyticalIdeal` : Ideal analytical device with zero variations.</span>
+<span class="sd">- :class:`AnalyticalReal` : Realistic analytical device with typical c2c variations.</span>
+<span class="sd">- :class:`TabularAnalyticalReal` : Synthetic tabular device mimicking realistic analytical behavior.</span>
+<span class="sd">- :class:`TabularCompactFeFETKriging` : Compact FeFET tabular device with Kriging interpolation.</span>
+<span class="sd">- :class:`TabularExperimentalFemFETKriging` : Experimental FeFET tabular device based on measured data.</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+<span class="sd">All preset devices wrap the corresponding :class:`AnalyticalDevice` or</span>
+<span class="sd">:class:`TabularDevice` and forward attribute access using `__getattr__`</span>
+<span class="sd">and `__setattr__`. This allows presets to behave like normal device</span>
+<span class="sd">instances while keeping the preset parameters fixed.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalyticalDevice</span><span class="p">,</span> <span class="n">TabularDevice</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
 
 <div class="viewcode-block" id="AnalyticalIdeal">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.presets.html#xbtorch.devices.presets.AnalyticalIdeal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AnalyticalIdeal</span><span class="p">(</span><span class="n">AnalyticalDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ideal analytical device with zero device-to-device (d2d) and</span>
+<span class="sd">    cycle-to-cycle (c2c) variations.</span>
+
+<span class="sd">    Conductance range: 3 nS to 38 nS.</span>
+<span class="sd">    Nonlinearity: set to zero.</span>
+<span class="sd">    Maximum pulse level: 500.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">AnalyticalDevice</span><span class="p">(</span><span class="n">min_conductance</span><span class="o">=</span><span class="mf">3e-9</span><span class="p">,</span> <span class="n">max_conductance</span><span class="o">=</span><span class="mf">38e-9</span><span class="p">,</span> <span class="n">d2d_var</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">c2c_var</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">nonlinearity_set</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nonlinearity_reset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_level</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
 
@@ -97,6 +130,15 @@
 <div class="viewcode-block" id="AnalyticalReal">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.presets.html#xbtorch.devices.presets.AnalyticalReal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AnalyticalReal</span><span class="p">(</span><span class="n">AnalyticalDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Realistic analytical device with typical cycle-to-cycle variations.</span>
+
+<span class="sd">    Conductance range: 3 nS to 38 nS.</span>
+<span class="sd">    Nonlinearity: set = 2.4, reset = -4.88.</span>
+<span class="sd">    c2c variation: 0.035.</span>
+<span class="sd">    Maximum pulse level: 500.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">AnalyticalDevice</span><span class="p">(</span><span class="n">min_conductance</span><span class="o">=</span><span class="mf">3e-9</span><span class="p">,</span> <span class="n">max_conductance</span><span class="o">=</span><span class="mf">38e-9</span><span class="p">,</span> <span class="n">d2d_var</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">c2c_var</span><span class="o">=</span><span class="mf">0.035</span><span class="p">,</span> <span class="n">nonlinearity_set</span><span class="o">=</span><span class="mf">2.4</span><span class="p">,</span> <span class="n">nonlinearity_reset</span><span class="o">=-</span><span class="mf">4.88</span><span class="p">,</span> <span class="n">max_level</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
 
@@ -111,6 +153,14 @@
 <div class="viewcode-block" id="TabularAnalyticalReal">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.presets.html#xbtorch.devices.presets.TabularAnalyticalReal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TabularAnalyticalReal</span><span class="p">(</span><span class="n">TabularDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Synthetic tabular device simulating realistic analytical behavior.</span>
+
+<span class="sd">    Uses predefined target tables with linear mean and constant standard</span>
+<span class="sd">    deviation. Equivalent to NeuroSim synthetic dataset with 10,000 samples.</span>
+<span class="sd">    Maximum pulse level: 500.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">model_name</span> <span class="o">=</span> <span class="s1">&#39;synthetic/target_lc_ns_sd1.2_10000&#39;</span> <span class="c1"># target tables, linear mean, constant standard deviation (1.2 nS) profile, equivalent to neurosim, constructed with 10,000 data points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">TabularDevice</span><span class="p">(</span><span class="n">reset_g</span><span class="o">=</span><span class="n">files</span><span class="p">(</span><span class="s1">&#39;xbtorch.libdata&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">data_dir</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s1">_reset_axis_level_G.txt&#39;</span><span class="p">),</span> 
@@ -134,6 +184,21 @@
 <div class="viewcode-block" id="TabularCompactFeFETKriging">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.presets.html#xbtorch.devices.presets.TabularCompactFeFETKriging">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TabularCompactFeFETKriging</span><span class="p">(</span><span class="n">TabularDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compact FeFET tabular device using Kriging interpolation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name encoding voltage and standard deviation, e.g., &#39;fefet_reset_1.2V_32_SD&#39;.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Uses 10,000 data points to construct the tabular model, consistent with</span>
+<span class="sd">    synthetic Neuromorphic simulations.</span>
+<span class="sd">    Maximum pulse level: 32.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="n">filename</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
         <span class="n">vgs</span><span class="p">,</span> <span class="n">sd</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">],</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -157,6 +222,20 @@
 <div class="viewcode-block" id="TabularExperimentalFemFETKriging">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.presets.html#xbtorch.devices.presets.TabularExperimentalFemFETKriging">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TabularExperimentalFemFETKriging</span><span class="p">(</span><span class="n">TabularDevice</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Experimental FeFET tabular device model based on measured data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name encoding gate voltage, e.g., &#39;femfet_vg3&#39;.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Uses experimental data for reset/set conductances, dG, and CDF tables.</span>
+<span class="sd">    Maximum pulse level: 50.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="n">filename</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
         <span class="n">vg</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>

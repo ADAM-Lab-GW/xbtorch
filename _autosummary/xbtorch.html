@@ -52,6 +52,15 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">XBTorch API</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">xbtorch</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#xbtorch-root-package">XBTorch root package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xbtorch.XBParams"><code class="docutils literal notranslate"><span class="pre">XBParams</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.XBParams._global_dict"><code class="docutils literal notranslate"><span class="pre">XBParams._global_dict</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.XBParams._wage_defaults"><code class="docutils literal notranslate"><span class="pre">XBParams._wage_defaults</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.XBParams.get_var"><code class="docutils literal notranslate"><span class="pre">XBParams.get_var()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.XBParams.initialize"><code class="docutils literal notranslate"><span class="pre">XBParams.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.XBParams.set_var"><code class="docutils literal notranslate"><span class="pre">XBParams.set_var()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#xbtorch.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.decomposition.html">xbtorch.decomposition</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.html">xbtorch.deployment</a></li>
@@ -103,29 +112,110 @@
              
   <section id="module-xbtorch">
 <span id="xbtorch"></span><h1>xbtorch<a class="headerlink" href="#module-xbtorch" title="Link to this heading"></a></h1>
+<section id="xbtorch-root-package">
+<h2>XBTorch root package<a class="headerlink" href="#xbtorch-root-package" title="Link to this heading"></a></h2>
+<p>This module provides the root API for XBTorch, including:</p>
+<ul class="simple">
+<li><p>The <cite>XBParams</cite> singleton class for global configuration.</p></li>
+<li><p>Helper functions to get/set parameters and initialize the library.</p></li>
+<li><p>Lists of supported activation layers, parameterized layers, and parameter-less layers.</p></li>
+</ul>
+</section>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xbtorch_param</span></code>(key[, default])</p></td>
-<td><p></p></td>
+<td><p>Retrieve a global XBTorch parameter.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.initialize" title="xbtorch.initialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Initialize the XBTorch library.</p></td>
 </tr>
 </tbody>
 </table>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">XBParams</span></code>()</p></td>
-<td><p>Singleton class</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.XBParams" title="xbtorch.XBParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">XBParams</span></code></a>()</p></td>
+<td><p>Singleton class to store global XBTorch parameters.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.XBParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.</span></span><span class="sig-name descname"><span class="pre">XBParams</span></span><a class="reference internal" href="../_modules/xbtorch.html#XBParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.XBParams" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Singleton class to store global XBTorch parameters.</p>
+<p>This class ensures a single global configuration dictionary that controls
+decomposition, device, quantization, weight ranges, and accelerators.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.XBParams._global_dict">
+<span class="sig-name descname"><span class="pre">_global_dict</span></span><a class="headerlink" href="#xbtorch.XBParams._global_dict" title="Link to this definition"></a></dt>
+<dd><p>Dictionary storing all global parameters and flags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.XBParams._wage_defaults">
+<span class="sig-name descname"><span class="pre">_wage_defaults</span></span><a class="headerlink" href="#xbtorch.XBParams._wage_defaults" title="Link to this definition"></a></dt>
+<dd><p>Default settings for WAGE quantization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.XBParams.get_var">
+<span class="sig-name descname"><span class="pre">get_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch.html#XBParams.get_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.XBParams.get_var" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.XBParams.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decomposition_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(-1,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pytorch_device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wage_quantize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wage_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inference_accelerator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch.html#XBParams.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.XBParams.initialize" title="Link to this definition"></a></dt>
+<dd><p>Initialize the XBTorch environment.</p>
+<p>Sets up decomposition algorithm, device, weight ranges, WAGE quantization,
+and optional inference accelerators. Also migrates tensors to the selected device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>decomposition_algorithm</strong> (<a class="reference internal" href="xbtorch.decomposition.base.html#xbtorch.decomposition.base.GenericDecomposition" title="xbtorch.decomposition.base.GenericDecomposition"><em>xbtorch.decomposition.base.GenericDecomposition</em></a><em>, </em><em>optional</em>) – Decomposition algorithm to use for layers (default is None).</p></li>
+<li><p><strong>device_type</strong> (<a class="reference internal" href="xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice" title="xbtorch.devices.base.GenericDevice"><em>xbtorch.devices.base.GenericDevice</em></a><em>, </em><em>optional</em>) – Hardware device abstraction (default is None).</p></li>
+<li><p><strong>weight_range</strong> (<em>tuple</em><em> of </em><em>float</em><em>, </em><em>optional</em>) – Min and max allowed weights, default is (-1, 1).</p></li>
+<li><p><strong>pytorch_device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – PyTorch device for tensor allocation (default ‘cpu’).</p></li>
+<li><p><strong>wage_quantize</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to enable WAGE quantization (default False).</p></li>
+<li><p><strong>wage_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Overrides for WAGE quantization defaults.</p></li>
+<li><p><strong>inference_accelerator</strong> (<a class="reference internal" href="xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><em>xbtorch.deployment.base.GenericAccelerator</em></a><em>, </em><em>optional</em>) – Inference accelerator to use.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If provided decomposition_algorithm, device_type, or inference_accelerator
+    is not of the expected type, or weight_range is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.XBParams.set_var">
+<span class="sig-name descname"><span class="pre">set_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch.html#XBParams.set_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.XBParams.set_var" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.initialize">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.</span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch.html#initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.initialize" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Initialize the XBTorch library.</p>
+<p>Convenience function that calls <cite>XBParams.initialize</cite>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#xbtorch.XBParams.initialize" title="xbtorch.XBParams.initialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">XBParams.initialize</span></code></a></p>
+</div>
+</dd></dl>
 
 <p class="rubric">Modules</p>
 <table class="autosummary longtable docutils align-default">
@@ -137,7 +227,7 @@
 <td><p>Deployment (mapping, encoding, etc.) of solutions to inference accelerators</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="xbtorch.devices.html#module-xbtorch.devices" title="xbtorch.devices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">devices</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Device models and device model presets</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="xbtorch.loss.html#module-xbtorch.loss" title="xbtorch.loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss</span></code></a></p></td>
 <td><p>Custom loss functions and tools for loss landscapes</p></td>

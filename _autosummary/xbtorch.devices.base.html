@@ -104,17 +104,32 @@
              
   <section id="module-xbtorch.devices.base">
 <span id="xbtorch-devices-base"></span><h1>xbtorch.devices.base<a class="headerlink" href="#module-xbtorch.devices.base" title="Link to this heading"></a></h1>
+<p>Base device classes for crossbar simulations.</p>
+<p>This module provides abstract and concrete device models used to
+simulate non-ideal analog memory devices. It defines the
+<cite>GenericDevice</cite> base class and two primary implementations:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#xbtorch.devices.base.AnalyticalDevice" title="xbtorch.devices.base.AnalyticalDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnalyticalDevice</span></code></a> : Nonlinear device model using analytical formulas.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.devices.base.TabularDevice" title="xbtorch.devices.base.TabularDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TabularDevice</span></code></a> : Empirical device model using tabulated measurements.</p></li>
+</ul>
+<p>These classes handle conductance-to-weight conversion, pulse-based writes,
+device-to-device (d2d) and cycle-to-cycle (c2c) variations, and nonlinear
+weight update behavior.</p>
+<p class="rubric">Notes</p>
+<p>All device classes assume that <cite>weight_range</cite> is defined globally via
+<code class="xref py py-func docutils literal notranslate"><span class="pre">get_xbtorch_param()</span></code>. The write methods modify tensors in-place
+and enforce device conductance bounds.</p>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.base.AnalyticalDevice" title="xbtorch.devices.base.AnalyticalDevice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnalyticalDevice</span></code></a>(min_conductance, ...)</p></td>
-<td><p></p></td>
+<td><p>Analytical nonlinear device model.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.devices.base.GenericDevice" title="xbtorch.devices.base.GenericDevice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GenericDevice</span></code></a>([min_conductance, ...])</p></td>
-<td><p></p></td>
+<td><p>Abstract base class for analog memory devices.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.devices.base.TabularDevice" title="xbtorch.devices.base.TabularDevice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularDevice</span></code></a>(reset_g, reset_dg, reset_cdf, ...)</p></td>
-<td><p></p></td>
+<td><p>Device model using tabulated empirical measurements.</p></td>
 </tr>
 </tbody>
 </table>
@@ -122,10 +137,42 @@
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.base.</span></span><span class="sig-name descname"><span class="pre">AnalyticalDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_conductance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_conductance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2d_var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c2c_var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinearity_set</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinearity_reset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_level</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xbtorch.devices.base.GenericDevice" title="xbtorch.devices.base.GenericDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericDevice</span></code></a></p>
+<p>Analytical nonlinear device model.</p>
+<p>Uses exponential nonlinear weight update functions and supports
+device-to-device (d2d) and cycle-to-cycle (c2c) variations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>min_conductance</strong> (<em>float</em>) – Minimum conductance.</p></li>
+<li><p><strong>max_conductance</strong> (<em>float</em>) – Maximum conductance.</p></li>
+<li><p><strong>d2d_var</strong> (<em>float</em>) – Device-to-device variation.</p></li>
+<li><p><strong>c2c_var</strong> (<em>float</em>) – Cycle-to-cycle variation.</p></li>
+<li><p><strong>nonlinearity_set</strong> (<em>float</em>) – Nonlinearity of set operation.</p></li>
+<li><p><strong>nonlinearity_reset</strong> (<em>float</em>) – Nonlinearity of reset operation.</p></li>
+<li><p><strong>max_level</strong> (<em>int</em>) – Maximum number of pulse levels.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.conductance_to_pulse">
 <span class="sig-name descname"><span class="pre">conductance_to_pulse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.conductance_to_pulse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.conductance_to_pulse" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Inverse of pulse_to_conductance: map conductance to pulse position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>torch.Tensor</em>) – Conductance tensor.</p></li>
+<li><p><strong>A</strong> (<em>torch.Tensor</em>) – Parameter A.</p></li>
+<li><p><strong>B</strong> (<em>torch.Tensor</em>) – Parameter B.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pulse position tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.data_dir">
@@ -135,48 +182,108 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.get_param_A">
 <span class="sig-name descname"><span class="pre">get_param_A</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nonlinearity</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.get_param_A"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.get_param_A" title="Link to this definition"></a></dt>
-<dd><p>Adapted from DNN + NeuroSim v2</p>
+<dd><p>Get parameter A from nonlinearity using tabulated data (based on DNN + NeuroSim v2).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nonlinearity</strong> (<em>torch.Tensor</em>) – Nonlinearity tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Parameter A tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.get_param_B">
 <span class="sig-name descname"><span class="pre">get_param_B</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.get_param_B"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.get_param_B" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Compute parameter B from A and max/min conductance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>A</strong> (<em>torch.Tensor</em>) – Parameter A tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Parameter B tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.pulse_to_conductance">
 <span class="sig-name descname"><span class="pre">pulse_to_conductance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xPulse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.pulse_to_conductance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.pulse_to_conductance" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Map pulse position to conductance using nonlinear function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xPulse</strong> (<em>torch.Tensor</em>) – Pulse position tensor.</p></li>
+<li><p><strong>A</strong> (<em>torch.Tensor</em>) – Parameter A.</p></li>
+<li><p><strong>B</strong> (<em>torch.Tensor</em>) – Parameter B.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Conductance tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.reset_cached_params">
 <span class="sig-name descname"><span class="pre">reset_cached_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.reset_cached_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.reset_cached_params" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Reset cached parameters for pulse-conductance calculations.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.set_c2c_var">
 <span class="sig-name descname"><span class="pre">set_c2c_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.set_c2c_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.set_c2c_var" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Set cycle-to-cycle variation.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.set_d2d_var">
 <span class="sig-name descname"><span class="pre">set_d2d_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.set_d2d_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.set_d2d_var" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Set device-to-device variation.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_reset">
 <span class="sig-name descname"><span class="pre">set_nonlinearity_reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nl_reset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.set_nonlinearity_reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_reset" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Set nonlinearity for reset operation.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_set">
 <span class="sig-name descname"><span class="pre">set_nonlinearity_set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nl_set</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.set_nonlinearity_set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_set" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Set nonlinearity for set operation.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.AnalyticalDevice.write">
 <span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numPulse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_param_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#AnalyticalDevice.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.AnalyticalDevice.write" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Apply pulses to update the device conductance tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>torch.Tensor</em>) – Conductance tensor to update.</p></li>
+<li><p><strong>numPulse</strong> (<em>torch.Tensor</em>) – Number of pulses for each element.</p></li>
+<li><p><strong>group_param_idx</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Index used for parameter caching (default: (0, 0)).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated conductance tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -184,30 +291,94 @@
 <dt class="sig sig-object py" id="xbtorch.devices.base.GenericDevice">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.base.</span></span><span class="sig-name descname"><span class="pre">GenericDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_conductance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_conductance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_conductance_set</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_conductance_reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_conductance_set</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_conductance_reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#GenericDevice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.GenericDevice" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Abstract base class for analog memory devices.</p>
+<p>Handles conversion between software weights and device conductance,
+gradient-to-pulse conversion, and caching of device parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>min_conductance</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum conductance of the device (used for both set and reset).</p></li>
+<li><p><strong>max_conductance</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum conductance of the device (used for both set and reset).</p></li>
+<li><p><strong>min_conductance_set</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum conductance during set operation.</p></li>
+<li><p><strong>min_conductance_reset</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum conductance during reset operation.</p></li>
+<li><p><strong>max_conductance_set</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum conductance during set operation.</p></li>
+<li><p><strong>max_conductance_reset</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum conductance during reset operation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If insufficient conductance bounds are provided.</p>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.GenericDevice.conductance_to_weight">
 <span class="sig-name descname"><span class="pre">conductance_to_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conductance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#GenericDevice.conductance_to_weight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.GenericDevice.conductance_to_weight" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Convert device conductance back to software weight.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conductance</strong> (<em>torch.Tensor</em>) – Conductance tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Corresponding software weight tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.GenericDevice.gradient_to_pulse">
 <span class="sig-name descname"><span class="pre">gradient_to_pulse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gradient</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#GenericDevice.gradient_to_pulse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.GenericDevice.gradient_to_pulse" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Convert a weight gradient to the number of device pulses using stochastic rounding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gradient</strong> (<em>torch.Tensor</em>) – Weight gradient tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Integer tensor of pulses.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.GenericDevice.reset_cached_params">
 <span class="sig-name descname"><span class="pre">reset_cached_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#GenericDevice.reset_cached_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.GenericDevice.reset_cached_params" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Reset cached device parameters.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.GenericDevice.weight_to_conductance">
 <span class="sig-name descname"><span class="pre">weight_to_conductance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#GenericDevice.weight_to_conductance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.GenericDevice.weight_to_conductance" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Convert a software weight to device conductance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>weight</strong> (<em>torch.Tensor</em>) – Software weight tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Corresponding conductance tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.GenericDevice.write">
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#GenericDevice.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.GenericDevice.write" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Abstract method to apply pulses to update conductance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>torch.Tensor</em>) – Conductance tensor to update.</p></li>
+<li><p><strong>pulse</strong> (<em>torch.Tensor</em>) – Number of pulses to apply.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -215,6 +386,22 @@
 <dt class="sig sig-object py" id="xbtorch.devices.base.TabularDevice">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.devices.base.</span></span><span class="sig-name descname"><span class="pre">TabularDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reset_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_dg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_cdf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_dg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_cdf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_level</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#TabularDevice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.TabularDevice" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xbtorch.devices.base.GenericDevice" title="xbtorch.devices.base.GenericDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericDevice</span></code></a></p>
+<p>Device model using tabulated empirical measurements.</p>
+<p>Uses gTable, dGTable, and cdfTable to simulate stochastic
+weight updates with cycle-to-cycle variations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reset_g</strong> (<em>str</em>) – Path to reset conductance table.</p></li>
+<li><p><strong>reset_dg</strong> (<em>str</em>) – Path to reset dG table.</p></li>
+<li><p><strong>reset_cdf</strong> (<em>str</em>) – Path to reset CDF table.</p></li>
+<li><p><strong>set_g</strong> (<em>str</em>) – Path to set conductance table.</p></li>
+<li><p><strong>set_dg</strong> (<em>str</em>) – Path to set dG table.</p></li>
+<li><p><strong>set_cdf</strong> (<em>str</em>) – Path to set CDF table.</p></li>
+<li><p><strong>max_level</strong> (<em>int</em>) – Maximum pulse level.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xbtorch.devices.base.TabularDevice.data_dir">
 <span class="sig-name descname"><span class="pre">data_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tabular'</span></em><a class="headerlink" href="#xbtorch.devices.base.TabularDevice.data_dir" title="Link to this definition"></a></dt>
@@ -223,7 +410,23 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.devices.base.TabularDevice.write">
 <span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numPulse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_param_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/devices/base.html#TabularDevice.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.devices.base.TabularDevice.write" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Apply pulses using tabulated device behavior.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>torch.Tensor</em>) – Conductance tensor to update.</p></li>
+<li><p><strong>numPulse</strong> (<em>torch.Tensor</em>) – Number of pulses for each element.</p></li>
+<li><p><strong>group_param_idx</strong> (<em>None</em>) – Not used for TabularDevice.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated conductance tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

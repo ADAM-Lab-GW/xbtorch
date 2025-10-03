@@ -76,17 +76,40 @@
            <div itemprop="articleBody">
              
   <h1>Source code for xbtorch</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">XBTorch root package</span>
+<span class="sd">=====================</span>
+
+<span class="sd">This module provides the root API for XBTorch, including:</span>
+
+<span class="sd">- The `XBParams` singleton class for global configuration.</span>
+<span class="sd">- Helper functions to get/set parameters and initialize the library.</span>
+<span class="sd">- Lists of supported activation layers, parameterized layers, and parameter-less layers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch.quant.wage_qtorch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wage_qtorch</span>
 
+<div class="viewcode-block" id="XBParams">
+<a class="viewcode-back" href="../_autosummary/xbtorch.html#xbtorch.XBParams">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">XBParams</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Singleton class</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Singleton class to store global XBTorch parameters.</span>
+
+<span class="sd">    This class ensures a single global configuration dictionary that controls</span>
+<span class="sd">    decomposition, device, quantization, weight ranges, and accelerators.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _global_dict : dict</span>
+<span class="sd">        Dictionary storing all global parameters and flags.</span>
+<span class="sd">    _wage_defaults : dict</span>
+<span class="sd">        Default settings for WAGE quantization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">_instance</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">_global_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;initialized&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
                     <span class="s1">&#39;decomposition_algorithm&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -111,15 +134,50 @@
             <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">XBParams</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span>
 
+<div class="viewcode-block" id="XBParams.set_var">
+<a class="viewcode-back" href="../_autosummary/xbtorch.html#xbtorch.XBParams.set_var">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
+
+<div class="viewcode-block" id="XBParams.get_var">
+<a class="viewcode-back" href="../_autosummary/xbtorch.html#xbtorch.XBParams.get_var">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+
     
+<div class="viewcode-block" id="XBParams.initialize">
+<a class="viewcode-back" href="../_autosummary/xbtorch.html#xbtorch.XBParams.initialize">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decomposition_algorithm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">pytorch_device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">wage_quantize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wage_params</span><span class="o">=</span><span class="p">{},</span> <span class="n">inference_accelerator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="c1"># print(&#39;\nInitializing XBTorch..&#39;)</span>
-        <span class="c1"># Type checking</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the XBTorch environment.</span>
+
+<span class="sd">        Sets up decomposition algorithm, device, weight ranges, WAGE quantization,</span>
+<span class="sd">        and optional inference accelerators. Also migrates tensors to the selected device.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        decomposition_algorithm : xbtorch.decomposition.base.GenericDecomposition, optional</span>
+<span class="sd">            Decomposition algorithm to use for layers (default is None).</span>
+<span class="sd">        device_type : xbtorch.devices.base.GenericDevice, optional</span>
+<span class="sd">            Hardware device abstraction (default is None).</span>
+<span class="sd">        weight_range : tuple of float, optional</span>
+<span class="sd">            Min and max allowed weights, default is (-1, 1).</span>
+<span class="sd">        pytorch_device : str or torch.device, optional</span>
+<span class="sd">            PyTorch device for tensor allocation (default &#39;cpu&#39;).</span>
+<span class="sd">        wage_quantize : bool, optional</span>
+<span class="sd">            Whether to enable WAGE quantization (default False).</span>
+<span class="sd">        wage_params : dict, optional</span>
+<span class="sd">            Overrides for WAGE quantization defaults.</span>
+<span class="sd">        inference_accelerator : xbtorch.deployment.base.GenericAccelerator, optional</span>
+<span class="sd">            Inference accelerator to use.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If provided decomposition_algorithm, device_type, or inference_accelerator</span>
+<span class="sd">            is not of the expected type, or weight_range is invalid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">decomposition_algorithm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">decomposition_algorithm</span><span class="p">),</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">decomposition</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">GenericDecomposition</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid decomposition algorithm provided&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">device_type</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">device_type</span><span class="p">),</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">GenericDevice</span><span class="p">):</span>
@@ -188,16 +246,44 @@
                 <span class="n">device_type</span><span class="o">.</span><span class="n">reset_cdf</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">reset_cdf</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
 
                 <span class="n">device_type</span><span class="o">.</span><span class="n">min_conductance</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">min_conductance</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
-                <span class="n">device_type</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">max_conductance</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+                <span class="n">device_type</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">max_conductance</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span></div>
+</div>
+
 
         <span class="c1"># print(&#39;Initialization complete..\n&#39;)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_xbtorch_param</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a global XBTorch parameter.</span>
+
+<span class="sd">    Convenience function to access the `XBParams` singleton.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    key : str</span>
+<span class="sd">        Name of the parameter to retrieve.</span>
+<span class="sd">    default : any, optional</span>
+<span class="sd">        Value to return if key is not found (default None).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    any</span>
+<span class="sd">        The value of the requested parameter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">XBParams</span><span class="p">()</span><span class="o">.</span><span class="n">get_var</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
 
 <div class="viewcode-block" id="initialize">
 <a class="viewcode-back" href="../_autosummary/xbtorch.html#xbtorch.initialize">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize the XBTorch library.</span>
+
+<span class="sd">    Convenience function that calls `XBParams.initialize`.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    XBParams.initialize</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">XBParams</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
@@ -267,7 +353,7 @@
     <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;initialize&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;initialize&#39;</span><span class="p">,</span> <span class="s1">&#39;XBParams&#39;</span><span class="p">]</span>
 </pre></div>
 
            </div>
