@@ -1,0 +1,13 @@
+xbtorch.deployment.metrics
+==========================
+
+.. automodule:: xbtorch.deployment.metrics
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compute_error
+      error_mapping
+   

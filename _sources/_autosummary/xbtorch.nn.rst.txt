@@ -1,0 +1,16 @@
+xbtorch.nn
+==========
+
+.. automodule:: xbtorch.nn
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   datasets
+   models
+   nn
+   utils

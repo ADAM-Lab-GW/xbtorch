@@ -1,0 +1,269 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.patches.model &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.patches.model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.patches.model</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Decorators for patching PyTorch models to make them compatible</span>
+<span class="sd">with XBTorch operations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_xbtorch_param</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch.quant.wage_init</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wage_init</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xbnn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<div class="viewcode-block" id="xbtorch_model">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.patches.model.html#xbtorch.patches.model.xbtorch_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_model</span><span class="p">(</span><span class="n">original_model</span><span class="p">):</span>
+    <span class="c1"># TODO: This should be used if a model was already created i.e. on an instance</span>
+    <span class="c1"># Copies state dictionary as well</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;initialized&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;XBTorch needs to be initialized, please refer to API for instructions.&#39;</span><span class="p">)</span>
+
+    <span class="n">wage_quantize</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;wage_quantize&#39;</span><span class="p">)</span>
+    <span class="n">xb_inference_accelerator</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;inference_accelerator&#39;</span><span class="p">)</span>
+    <span class="n">original_model</span><span class="o">.</span><span class="n">xb_forward</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># declare this to be false, xb_eval() has to be explicitly called</span>
+    
+    <span class="c1"># detect the device from the original model</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">original_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span>
+    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>  <span class="c1"># fallback if model has no parameters</span>
+    
+    <span class="k">if</span> <span class="p">(</span><span class="n">wage_quantize</span><span class="p">):</span>
+        <span class="n">wage_params</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;wage_params&#39;</span><span class="p">)</span>
+        <span class="n">quantizer_act_error</span> <span class="o">=</span> <span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;quantizer_act_error&#39;</span><span class="p">]</span>
+        <span class="n">wl_activation</span> <span class="o">=</span> <span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;wl_activation&#39;</span><span class="p">]</span>
+        <span class="n">wl_error</span> <span class="o">=</span> <span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;wl_error&#39;</span><span class="p">]</span>
+        <span class="n">wl_weight</span> <span class="o">=</span> <span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;wl_weight&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">original_model</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Unable to find module list for patching, see network training example for correct patching workflow.&#39;</span><span class="p">)</span>
+
+    <span class="n">new_model</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">wage_quantize</span><span class="p">):</span> 
+        <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quantizer_act_error</span><span class="p">(</span><span class="n">wl_activation</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+        <span class="c1"># TODO: A cleaner way to implement this could be to specify regex patterns for layers to be patched, or just specify them as a list</span>
+        <span class="c1"># This should simplify model definitions, as well as patched re-creations here</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">)</span> <span class="ow">in</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">layer_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">))</span> <span class="o">==</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">out_features</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">xbnn_layer</span> <span class="o">=</span> <span class="n">xbnn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">))</span> <span class="o">==</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">padding_mode</span><span class="p">)</span>
+                <span class="n">xbnn_layer</span> <span class="o">=</span> <span class="n">xbnn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">))</span> <span class="o">==</span> <span class="n">nn</span><span class="o">.</span><span class="n">RNN</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">input_size</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">nonlinearity</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">batch_first</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">bidirectional</span><span class="p">)</span>
+                <span class="n">xbnn_layer</span> <span class="o">=</span> <span class="n">xbnn</span><span class="o">.</span><span class="n">RNN</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">))</span> <span class="o">==</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">input_size</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">batch_first</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">bidirectional</span><span class="p">,</span> <span class="n">module</span><span class="o">.</span><span class="n">proj_size</span><span class="p">)</span>
+                <span class="n">xbnn_layer</span> <span class="o">=</span> <span class="n">xbnn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An xbtorch supported layer, </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">)</span><span class="si">}</span><span class="s2">, is missing an implementation.&quot;</span><span class="p">)</span>
+
+            <span class="c1"># move to device before loading weights</span>
+            <span class="n">xbnn_layer</span> <span class="o">=</span> <span class="n">xbnn_layer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">xbnn_layer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+            <span class="n">xbnn_layer</span><span class="o">.</span><span class="n">_array_mappings</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># we add this to make initialization easier later, since pre-trained weights would be loaded after patching</span>
+            <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xbnn_layer</span><span class="p">)</span>
+
+        <span class="c1"># activations</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">)</span> <span class="ow">in</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">activation_types</span><span class="p">):</span> 
+            <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">wage_quantize</span><span class="p">):</span> <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quantizer_act_error</span><span class="p">(</span><span class="n">wl_activation</span><span class="p">,</span> <span class="n">wl_error</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">module</span><span class="p">)</span> <span class="ow">in</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">misc_types</span><span class="p">):</span> 
+            <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+
+        <span class="c1"># else copy unpatched module, but notify user</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;XBPatching for module </span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s1"> is not defined, using as is.&#39;</span><span class="p">)</span>
+            <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+            <span class="c1"># exit()</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">wage_quantize</span> <span class="ow">and</span> <span class="n">new_model</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">activation_types</span><span class="p">):</span> 
+        <span class="c1"># add act/error quantizer if the last module is an activation</span>
+        <span class="n">new_model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quantizer_act_error</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">wl_error</span><span class="p">))</span>
+
+    <span class="n">original_model</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">new_model</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">wage_quantize</span><span class="p">):</span>
+        <span class="c1"># wage parameters</span>
+        <span class="n">original_model</span><span class="o">.</span><span class="n">weight_scale</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">original_model</span><span class="o">.</span><span class="n">weight_acc</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;weight&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">):</span> <span class="n">wage_init</span><span class="o">.</span><span class="n">wage_init_</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">wl_weight</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">weight_acc</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">data</span>
+
+    <span class="c1"># print(&#39;Patched XBTorch Model&#39;, original_model.model)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">xb_inference_accelerator</span><span class="p">):</span>
+        <span class="c1"># if initialization included an inference accelerator</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">toggle</span><span class="p">(</span><span class="n">enable</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">original_model</span><span class="o">.</span><span class="n">xb_forward</span> <span class="o">=</span> <span class="n">enable</span>
+            <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">_xb_inference</span> <span class="o">=</span> <span class="n">enable</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">initialize_array_mappings</span><span class="p">(</span><span class="n">output_polling_mode</span><span class="o">=</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="n">existing_mappings</span><span class="o">=</span><span class="p">[],</span> <span class="n">additional_args</span><span class="o">=</span><span class="p">{}):</span>
+            <span class="c1"># existing_mappings can be used as a reference to avoid conflicting mappings across unique models on the xb (primary use case: committee machines)</span>
+            <span class="c1"># reset/initialize mappings of this layer on the simulated crossbar</span>
+            <span class="n">original_model</span><span class="o">.</span><span class="n">_array_mappings_all</span> <span class="o">=</span> <span class="n">existing_mappings</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">output_polling_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;avg&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;reduced_avg&#39;</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid output polling mode provided. Valid options are `avg` and `sum`.&quot;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s1">&#39;_array_mappings&#39;</span><span class="p">)):</span>
+                    <span class="n">sw_weight</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="c1"># get weight data for this particular module (can be 1 or more weight matrices)</span>
+                    <span class="c1"># get indices where the conductance matrices will be mapped on the simulated xbar</span>
+                    <span class="c1"># xb_mapping_schemes = [&#39;random&#39;, &#39;layer_ensemble&#39;] etc.</span>
+                    <span class="n">pos_idxs</span> <span class="o">=</span> <span class="n">xb_inference_accelerator</span><span class="o">.</span><span class="n">xb_mapping_scheme</span><span class="p">(</span><span class="n">accelerator</span><span class="o">=</span><span class="n">xb_inference_accelerator</span><span class="p">,</span> 
+                                                                          <span class="n">layer_shape</span><span class="o">=</span><span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> 
+                                                                          <span class="n">current_mappings</span><span class="o">=</span><span class="n">original_model</span><span class="o">.</span><span class="n">_array_mappings_all</span><span class="p">)</span>
+                    
+                    <span class="n">neg_idxs</span> <span class="o">=</span> <span class="n">xb_inference_accelerator</span><span class="o">.</span><span class="n">xb_mapping_scheme</span><span class="p">(</span><span class="n">accelerator</span><span class="o">=</span><span class="n">xb_inference_accelerator</span><span class="p">,</span> 
+                                                                          <span class="n">layer_shape</span><span class="o">=</span><span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                                                          <span class="n">current_mappings</span><span class="o">=</span><span class="n">original_model</span><span class="o">.</span><span class="n">_array_mappings_all</span><span class="p">)</span>
+
+                    <span class="c1"># map the sw_weight matrix to the simulated array as device conductances at indices extracted above</span>
+                    <span class="c1"># internally handles conversion of the sw_weight matrix to conductance matrices</span>
+                    <span class="c1"># weight_encoding_schemes = [&#39;regular&#39;, &#39;MAO&#39;]</span>
+                    <span class="n">maskspos</span><span class="p">,</span> <span class="n">masksneg</span> <span class="o">=</span> <span class="n">xb_inference_accelerator</span><span class="o">.</span><span class="n">map_weights_to_array</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="n">pos_idxs</span><span class="p">,</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="n">neg_idxs</span><span class="p">,</span> <span class="n">additional_args</span><span class="o">=</span><span class="n">additional_args</span><span class="p">)</span>
+                    
+                    <span class="c1"># Attach information to layer for output gathering for inference</span>
+                    <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gpos&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pos_idxs</span>
+                    <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gneg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neg_idxs</span>
+
+                    <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_polling_mode</span>
+
+                    <span class="k">if</span> <span class="p">(</span><span class="n">maskspos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">masksneg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                        <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskpos&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">maskspos</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># unsqueeze to allow broadcasting on batch dimension</span>
+                        <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskneg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">masksneg</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">additional_args</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_array_mappings</span><span class="p">():</span>
+            <span class="c1"># If new encoding methods are added, this would have to be adjusted.</span>
+            <span class="n">output_dict</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s1">&#39;_array_mappings&#39;</span><span class="p">)):</span>
+                    <span class="n">output_dict</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;Gpos&quot;</span><span class="p">:</span> <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s2">&quot;Gpos&quot;</span><span class="p">],</span> <span class="s2">&quot;Gneg&quot;</span><span class="p">:</span> <span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s2">&quot;Gneg&quot;</span><span class="p">],})</span>
+            <span class="k">return</span> <span class="n">output_dict</span>
+
+        <span class="c1"># attach new methods to the model</span>
+        <span class="n">original_model</span><span class="o">.</span><span class="n">xb_eval</span> <span class="o">=</span> <span class="n">toggle</span>
+        <span class="n">original_model</span><span class="o">.</span><span class="n">initialize_array_mappings</span> <span class="o">=</span> <span class="n">initialize_array_mappings</span>
+        <span class="n">original_model</span><span class="o">.</span><span class="n">get_array_mappings</span> <span class="o">=</span> <span class="n">get_array_mappings</span>
+
+    <span class="k">return</span> <span class="n">original_model</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

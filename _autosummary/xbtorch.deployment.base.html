@@ -1,0 +1,589 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.deployment.base &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xbtorch.deployment.committee" href="xbtorch.deployment.committee.html" />
+    <link rel="prev" title="xbtorch.deployment" href="xbtorch.deployment.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">XBTorch API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.html">xbtorch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.decomposition.html">xbtorch.decomposition</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="xbtorch.deployment.html">xbtorch.deployment</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.deployment.base</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.Daffodil"><code class="docutils literal notranslate"><span class="pre">Daffodil</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator"><code class="docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.SimpleFixedPoint"><code class="docutils literal notranslate"><span class="pre">SimpleFixedPoint</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.committee.html">xbtorch.deployment.committee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.correction.html">xbtorch.deployment.correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.encoding.html">xbtorch.deployment.encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.mapping.html">xbtorch.deployment.mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.metrics.html">xbtorch.deployment.metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.loss.html">xbtorch.loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.nn.html">xbtorch.nn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.patches.html">xbtorch.patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.quant.html">xbtorch.quant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.optim.html">xbtorch.optim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">XBTorch API</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.html">xbtorch</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.deployment.html">xbtorch.deployment</a></li>
+      <li class="breadcrumb-item active">xbtorch.deployment.base</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/xbtorch.deployment.base.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xbtorch.deployment.base">
+<span id="xbtorch-deployment-base"></span><h1>xbtorch.deployment.base<a class="headerlink" href="#module-xbtorch.deployment.base" title="Link to this heading"></a></h1>
+<p>Hardware accelerator simulation module.</p>
+<p>Defines the abstract base class <cite>GenericAccelerator</cite> and several
+concrete accelerator models (<cite>SimpleFixedPoint</cite>, <cite>Daffodil</cite>) for
+simulating memristive crossbar arrays in XBTorch.</p>
+<p>Features include:</p>
+<ul class="simple">
+<li><p>DAC and ADC quantization (fixed-point or board-specific)</p></li>
+<li><p>Noise modeling (read/write)</p></li>
+<li><p>Stuck-at defect simulation</p></li>
+<li><p>Weight encoding and mapping schemes</p></li>
+<li><p>Array visualization and utility functions</p></li>
+</ul>
+<p>This module provides a unified interface for simulating hardware
+effects on neural network training and inference.</p>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.base.Daffodil" title="xbtorch.deployment.base.Daffodil"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Daffodil</span></code></a>([g_min, g_max, v_read, read_noise, ...])</p></td>
+<td><p>Experimental Daffodil accelerator model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a>(g_min, g_max, v_read, ...)</p></td>
+<td><p>Abstract base class for hardware accelerator models in XBTorch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.base.SimpleFixedPoint" title="xbtorch.deployment.base.SimpleFixedPoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimpleFixedPoint</span></code></a>([adc_bits, dac_bits, ...])</p></td>
+<td><p>Simple fixed-point accelerator model.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">Daffodil</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_min=50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read=0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise=10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise=10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a></p>
+<p>Experimental Daffodil accelerator model.</p>
+<p>This accelerator simulates the Daffodil prototyping system
+developed by NIST/GW/WD, with detailed modeling of the on-board
+DAC/ADC behavior based on datasheets and experimental calibration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – See <a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a> for supported parameters.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Models a 12-bit DAC (AD5391BSTZ-5) and an ADC with calibration.</p></li>
+<li><p>Includes board-level parameters such as reference voltages,
+gains, and transimpedance amplifier settings.</p></li>
+<li><p>Provides helper functions for DAC/ADC conversions.</p></li>
+</ul>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>NIST/GW/WD Daffodil Prototyping System:
+<a class="reference external" href="https://arxiv.org/abs/2404.15621">https://arxiv.org/abs/2404.15621</a></p></li>
+<li><p>AD5391BSTZ-5 Datasheet:
+<a class="reference external" href="https://www.analog.com/media/en/technical-documentation/data-sheets/AD5390_5391_5392.pdf">https://www.analog.com/media/en/technical-documentation/data-sheets/AD5390_5391_5392.pdf</a></p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil.ADC_quantize">
+<span class="sig-name descname"><span class="pre">ADC_quantize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil.ADC_quantize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil.ADC_quantize" title="Link to this definition"></a></dt>
+<dd><p>Quantize output current via the ADC model.</p>
+<p>This method simulates the full signal chain:</p>
+<ul class="simple">
+<li><p>Converts crossbar current to voltage using a transimpedance
+amplifier model.</p></li>
+<li><p>Clips voltages to the ADC’s operating range.</p></li>
+<li><p>Maps voltages to ADC register values.</p></li>
+<li><p>Converts registers back to voltages.</p></li>
+<li><p>Reconstructs quantized currents.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>current</strong> (<em>torch.Tensor</em>) – Full-precision current vector (from crossbar readout).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quantized current vector, reconstructed from ADC output.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Transimpedance conversion uses board parameters
+(<code class="docutils literal notranslate"><span class="pre">board_vref</span></code>, <code class="docutils literal notranslate"><span class="pre">board_vmax</span></code>, <code class="docutils literal notranslate"><span class="pre">board_vground</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dpot_r</span></code>, <code class="docutils literal notranslate"><span class="pre">currentscale</span></code>).</p></li>
+<li><p>Simulated read noise can be optionally added for realism,
+but is currently disabled in this implementation.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil.DAC_quantize">
+<span class="sig-name descname"><span class="pre">DAC_quantize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">voltage</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil.DAC_quantize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil.DAC_quantize" title="Link to this definition"></a></dt>
+<dd><p>Quantize input voltage via the DAC model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>voltage</strong> (<em>torch.Tensor</em>) – Full-precision voltage input.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quantized DAC output voltage.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil.adc_invert_voltage">
+<span class="sig-name descname"><span class="pre">adc_invert_voltage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil.adc_invert_voltage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil.adc_invert_voltage" title="Link to this definition"></a></dt>
+<dd><p>Invert analog voltage to nearest ADC register value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>torch.Tensor</em>) – Input voltage.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADC register value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If input voltage exceeds ADC register range.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil.adc_predict_voltage">
+<span class="sig-name descname"><span class="pre">adc_predict_voltage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registervalue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil.adc_predict_voltage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil.adc_predict_voltage" title="Link to this definition"></a></dt>
+<dd><p>Predict analog voltage from ADC register value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>registervalue</strong> (<em>torch.Tensor</em>) – ADC register value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted analog voltage.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil.dac_calcvout">
+<span class="sig-name descname"><span class="pre">dac_calcvout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil.dac_calcvout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil.dac_calcvout" title="Link to this definition"></a></dt>
+<dd><p>Compute DAC analog output voltage for a digital register input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x1</strong> (<em>torch.Tensor</em>) – Register values (0 &lt;= x1 &lt;= 2^12).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Corresponding DAC output voltages.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil.dac_invertvout">
+<span class="sig-name descname"><span class="pre">dac_invertvout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil.dac_invertvout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil.dac_invertvout" title="Link to this definition"></a></dt>
+<dd><p>Compute nearest DAC register value for a given output voltage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>v</strong> (<em>torch.Tensor</em>) – Desired DAC output voltage.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Nearest integer DAC register value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">GenericAccelerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_size=(2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2500)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_encoding_scheme=&lt;function</span> <span class="pre">encode_simple_binary&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Abstract base class for hardware accelerator models in XBTorch.</p>
+<p>This class simulates memristive crossbar arrays, incorporating
+hardware non-idealities such as stuck devices, read/write noise,
+limited precision DAC/ADC, and weight encoding/mapping schemes.
+Subclasses implement specific quantization methods for DAC and ADC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>g_min</strong> (<em>float</em>) – Minimum device conductance (Siemens).</p></li>
+<li><p><strong>g_max</strong> (<em>float</em>) – Maximum device conductance (Siemens).</p></li>
+<li><p><strong>v_read</strong> (<em>float</em>) – Voltage used for read operations.</p></li>
+<li><p><strong>read_noise</strong> (<em>float</em>) – Amplitude of uniform read noise applied during chip readout.</p></li>
+<li><p><strong>write_noise</strong> (<em>float</em>) – Standard deviation of Gaussian noise applied during weight writes.</p></li>
+<li><p><strong>xb_size</strong> (<em>tuple</em><em> of </em><em>int</em><em>, </em><em>optional</em>) – Dimensions of the crossbar array (columns, rows). Default: (2500, 2500).</p></li>
+<li><p><strong>stuck_percentage</strong> (<em>float</em><em>, </em><em>optional</em>) – Fraction of devices randomly stuck at high or low values. Default: 0.0.</p></li>
+<li><p><strong>stuck_mode</strong> (<em>{&quot;ideal&quot;</em><em>, </em><em>&quot;real&quot;}</em><em>, </em><em>optional</em>) – Mode for stuck-at defect modeling:
+- “ideal”: stuck devices are fixed at g_min or g_max.
+- “real”: stuck devices are fixed at predefined realistic values.</p></li>
+<li><p><strong>weight_encoding_scheme</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function used to encode weights into conductance matrices.
+Default: <code class="xref py py-func docutils literal notranslate"><span class="pre">encode_simple_binary()</span></code>.</p></li>
+<li><p><strong>xb_mapping_scheme</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function for mapping weights to crossbar positions.
+Default: <code class="xref py py-func docutils literal notranslate"><span class="pre">map_random()</span></code>.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – PyTorch device for simulation (e.g., “cpu” or “cuda”).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator._chip">
+<span class="sig-name descname"><span class="pre">_chip</span></span><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator._chip" title="Link to this definition"></a></dt>
+<dd><p>Simulated crossbar array storing device conductances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.defect_map">
+<span class="sig-name descname"><span class="pre">defect_map</span></span><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.defect_map" title="Link to this definition"></a></dt>
+<dd><p>A tuple of (indices, values) representing defective devices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.name" title="Link to this definition"></a></dt>
+<dd><p>Descriptive string identifying array dimensions and defect rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Weight mapping uses both encoding (binary, LEA1, LEA2, etc.) and
+placement (e.g., random mapping).</p></li>
+<li><p>Noise models include Gaussian for write noise and uniform for
+read noise.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.ADC_quantize">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ADC_quantize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.ADC_quantize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.ADC_quantize" title="Link to this definition"></a></dt>
+<dd><p>Abstract method to quantize output currents via ADC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vector</strong> (<em>torch.Tensor</em>) – Full-precision current vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quantized current vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.DAC_quantize">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DAC_quantize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.DAC_quantize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.DAC_quantize" title="Link to this definition"></a></dt>
+<dd><p>Abstract method to quantize input voltages via DAC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vector</strong> (<em>torch.Tensor</em>) – Full-precision input voltage vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quantized voltage vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.gen_defect_map">
+<span class="sig-name descname"><span class="pre">gen_defect_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stuck_percentage</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.gen_defect_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.gen_defect_map" title="Link to this definition"></a></dt>
+<dd><p>Generate a defect map for the chip.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stuck_percentage</strong> (<em>float</em>) – Fraction of devices that are stuck.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(indices, values) where:
+- indices are tensor indices of defective devices,
+- values are their fixed conductances (stuck_high or stuck_low).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.initialize_chip">
+<span class="sig-name descname"><span class="pre">initialize_chip</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.initialize_chip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.initialize_chip" title="Link to this definition"></a></dt>
+<dd><p>Initialize the simulated chip state.</p>
+<ul class="simple">
+<li><p>Fills the array with uninitialized values (-1).</p></li>
+<li><p>Generates a defect map based on the specified stuck percentage.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.map_weights_to_array">
+<span class="sig-name descname"><span class="pre">map_weights_to_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.map_weights_to_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.map_weights_to_array" title="Link to this definition"></a></dt>
+<dd><p>Map software weights onto the hardware array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sw_weight</strong> (<em>torch.Tensor</em>) – Software weight matrix to map.</p></li>
+<li><p><strong>pos_idxs</strong> (<em>list</em><em> of </em><em>tuple</em><em>, </em><em>optional</em>) – Starting indices for positive weight encodings.</p></li>
+<li><p><strong>neg_idxs</strong> (<em>list</em><em> of </em><em>tuple</em><em>, </em><em>optional</em>) – Starting indices for negative weight encodings.</p></li>
+<li><p><strong>additional_args</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional keyword arguments for the encoding scheme.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(masksposs, masksnegs) masks used for layer ensemble
+averaging schemes. Returns (None, None) otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Adds Gaussian write noise if configured.</p></li>
+<li><p>Defect map is reapplied to enforce stuck devices.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.plot_array">
+<span class="sig-name descname"><span class="pre">plot_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.plot_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.plot_array" title="Link to this definition"></a></dt>
+<dd><p>Visualize the conductance state of the array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_start</strong> (<em>int</em><em>, </em><em>optional</em>) – Starting indices of the subarray to plot.</p></li>
+<li><p><strong>y_start</strong> (<em>int</em><em>, </em><em>optional</em>) – Starting indices of the subarray to plot.</p></li>
+<li><p><strong>x_count</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimensions of the subarray to plot.</p></li>
+<li><p><strong>y_count</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimensions of the subarray to plot.</p></li>
+<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Title for the plot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The read subarray.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.read_chip">
+<span class="sig-name descname"><span class="pre">read_chip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.read_chip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.read_chip" title="Link to this definition"></a></dt>
+<dd><p>Read a subarray of the chip, optionally with read noise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>int</em>) – Starting row index.</p></li>
+<li><p><strong>n_rows</strong> (<em>int</em>) – Number of rows to read.</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Starting column index.</p></li>
+<li><p><strong>n_cols</strong> (<em>int</em>) – Number of columns to read.</p></li>
+<li><p><strong>fast_mode</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, raises NotImplementedError. Default: True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Subarray with applied read noise (if configured).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.SimpleFixedPoint">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">SimpleFixedPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adc_bits=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dac_bits=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_min=50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read=0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_size=(2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2500)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_encoding_scheme='regular'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#SimpleFixedPoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.SimpleFixedPoint" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a></p>
+<p>Simple fixed-point accelerator model.</p>
+<p>This accelerator simulates fixed-point DAC and ADC quantization
+using the QTorch library. It models limited precision effects
+with configurable bitwidths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adc_bits</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=5</em><em>)</em>) – Number of bits for ADC quantization.</p></li>
+<li><p><strong>dac_bits</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=5</em><em>)</em>) – Number of bits for DAC quantization.</p></li>
+<li><p><strong>**kwargs</strong> – See <a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a> for supported parameters.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Quantization is symmetric, using QTorch’s
+<code class="xref py py-func docutils literal notranslate"><span class="pre">fixed_point_quantize()</span></code>.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.SimpleFixedPoint.ADC_quantize">
+<span class="sig-name descname"><span class="pre">ADC_quantize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#SimpleFixedPoint.ADC_quantize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.SimpleFixedPoint.ADC_quantize" title="Link to this definition"></a></dt>
+<dd><p>Quantize output current vector using fixed-point ADC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vector</strong> (<em>torch.Tensor</em>) – Full-precision current vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quantized current vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.SimpleFixedPoint.DAC_quantize">
+<span class="sig-name descname"><span class="pre">DAC_quantize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#SimpleFixedPoint.DAC_quantize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.SimpleFixedPoint.DAC_quantize" title="Link to this definition"></a></dt>
+<dd><p>Quantize input voltage vector using fixed-point DAC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vector</strong> (<em>torch.Tensor</em>) – Full-precision input voltage vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quantized voltage vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xbtorch.deployment.html" class="btn btn-neutral float-left" title="xbtorch.deployment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xbtorch.deployment.committee.html" class="btn btn-neutral float-right" title="xbtorch.deployment.committee" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

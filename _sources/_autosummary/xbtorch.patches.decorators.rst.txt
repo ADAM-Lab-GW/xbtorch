@@ -1,0 +1,13 @@
+xbtorch.patches.decorators
+==========================
+
+.. automodule:: xbtorch.patches.decorators
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      xbtorch_layer
+      xbtorch_optimizer
+   

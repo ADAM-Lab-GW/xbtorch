@@ -1,0 +1,23 @@
+xbtorch.deployment.correction
+=============================
+
+.. automodule:: xbtorch.deployment.correction
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      add_collaborative_logistic_classifiers
+      dnn_favorable_searching_code
+      test_collaborative
+      train_collaborative
+      variable_length_decode
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CollaborativeLogisticClassifier
+      CollaborativeLoss
+   

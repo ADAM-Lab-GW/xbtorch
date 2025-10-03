@@ -1,0 +1,15 @@
+xbtorch.devices
+===============
+
+.. automodule:: xbtorch.devices
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   base
+   presets
+   utils

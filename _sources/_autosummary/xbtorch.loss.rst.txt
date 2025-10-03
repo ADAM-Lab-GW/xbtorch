@@ -1,0 +1,13 @@
+xbtorch.loss
+============
+
+.. automodule:: xbtorch.loss
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   landscapes

@@ -1,0 +1,12 @@
+xbtorch.patches.model
+=====================
+
+.. automodule:: xbtorch.patches.model
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      xbtorch_model
+   

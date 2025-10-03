@@ -1,0 +1,13 @@
+xbtorch.decomposition.base
+==========================
+
+.. automodule:: xbtorch.decomposition.base
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      FullOuterProduct
+      GenericDecomposition
+   

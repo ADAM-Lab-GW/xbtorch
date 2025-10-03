@@ -1,0 +1,15 @@
+xbtorch.nn.models
+=================
+
+.. automodule:: xbtorch.nn.models
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      LeNet5
+      RNN
+      SimpleLSTM
+      VGG
+   

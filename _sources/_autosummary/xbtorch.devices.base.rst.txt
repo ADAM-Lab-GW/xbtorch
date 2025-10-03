@@ -1,0 +1,14 @@
+xbtorch.devices.base
+====================
+
+.. automodule:: xbtorch.devices.base
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AnalyticalDevice
+      GenericDevice
+      TabularDevice
+   

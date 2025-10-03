@@ -1,0 +1,12 @@
+xbtorch.decomposition.sbpca
+===========================
+
+.. automodule:: xbtorch.decomposition.sbpca
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SBPCA
+   

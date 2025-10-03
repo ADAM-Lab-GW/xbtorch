@@ -1,0 +1,18 @@
+xbtorch.devices.utils
+=====================
+
+.. automodule:: xbtorch.devices.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      construct_cdf
+      find_nearest
+      find_nearest_2d
+      get_kriging_profiles
+      stochastic_round
+      sweep_conductance_full
+      synthesize_G_dG_dataset
+   

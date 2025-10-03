@@ -1,0 +1,12 @@
+xbtorch.deployment.committee
+============================
+
+.. automodule:: xbtorch.deployment.committee
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      test_committee
+   

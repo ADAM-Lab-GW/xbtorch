@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">xbtorch</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch.quant.wage_qtorch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wage_qtorch</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">XBParams</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Singleton class</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">_instance</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_global_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;initialized&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s1">&#39;decomposition_algorithm&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s1">&#39;device_type&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s1">&#39;pytorch_device&#39;</span><span class="p">:</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;inference_accelerator&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s1">&#39;weight_range&#39;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="p">}</span>
+    <span class="n">_wage_defaults</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;wl_weight&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="c1"># 2 = ternary weights</span>
+                    <span class="s1">&#39;wl_activation&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                    <span class="s1">&#39;wl_grad&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                    <span class="s1">&#39;wl_error&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                    <span class="s1">&#39;rounding_weight&#39;</span> <span class="p">:</span> <span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;rounding_activation&#39;</span> <span class="p">:</span> <span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;rounding_grad&#39;</span> <span class="p">:</span> <span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;rounding_error&#39;</span> <span class="p">:</span> <span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                   <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">XBParams</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decomposition_algorithm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">pytorch_device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">wage_quantize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wage_params</span><span class="o">=</span><span class="p">{},</span> <span class="n">inference_accelerator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># print(&#39;\nInitializing XBTorch..&#39;)</span>
+        <span class="c1"># Type checking</span>
+        <span class="k">if</span> <span class="n">decomposition_algorithm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">decomposition_algorithm</span><span class="p">),</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">decomposition</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">GenericDecomposition</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid decomposition algorithm provided&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">device_type</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">device_type</span><span class="p">),</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">GenericDevice</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid device type provided&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">wage_quantize</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_quantize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wage_defaults</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">wage_params</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span> <span class="c1"># use defaults</span>
+                <span class="k">else</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">wage_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="c1"># weight quantizer</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;wl_weight&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;quantizer_weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;quantizer_weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="n">wage_qtorch</span><span class="o">.</span><span class="n">QW</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;wl_weight&#39;</span><span class="p">],</span> 
+                    <span class="n">scale</span><span class="p">,</span> 
+                    <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;rounding_weight&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="c1"># gradient quantizer</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;wl_grad&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;quantizer_grad&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;grad_clip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;quantizer_grad&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="n">wage_qtorch</span><span class="o">.</span><span class="n">QG</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;wl_grad&#39;</span><span class="p">],</span>
+                    <span class="n">lr</span><span class="p">,</span> 
+                    <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;rounding_grad&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;grad_clip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">wage_qtorch</span><span class="o">.</span><span class="n">C</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;wl_weight&#39;</span><span class="p">])</span>
+
+            <span class="c1"># activation and error quantizer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;quantizer_act_error&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="n">wage_qtorch</span><span class="o">.</span><span class="n">WAGEQuantizer</span><span class="p">,</span> 
+                <span class="n">A_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;rounding_activation&#39;</span><span class="p">],</span> 
+                <span class="n">E_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;wage_params&#39;</span><span class="p">][</span><span class="s1">&#39;rounding_error&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">weight_range</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">weight_range</span><span class="p">)</span> <span class="o">==</span> <span class="nb">tuple</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid weight range provided&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inference_accelerator</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">inference_accelerator</span><span class="p">),</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">deployment</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">GenericAccelerator</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid accelerator algorithm provided&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Setting the variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;initialized&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;decomposition_algorithm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">decomposition_algorithm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;device_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">device_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;pytorch_device&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pytorch_device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;weight_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">weight_range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_dict</span><span class="p">[</span><span class="s1">&#39;inference_accelerator&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inference_accelerator</span>
+
+        <span class="c1"># if a device_type was provided, migrate local tensors if needed</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">pytorch_device</span> <span class="o">!=</span> <span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">device_type</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">device_type</span><span class="p">),</span> <span class="n">xbtorch</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">TabularDevice</span><span class="p">)):</span>
+                <span class="n">device_type</span><span class="o">.</span><span class="n">set_G</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">set_G</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+                <span class="n">device_type</span><span class="o">.</span><span class="n">reset_G</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">reset_G</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+
+                <span class="n">device_type</span><span class="o">.</span><span class="n">set_dG</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">set_dG</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+                <span class="n">device_type</span><span class="o">.</span><span class="n">reset_dG</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">reset_dG</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+
+                <span class="n">device_type</span><span class="o">.</span><span class="n">set_cdf</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">set_cdf</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+                <span class="n">device_type</span><span class="o">.</span><span class="n">reset_cdf</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">reset_cdf</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+
+                <span class="n">device_type</span><span class="o">.</span><span class="n">min_conductance</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">min_conductance</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+                <span class="n">device_type</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">=</span> <span class="n">device_type</span><span class="o">.</span><span class="n">max_conductance</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytorch_device</span><span class="p">)</span>
+
+        <span class="c1"># print(&#39;Initialization complete..\n&#39;)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_xbtorch_param</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">XBParams</span><span class="p">()</span><span class="o">.</span><span class="n">get_var</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+<div class="viewcode-block" id="initialize">
+<a class="viewcode-back" href="../_autosummary/xbtorch.html#xbtorch.initialize">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">XBParams</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="n">activation_types</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Softplus</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Softsign</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">ELU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">SELU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Hardtanh</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Hardsigmoid</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Hardshrink</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Hardswish</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">LogSigmoid</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Mish</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">LogSoftmax</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">layer_types</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">RNN</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">,</span>
+    <span class="c1"># future work</span>
+    <span class="c1"># nn.Conv3d,</span>
+    <span class="c1"># nn.ConvTranspose2d,</span>
+    <span class="c1"># nn.ConvTranspose3d,</span>
+    <span class="c1"># nn.BatchNorm1d,</span>
+    <span class="c1"># nn.BatchNorm2d,</span>
+    <span class="c1"># nn.BatchNorm3d,</span>
+    <span class="c1"># nn.InstanceNorm1d,</span>
+    <span class="c1"># nn.InstanceNorm2d,</span>
+    <span class="c1"># nn.InstanceNorm3d,</span>
+    <span class="c1"># nn.LayerNorm,</span>
+    <span class="c1"># nn.GroupNorm,</span>
+    <span class="c1"># nn.Embedding,</span>
+    <span class="c1"># nn.GRU,</span>
+<span class="p">)</span>
+
+<span class="c1"># Parameter-less layers</span>
+<span class="n">misc_types</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="c1"># Dropout</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout3d</span><span class="p">,</span>
+    <span class="c1"># Pooling</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool1d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool3d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool1d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool2d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool3d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveMaxPool1d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveMaxPool2d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveMaxPool3d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveAvgPool1d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveAvgPool2d</span><span class="p">,</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveAvgPool3d</span><span class="p">,</span>
+    <span class="c1"># Flatten</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;initialize&#39;</span><span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

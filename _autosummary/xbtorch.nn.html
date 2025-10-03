@@ -1,0 +1,153 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.nn &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xbtorch.nn.datasets" href="xbtorch.nn.datasets.html" />
+    <link rel="prev" title="xbtorch.loss.landscapes" href="xbtorch.loss.landscapes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">XBTorch API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.html">xbtorch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.decomposition.html">xbtorch.decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.deployment.html">xbtorch.deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.loss.html">xbtorch.loss</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">xbtorch.nn</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.datasets.html">xbtorch.nn.datasets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.models.html">xbtorch.nn.models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.nn.html">xbtorch.nn.nn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.utils.html">xbtorch.nn.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.patches.html">xbtorch.patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.quant.html">xbtorch.quant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.optim.html">xbtorch.optim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">XBTorch API</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.nn</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/xbtorch.nn.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xbtorch.nn">
+<span id="xbtorch-nn"></span><h1>xbtorch.nn<a class="headerlink" href="#module-xbtorch.nn" title="Link to this heading"></a></h1>
+<p>Models, datasets, and various XBTorch utilities akin to <cite>torch.nn</cite></p>
+<p class="rubric">Modules</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="xbtorch.nn.datasets.html#module-xbtorch.nn.datasets" title="xbtorch.nn.datasets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">datasets</span></code></a></p></td>
+<td><p>Utilities for preparing and loading character-level name datasets for RNN classification tasks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="xbtorch.nn.models.html#module-xbtorch.nn.models" title="xbtorch.nn.models"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models</span></code></a></p></td>
+<td><p>Predefined neural network architectures for use with XBTorch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="xbtorch.nn.nn.html#module-xbtorch.nn.nn" title="xbtorch.nn.nn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nn</span></code></a></p></td>
+<td><p>Custom neural network layers and utilities compatible with XBTorch.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="xbtorch.nn.utils.html#module-xbtorch.nn.utils" title="xbtorch.nn.utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code></a></p></td>
+<td><p>Utility functions for neural network training and testing.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xbtorch.loss.landscapes.html" class="btn btn-neutral float-left" title="xbtorch.loss.landscapes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xbtorch.nn.datasets.html" class="btn btn-neutral float-right" title="xbtorch.nn.datasets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

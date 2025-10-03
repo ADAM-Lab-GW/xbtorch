@@ -1,0 +1,388 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.devices.base &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.devices.base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.devices.base</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w">  </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">abc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span> <span class="c1"># compatible with Python 3.10 - https://setuptools.pypa.io/en/latest/userguide/datafiles.html</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_xbtorch_param</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">stochastic_round</span><span class="p">,</span> <span class="n">find_nearest</span><span class="p">,</span> <span class="n">find_nearest_2d</span>
+
+<div class="viewcode-block" id="GenericDevice">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenericDevice</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_conductance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_conductance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_conductance_set</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_conductance_reset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_conductance_set</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_conductance_reset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">min_conductance</span> <span class="ow">and</span> <span class="n">max_conductance</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_reset</span> <span class="o">=</span> <span class="n">min_conductance</span><span class="p">,</span> <span class="n">min_conductance</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance_reset</span><span class="p">,</span>  <span class="o">=</span> <span class="n">max_conductance</span><span class="p">,</span> <span class="n">max_conductance</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">min_conductance_set</span> <span class="ow">and</span> <span class="n">min_conductance_reset</span> <span class="ow">and</span> <span class="n">max_conductance_set</span> <span class="ow">and</span> <span class="n">max_conductance_reset</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_reset</span> <span class="o">=</span> <span class="n">min_conductance_set</span><span class="p">,</span> <span class="n">min_conductance_reset</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance_reset</span><span class="p">,</span>  <span class="o">=</span> <span class="n">max_conductance_set</span><span class="p">,</span> <span class="n">max_conductance_reset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Make min/max values symmetrical</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance_reset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance_set</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance_reset</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="GenericDevice.reset_cached_params">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.reset_cached_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_cached_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="GenericDevice.write">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.write">[docs]</a>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">pulse</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="GenericDevice.weight_to_conductance">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.weight_to_conductance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">weight_to_conductance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+        <span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">weight</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span></div>
+
+
+<div class="viewcode-block" id="GenericDevice.conductance_to_weight">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.conductance_to_weight">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">conductance_to_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conductance</span><span class="p">):</span>
+        <span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="GenericDevice.gradient_to_pulse">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.GenericDevice.gradient_to_pulse">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gradient_to_pulse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gradient</span><span class="p">):</span>
+        <span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
+        <span class="n">pulse</span> <span class="o">=</span> <span class="n">stochastic_round</span><span class="p">(</span> <span class="p">(</span><span class="n">gradient</span> <span class="o">/</span> <span class="p">(</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_level</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pulse</span></div>
+</div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnalyticalDevice</span><span class="p">(</span><span class="n">GenericDevice</span><span class="p">):</span>
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="s1">&#39;analytical&#39;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_conductance</span><span class="p">,</span> <span class="n">max_conductance</span><span class="p">,</span> <span class="n">d2d_var</span><span class="p">,</span> <span class="n">c2c_var</span><span class="p">,</span> <span class="n">nonlinearity_set</span><span class="p">,</span> <span class="n">nonlinearity_reset</span><span class="p">,</span> <span class="n">max_level</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">max_conductance</span><span class="p">)</span>
+
+        <span class="c1"># Device parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d2d_var</span> <span class="o">=</span> <span class="n">d2d_var</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c2c_var</span> <span class="o">=</span> <span class="n">c2c_var</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_set</span> <span class="o">=</span> <span class="n">nonlinearity_set</span> <span class="k">if</span> <span class="n">nonlinearity_set</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1e-9</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_reset</span> <span class="o">=</span> <span class="n">nonlinearity_reset</span> <span class="k">if</span> <span class="n">nonlinearity_set</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1e-9</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="n">max_level</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_cached_params</span><span class="p">()</span>
+
+<div class="viewcode-block" id="AnalyticalDevice.reset_cached_params">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.reset_cached_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_cached_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;param_A_reset&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;param_B_set&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;param_B_reset&#39;</span><span class="p">:</span> <span class="p">{}}</span></div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice.set_c2c_var">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_c2c_var">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_c2c_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c2c_var</span> <span class="o">=</span> <span class="n">var</span></div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice.set_d2d_var">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_d2d_var">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_d2d_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d2d_var</span> <span class="o">=</span> <span class="n">var</span></div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice.set_nonlinearity_set">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_set">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_nonlinearity_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nl_set</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_set</span> <span class="o">=</span> <span class="n">nl_set</span> <span class="k">if</span> <span class="n">nl_set</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1e-9</span></div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice.set_nonlinearity_reset">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.set_nonlinearity_reset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_nonlinearity_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nl_reset</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_reset</span> <span class="o">=</span> <span class="n">nl_reset</span> <span class="k">if</span> <span class="n">nl_reset</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1e-9</span></div>
+
+
+    <span class="c1"># Get the conductance in the nonlinear weight function given a pulse position xPulse</span>
+<div class="viewcode-block" id="AnalyticalDevice.pulse_to_conductance">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.pulse_to_conductance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pulse_to_conductance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xPulse</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">B</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">xPulse</span><span class="o">/</span><span class="n">A</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span></div>
+
+
+    <span class="c1"># Inverse nonlinear weight function</span>
+    <span class="c1"># get the pulse position based on the conductance of the weight update curve</span>
+<div class="viewcode-block" id="AnalyticalDevice.conductance_to_pulse">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.conductance_to_pulse">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">conductance_to_pulse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">A</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">G</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span><span class="o">/</span><span class="n">B</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice.get_param_A">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.get_param_A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_param_A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Adapted from DNN + NeuroSim v2</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nonlinearity</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># Use int64 for indices</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">index</span><span class="p">),</span> <span class="n">index</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">index</span> <span class="o">&gt;</span> <span class="mi">899</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="mi">899</span><span class="p">),</span> <span class="n">index</span><span class="p">)</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">nonlinearity</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">files</span><span class="p">(</span><span class="s1">&#39;xbtorch.libdata&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="si">}</span><span class="s1">/paramAdata.txt&#39;</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">ADim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">lookupdata</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="o">*</span><span class="n">ADim</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">take_along_dim</span><span class="p">(</span><span class="n">lookupdata</span><span class="p">,</span> <span class="n">index</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">y</span>
+        <span class="k">return</span> <span class="n">A</span></div>
+
+
+<div class="viewcode-block" id="AnalyticalDevice.get_param_B">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.get_param_B">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_param_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">max_level</span><span class="o">/</span><span class="n">A</span><span class="p">))</span></div>
+
+    
+<div class="viewcode-block" id="AnalyticalDevice.write">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">numPulse</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">group_param_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">]):</span>
+            <span class="c1"># caching parameters for making write faster</span>
+            <span class="n">d2dVariation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">G</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">d2d_var</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G</span><span class="p">))</span>
+            <span class="n">NL_set</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_set</span><span class="o">+</span><span class="n">d2dVariation</span>
+            <span class="n">NL_reset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity_reset</span><span class="o">+</span><span class="n">d2dVariation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param_A</span><span class="p">(</span><span class="n">NL_set</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">max_level</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_reset&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param_A</span><span class="p">(</span><span class="n">NL_reset</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">max_level</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_B_set&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param_B</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_B_reset&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param_B</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_reset&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">])</span>
+
+        <span class="c1"># constant look-ups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_A_set</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_set&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_A_reset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_A_reset&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_B_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_B_set&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_B_reset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;param_B_reset&#39;</span><span class="p">][</span><span class="n">group_param_idx</span><span class="p">]</span>
+
+        <span class="c1"># Ensure numPulse is an integer tensor</span>
+        <span class="n">numPulse</span> <span class="o">=</span> <span class="n">numPulse</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+
+        <span class="c1"># Masks for positive and negative numPulse</span>
+        <span class="n">positive_mask</span> <span class="o">=</span> <span class="n">numPulse</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">negative_mask</span> <span class="o">=</span> <span class="n">numPulse</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">positive_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">pos_xPulse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conductance_to_pulse</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_A_set</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_B_set</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numPulse</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()):</span>
+                <span class="n">step_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">numPulse</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">step_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">pos_xPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]]</span> <span class="o">=</span> <span class="n">pos_xPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]]</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pulse_to_conductance</span><span class="p">(</span><span class="n">pos_xPulse</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_A_set</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_B_set</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">])</span>
+                    <span class="n">c2c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">c2c_var</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]))</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">c2c</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">])</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">])</span>
+                    <span class="n">numPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">negative_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">neg_xPulse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conductance_to_pulse</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_A_reset</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_B_reset</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">numPulse</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()):</span>
+                <span class="n">step_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">numPulse</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">step_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">neg_xPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]]</span> <span class="o">=</span> <span class="n">neg_xPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]]</span> <span class="o">-</span> <span class="mi">1</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pulse_to_conductance</span><span class="p">(</span><span class="n">neg_xPulse</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_A_reset</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_B_reset</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">])</span>
+                    <span class="n">c2c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">c2c_var</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]))</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">c2c</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">])</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">])</span>
+                    <span class="n">numPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">G</span></div>
+</div>
+
+
+<div class="viewcode-block" id="TabularDevice">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TabularDevice</span><span class="p">(</span><span class="n">GenericDevice</span><span class="p">):</span>
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="s1">&#39;tabular&#39;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset_g</span><span class="p">,</span> <span class="n">reset_dg</span><span class="p">,</span> <span class="n">reset_cdf</span><span class="p">,</span> <span class="n">set_g</span><span class="p">,</span> <span class="n">set_dg</span><span class="p">,</span> <span class="n">set_cdf</span><span class="p">,</span> <span class="n">max_level</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">reset_g</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">set_g</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="c1"># Read gTable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_dG</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_dG</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">reset_dg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">set_dg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="c1"># Read dgTable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_cdf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_cdf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">reset_cdf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">set_cdf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># Read cdfTable</span>
+
+        <span class="c1"># convert to pytorch tensors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_G</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_G</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_dG</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_dG</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_dG</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_dG</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_cdf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_cdf</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_cdf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_cdf</span><span class="p">)</span>
+
+        <span class="n">min_conductance_reset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">max_conductance_reset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">min_conductance_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_G</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">max_conductance_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_G</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">min_conductance_set</span><span class="o">=</span><span class="n">min_conductance_set</span><span class="p">,</span> <span class="n">max_conductance_set</span><span class="o">=</span><span class="n">max_conductance_set</span><span class="p">,</span> <span class="n">min_conductance_reset</span><span class="o">=</span><span class="n">min_conductance_reset</span><span class="p">,</span> <span class="n">max_conductance_reset</span><span class="o">=</span><span class="n">max_conductance_reset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="n">max_level</span>
+
+<div class="viewcode-block" id="TabularDevice.write">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.TabularDevice.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">numPulse</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        
+        <span class="c1"># Ensure numPulse is an integer tensor</span>
+        <span class="n">numPulse</span> <span class="o">=</span> <span class="n">numPulse</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+
+        <span class="n">positive_mask</span> <span class="o">=</span> <span class="n">numPulse</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">negative_mask</span> <span class="o">=</span> <span class="n">numPulse</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">positive_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="c1"># Process positive numPulse elements</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numPulse</span><span class="p">[</span><span class="n">positive_mask</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()):</span>
+                <span class="n">step_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">numPulse</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">step_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">near_G</span> <span class="o">=</span> <span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_G</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">])</span>
+                    <span class="n">prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">near_G</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="n">cdf</span> <span class="o">=</span> <span class="n">find_nearest_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_cdf</span><span class="p">[</span><span class="n">near_G</span><span class="p">],</span> <span class="n">prob</span><span class="p">)</span>
+                    <span class="n">dG</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_dG</span><span class="p">[</span><span class="n">cdf</span><span class="p">]</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">dG</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">])</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">])</span>
+                    <span class="n">numPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">negative_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="c1"># Process negative numPulse elements</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">numPulse</span><span class="p">[</span><span class="n">negative_mask</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()):</span>
+                <span class="n">step_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">numPulse</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">step_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">near_G</span> <span class="o">=</span> <span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_G</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">])</span>
+                    <span class="n">prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">near_G</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="n">cdf</span> <span class="o">=</span> <span class="n">find_nearest_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_cdf</span><span class="p">[</span><span class="n">near_G</span><span class="p">],</span> <span class="n">prob</span><span class="p">)</span>
+                    <span class="n">dG</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_dG</span><span class="p">[</span><span class="n">cdf</span><span class="p">]</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">dG</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">])</span>
+                    <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">G</span><span class="p">[</span><span class="n">step_mask</span><span class="p">])</span>
+                    <span class="n">numPulse</span><span class="p">[</span><span class="n">step_mask</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">G</span></div>
+</div>
+
+
+    
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

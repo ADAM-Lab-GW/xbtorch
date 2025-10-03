@@ -1,0 +1,14 @@
+xbtorch.loss.landscapes
+=======================
+
+.. automodule:: xbtorch.loss.landscapes
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compute_grid_loss
+      reduction_pca
+      reduction_random
+   

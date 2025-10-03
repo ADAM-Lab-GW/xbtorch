@@ -1,0 +1,14 @@
+xbtorch.nn.utils
+================
+
+.. automodule:: xbtorch.nn.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      print_num_unique_values
+      test_classifier
+      train_classifier
+   

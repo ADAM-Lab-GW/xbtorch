@@ -1,0 +1,13 @@
+xbtorch.decomposition.svd
+=========================
+
+.. automodule:: xbtorch.decomposition.svd
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      FullSVD
+      TruncatedSVD
+   

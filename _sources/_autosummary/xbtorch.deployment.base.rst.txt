@@ -1,0 +1,14 @@
+xbtorch.deployment.base
+=======================
+
+.. automodule:: xbtorch.deployment.base
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Daffodil
+      GenericAccelerator
+      SimpleFixedPoint
+   

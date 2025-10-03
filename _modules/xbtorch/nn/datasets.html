@@ -1,0 +1,499 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.nn.datasets &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.nn.datasets</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.nn.datasets</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities for preparing and loading character-level name datasets for</span>
+<span class="sd">RNN classification tasks.</span>
+
+<span class="sd">This module provides functions to read text files, convert Unicode names</span>
+<span class="sd">to ASCII, encode names as tensors, and split datasets into PyTorch</span>
+<span class="sd">DataLoaders. It also includes training and testing loops for RNN models.</span>
+
+<span class="sd">Functions</span>
+<span class="sd">---------</span>
+<span class="sd">- :func:`findFiles` : List all files matching a path pattern.</span>
+<span class="sd">- :func:`unicodeToAscii` : Convert Unicode string to ASCII given a vocabulary.</span>
+<span class="sd">- :func:`read_lines` : Read lines from a file and convert to ASCII.</span>
+<span class="sd">- :func:`name_to_tensor` : Encode a name as a tensor of one-hot vectors.</span>
+<span class="sd">- :func:`get_dataloaders` : Split a dataset into train/test DataLoaders.</span>
+<span class="sd">- :func:`train_rnn` : Train an RNN model on a given dataset.</span>
+<span class="sd">- :func:`test_rnn` : Test an RNN model and return predictions and labels.</span>
+<span class="sd">- :func:`get_names` : Fetch, preprocess, and return the names dataset.</span>
+<span class="sd">- :class:`NamesDataset` : PyTorch Dataset class for names data.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">zipfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZipFile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">unicodedata</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">random_split</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<div class="viewcode-block" id="findFiles">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.findFiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">findFiles</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of file paths matching a given pattern.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        Glob pattern for matching file paths.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list[str]</span>
+<span class="sd">        List of file paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
+<span class="c1"># Turn a Unicode string to plain ASCII, thanks to https://stackoverflow.com/a/518232/2809427</span>
+<div class="viewcode-block" id="unicodeToAscii">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.unicodeToAscii">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unicodeToAscii</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">vocab</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a Unicode string to plain ASCII characters, filtered by a vocabulary.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    s : str</span>
+<span class="sd">        Input Unicode string.</span>
+<span class="sd">    vocab : str</span>
+<span class="sd">        Allowed characters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        ASCII-converted string containing only characters in vocab.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="s1">&#39;NFD&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;Mn&#39;</span>
+        <span class="ow">and</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">vocab</span>
+    <span class="p">)</span></div>
+
+
+<span class="c1"># Read a file and split into lines</span>
+<div class="viewcode-block" id="read_lines">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.read_lines">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_lines</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">vocab</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read lines from a text file and convert them to ASCII.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Path to the text file.</span>
+<span class="sd">    vocab : str</span>
+<span class="sd">        Allowed characters for conversion.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list[str]</span>
+<span class="sd">        List of processed ASCII lines.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">unicodeToAscii</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">vocab</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span></div>
+
+
+<span class="c1"># Turn a name into a &lt;MAX_NAME_LENGTH x n_vocab&gt;,</span>
+<span class="c1"># i.e. an array of one-hot letter vectors</span>
+<div class="viewcode-block" id="name_to_tensor">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.name_to_tensor">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">name_to_tensor</span><span class="p">(</span><span class="n">MAX_NAME_LENGTH</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">vocab</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a name into a tensor of one-hot letter vectors.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    MAX_NAME_LENGTH : int</span>
+<span class="sd">        Maximum length of a name (tensor rows).</span>
+<span class="sd">    line : str</span>
+<span class="sd">        Name to encode.</span>
+<span class="sd">    vocab : str</span>
+<span class="sd">        Character vocabulary.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        Tensor of shape (MAX_NAME_LENGTH, len(vocab)) with one-hot encoding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">MAX_NAME_LENGTH</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vocab</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">li</span><span class="p">,</span> <span class="n">letter</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="n">MAX_NAME_LENGTH</span><span class="p">]):</span>
+        <span class="n">tensor</span><span class="p">[</span><span class="n">li</span><span class="p">][</span><span class="n">vocab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">letter</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">tensor</span></div>
+
+
+<div class="viewcode-block" id="get_dataloaders">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.get_dataloaders">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_dataloaders</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">train_split</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split a dataset into training and testing DataLoaders.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataset : torch.utils.data.Dataset</span>
+<span class="sd">        Dataset object to split.</span>
+<span class="sd">    train_split : float, optional</span>
+<span class="sd">        Fraction of data for training (default: 0.8).</span>
+<span class="sd">    batch_size : int, optional</span>
+<span class="sd">        Batch size for DataLoaders (default: 32).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        - train_loader : DataLoader</span>
+<span class="sd">        - test_loader : DataLoader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">train_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">train_split</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+    <span class="n">test_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">-</span> <span class="n">train_size</span>
+    <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">random_split</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="p">[</span><span class="n">train_size</span><span class="p">,</span> <span class="n">test_size</span><span class="p">])</span>
+    
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span></div>
+
+
+<div class="viewcode-block" id="train_rnn">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.train_rnn">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">train_rnn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Train an RNN model for one epoch on a given dataset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : torch.nn.Module</span>
+<span class="sd">        RNN model.</span>
+<span class="sd">    data_loader : DataLoader</span>
+<span class="sd">        DataLoader for training data.</span>
+<span class="sd">    criterion : torch.nn.Module</span>
+<span class="sd">        Loss function.</span>
+<span class="sd">    optimizer : torch.optim.Optimizer</span>
+<span class="sd">        Optimizer.</span>
+<span class="sd">    epoch : int</span>
+<span class="sd">        Current epoch index.</span>
+<span class="sd">    num_epochs : int, optional</span>
+<span class="sd">        Total number of epochs (default: 10).</span>
+<span class="sd">    device : str or torch.device, optional</span>
+<span class="sd">        Device to train on (&#39;cpu&#39; or &#39;cuda&#39;, default: &#39;cpu&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Average loss for the epoch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Move model to the specified device (GPU or CPU)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    
+    <span class="c1"># Set model to training mode</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    
+    <span class="n">running_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">correct</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="c1"># Training loop</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    label dict {0: 7530, 2: 58, 4: 217, 9: 116, 17: 2938, 3: 575, 5: 575, 7: 242, 6: 185, 15: 1618, 16: 77, 14: 59, 8: 76, 12: 792, 10: 215, 11: 162, 13: 225, 1: 399}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+        <span class="c1"># Move inputs and labels to the device</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># Forward pass</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+        
+        <span class="c1"># Backward pass and optimization</span>
+        <span class="c1"># Zero the parameter gradients</span>
+
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span> <span class="c1"># grad can explode without this</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        
+        <span class="c1"># Track loss and accuracy</span>
+        <span class="n">running_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">predicted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">total</span> <span class="o">+=</span> <span class="n">labels</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">correct</span> <span class="o">+=</span> <span class="p">(</span><span class="n">predicted</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    
+    <span class="c1"># Calculate average loss and accuracy for the epoch</span>
+    <span class="n">epoch_loss</span> <span class="o">=</span> <span class="n">running_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">epoch_accuracy</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">correct</span> <span class="o">/</span> <span class="n">total</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch [</span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">num_epochs</span><span class="si">}</span><span class="s2">], Loss: </span><span class="si">{</span><span class="n">epoch_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, Accuracy: </span><span class="si">{</span><span class="n">epoch_accuracy</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">epoch_loss</span></div>
+
+    
+<span class="c1"># from sklearn.metrics import confusion_matrix</span>
+<div class="viewcode-block" id="test_rnn">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.test_rnn">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_rnn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span>  <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span><span class="c1">#, compute_cm=False):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate an RNN model on a dataset and return predictions and labels.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : torch.nn.Module</span>
+<span class="sd">        Trained RNN model.</span>
+<span class="sd">    data_loader : DataLoader</span>
+<span class="sd">        DataLoader for test data.</span>
+<span class="sd">    device : str or torch.device, optional</span>
+<span class="sd">        Device to perform evaluation (default: &#39;cpu&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        - all_preds : list[int]</span>
+<span class="sd">            Predicted class indices.</span>
+<span class="sd">        - all_labels : list[int]</span>
+<span class="sd">            Ground truth class indices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Move model to the specified device (GPU or CPU)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">all_preds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Training loop</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+
+            <span class="c1"># Move inputs and labels to the device</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+            <span class="n">_</span><span class="p">,</span> <span class="n">predicted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">all_preds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">predicted</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+            <span class="n">all_labels</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+
+    <span class="c1"># Concatenate all predictions and true labels</span>
+    <span class="c1"># all_preds = torch.cat(all_preds, dim=0)</span>
+    <span class="c1"># all_labels = torch.cat(all_labels, dim=0)</span>
+
+    <span class="k">return</span> <span class="n">all_preds</span><span class="p">,</span> <span class="n">all_labels</span></div>
+
+
+<span class="c1"># Define PyTorch Dataset</span>
+<div class="viewcode-block" id="NamesDataset">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.NamesDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NamesDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    PyTorch Dataset for character-level name data.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : list[torch.Tensor]</span>
+<span class="sd">        Input tensors representing names.</span>
+<span class="sd">    y : list[torch.Tensor]</span>
+<span class="sd">        Label tensors representing class indices.</span>
+<span class="sd">    data_dict : dict</span>
+<span class="sd">        Original mapping of categories to names.</span>
+<span class="sd">    classes : list[str]</span>
+<span class="sd">        Sorted list of all categories.</span>
+<span class="sd">    n_classes : int</span>
+<span class="sd">        Number of categories.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span> <span class="o">=</span> <span class="n">data_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_names">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.nn.datasets.html#xbtorch.nn.datasets.get_names">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_names</span><span class="p">(</span><span class="n">vocab</span><span class="p">,</span> <span class="n">train_split</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">MAX_NAME_LENGTH</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">extract_to</span><span class="o">=</span><span class="s2">&quot;./&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fetch, preprocess, and return the names dataset.</span>
+
+<span class="sd">    Downloads from PyTorch tutorial dataset if not already extracted,</span>
+<span class="sd">    converts names to ASCII tensors, and returns train/test DataLoaders.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    vocab : str</span>
+<span class="sd">        Allowed character vocabulary.</span>
+<span class="sd">    train_split : float</span>
+<span class="sd">        Fraction of data for training.</span>
+<span class="sd">    batch_size : int</span>
+<span class="sd">        Batch size for DataLoaders.</span>
+<span class="sd">    MAX_NAME_LENGTH : int, optional</span>
+<span class="sd">        Maximum name length (default: 8).</span>
+<span class="sd">    extract_to : str, optional</span>
+<span class="sd">        Directory to extract dataset (default: &#39;./&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        - dataset : NamesDataset</span>
+<span class="sd">        - train_loader : DataLoader</span>
+<span class="sd">        - test_loader : DataLoader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check if the data is already extracted</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">extract_to</span><span class="si">}</span><span class="s2">/data/names&quot;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data already exists, skipping download and extraction.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Download the dataset</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;_xbtemp_data.zip&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://download.pytorch.org/tutorial/data.zip&quot;</span>
+        <span class="n">download_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;wget&quot;</span><span class="p">,</span> <span class="s2">&quot;-O&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">url</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Extract</span>
+        <span class="k">if</span> <span class="n">download_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.zip&quot;</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">ZipFile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">zip_ref</span><span class="p">:</span>
+                <span class="n">zip_ref</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">extract_to</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File extracted to: </span><span class="si">{</span><span class="n">extract_to</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Remove temp archive file</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="c1"># Pre-processing</span>
+    <span class="c1"># Character-level vocab representing all letters</span>
+    <span class="c1"># Build the category_lines dictionary, a list of names per language</span>
+    <span class="n">category_lines</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">all_categories</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">findFiles</span><span class="p">(</span><span class="s1">&#39;data/names/*.txt&#39;</span><span class="p">):</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">all_categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">read_lines</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">vocab</span><span class="p">)</span>
+        <span class="n">category_lines</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="n">lines</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">X</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name_to_tensor</span><span class="p">(</span><span class="n">MAX_NAME_LENGTH</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">vocab</span><span class="p">))</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">all_categories</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">category</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">))</span>
+
+    <span class="c1"># Convert to tensors</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">NamesDataset</span><span class="p">(</span><span class="n">category_lines</span><span class="p">,</span> <span class="n">all_categories</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span> <span class="o">=</span> <span class="n">get_dataloaders</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">train_split</span><span class="o">=</span><span class="n">train_split</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

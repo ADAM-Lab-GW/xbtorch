@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.devices.utils &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.devices.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.devices.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">statistics</span><span class="w"> </span><span class="kn">import</span> <span class="n">NormalDist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">smt.surrogate_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">KRG</span>
+
+<div class="viewcode-block" id="find_nearest">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.find_nearest">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_nearest</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="c1"># Expand dimensions for broadcasting</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> 
+    <span class="n">abs_diff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">array</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">abs_diff</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">indices</span></div>
+
+
+<div class="viewcode-block" id="find_nearest_2d">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.find_nearest_2d">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_nearest_2d</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="c1"># Expand dimensions for broadcasting</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span> <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">abs_diff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">array</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span>  
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">abs_diff</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">indices</span></div>
+
+
+<div class="viewcode-block" id="stochastic_round">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.stochastic_round">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stochastic_round</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="sweep_conductance_full">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.sweep_conductance_full">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sweep_conductance_full</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sweep conductance trajectories of a given device model for SET and RESET phases</span>
+<span class="sd">    For SET, start at the device&#39;s minimum conductance, applying positive direction pulses and reading back device conductances.</span>
+<span class="sd">    For RESET, start at the device&#39;s maximum conductance, applying opposite direction pulses and reading back device conductances </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    device : xbtorch.devices.GenericDevice</span>
+<span class="sd">        An XBTorch device model object</span>
+<span class="sd">    group_param_idx : tuple(int, int)</span>
+<span class="sd">        Optional parameter used internally by XBTorch during neural network simulations. This should not be used when explicitly sweeping a device model.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    (set_Gs, reset_Gs) : tuple[list[float], list[float]]</span>
+<span class="sd">        Conductance trajectories for SET and RESET phases as a tuple.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">set_Gs</span> <span class="o">=</span> <span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">min_conductance_set</span><span class="p">]</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">set_Gs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">max_level</span><span class="p">):</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">G</span><span class="p">]),</span> <span class="n">numPulse</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="n">group_param_idx</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">set_Gs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+    <span class="n">reset_Gs</span> <span class="o">=</span> <span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">max_conductance_reset</span><span class="p">]</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">reset_Gs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">max_level</span><span class="p">):</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">G</span><span class="p">]),</span> <span class="n">numPulse</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">group_param_idx</span><span class="o">=</span><span class="n">group_param_idx</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">reset_Gs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">set_Gs</span><span class="p">,</span> <span class="n">reset_Gs</span></div>
+
+
+<div class="viewcode-block" id="synthesize_G_dG_dataset">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.synthesize_G_dG_dataset">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">synthesize_G_dG_dataset</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="nb">set</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_delta_ratio</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="n">disable_filtering</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Synthetic Device Dataset Generation Algorithm. Iteratively samples delta conductance points uniformly within valid initial conductance values in the device, optionally checking for physical realism.</span>
+<span class="sd">    Analogous to Algorithm 2 from: Device Modeling Bias in ReRAM-based Neural Network Simulations, https://ieeexplore.ieee.org/abstract/document/10024104</span>
+<span class="sd">    Instead of using known mean and standard deviation profiles, we just use the device write operation, making the sampling device model-agnostic.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    device : xbtorch.devices.GenericDevice</span>
+<span class="sd">        An XBTorch device model object</span>
+<span class="sd">    set : boolean</span>
+<span class="sd">        Whether or not the sampling should be done in the positive direction (set) or negative direction (reset)</span>
+<span class="sd">    num_points : int</span>
+<span class="sd">        Total number of voltage pulses to apply to the device</span>
+<span class="sd">    min_delta_ratio : float</span>
+<span class="sd">        Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid</span>
+<span class="sd">    disable_filtering : bool</span>
+<span class="sd">        Whether or not to filter sampled candidate points for physical realism. If False, all sampled points are included in the final list.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dataset[num_points] : list[list[2]]</span>
+<span class="sd">        Dataset D containing num_points many (initial conductance, delta conductance / pulse) or (G, dG) data points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="c1"># generate (G, dG) dataset with total points specified by `num_points`</span>
+    <span class="n">numPulse</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="nb">set</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">while</span> <span class="p">(</span><span class="ow">not</span> <span class="n">valid</span><span class="p">):</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">min_conductance</span><span class="p">,</span> <span class="n">device</span><span class="o">.</span><span class="n">max_conductance</span><span class="p">)</span> <span class="c1"># generate a random conductance value from possible device range</span>
+            <span class="n">newG</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">G</span><span class="p">]),</span> <span class="n">numPulse</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">numPulse</span><span class="p">]))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">deltaG</span> <span class="o">=</span> <span class="n">newG</span> <span class="o">-</span> <span class="n">G</span>
+            <span class="c1"># additional constraints can be added here for experimental realism</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">disable_filtering</span><span class="p">):</span> <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">newG</span> <span class="o">&gt;=</span> <span class="n">device</span><span class="o">.</span><span class="n">min_conductance</span> <span class="ow">and</span> <span class="n">newG</span> <span class="o">&lt;=</span> <span class="n">device</span><span class="o">.</span><span class="n">max_conductance</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">deltaG</span><span class="o">/</span><span class="n">G</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">min_delta_ratio</span><span class="p">):</span>  <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">dataset</span><span class="p">[</span><span class="n">point</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+
+<div class="viewcode-block" id="get_kriging_profiles">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.get_kriging_profiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_kriging_profiles</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">dg</span><span class="p">,</span> <span class="n">axis_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate mean and standard deviation jump table model profiles based on provided yt(xt) data using Kriging interpolation.</span>
+<span class="sd">    Inspiration: </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    g : list[float]</span>
+<span class="sd">        List of initial device conductances</span>
+<span class="sd">    dg : list[float]</span>
+<span class="sd">        List of device conductance changes / applied voltage pulse (corresponding to initial conductances in g)</span>
+<span class="sd">    axis_size : int</span>
+<span class="sd">        Total size of the G and dG axes that the final jump table must have (dictates the size of the CDF array)</span>
+<span class="sd">    min_delta_ratio : float</span>
+<span class="sd">        Minimum ratio (deltaG / G) must exceed in order for a sampled point to be considered valid</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        Arguments for SMT&#39;s kriging model. See KRG&#39;s documentation for full details: https://smt.readthedocs.io/en/latest/_src_docs/surrogate_models/gpr/krg.html</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G_axis[axis_size] : list[float]</span>
+<span class="sd">        The G axis of the jump table model</span>
+<span class="sd">    dG_axis[axis_size] : list[float]</span>
+<span class="sd">        The dG axis of the jump table model</span>
+<span class="sd">    mean_profile[axis_size] : list[float]</span>
+<span class="sd">        The overall mean profile of the jump table (as a function of g)</span>
+<span class="sd">    std_profile[axis_size] : list[float]</span>
+<span class="sd">        The overall std profile of the jump table (as a function of g)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># sanity checks</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dg</span><span class="p">))</span>
+
+    <span class="n">defaults</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;theta0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1e-2</span><span class="p">],</span>
+        <span class="s1">&#39;noise0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="n">combined_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">defaults</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
+
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">KRG</span><span class="p">(</span><span class="o">**</span><span class="n">combined_kwargs</span><span class="p">)</span> <span class="c1"># may pass noise0 and other params</span>
+    <span class="n">sm</span><span class="o">.</span><span class="n">set_training_values</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">dg</span><span class="p">)</span>
+    <span class="n">sm</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+    <span class="n">dg_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">dg</span><span class="p">))</span>
+    <span class="n">G_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="n">axis_size</span><span class="p">)</span>
+    <span class="n">dG_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">dg_max</span><span class="p">,</span> <span class="o">+</span><span class="n">dg_max</span><span class="p">,</span> <span class="n">axis_size</span><span class="p">)</span> <span class="c1"># can be kept same/different for different models, would need absolute values </span>
+    
+    <span class="c1"># mean profile</span>
+    <span class="n">mean_profile</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">predict_values</span><span class="p">(</span><span class="n">G_axis</span><span class="p">)</span>
+    <span class="n">mean_profile</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">mean_profile</span><span class="p">)</span>
+
+    <span class="c1"># std profile</span>
+    <span class="n">s2</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">predict_variances</span><span class="p">(</span><span class="n">G_axis</span><span class="p">)</span>
+    <span class="n">std_profile</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
+    <span class="n">std_profile</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">std_profile</span><span class="p">)</span> <span class="o">+</span> <span class="n">epsilon</span>
+
+    <span class="k">return</span> <span class="n">G_axis</span><span class="p">,</span> <span class="n">dG_axis</span><span class="p">,</span> <span class="n">mean_profile</span><span class="p">,</span> <span class="n">std_profile</span></div>
+
+
+<div class="viewcode-block" id="construct_cdf">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.devices.utils.html#xbtorch.devices.utils.construct_cdf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_cdf</span><span class="p">(</span><span class="n">G_axis</span><span class="p">,</span> <span class="n">dG_axis</span><span class="p">,</span> <span class="n">mean_profile</span><span class="p">,</span> <span class="n">std_profile</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a CDF array for a jump table model given its G, dG axes and mean, std profiles.</span>
+<span class="sd">    Inspiration: </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    G_axis[axis_size] : list[float]</span>
+<span class="sd">        The G axis of the jump table model</span>
+<span class="sd">    dG_axis[axis_size] : list[float]</span>
+<span class="sd">        The dG axis of the jump table model</span>
+<span class="sd">    cdf_array[axis_size, axis_size] : list[list[float]]</span>
+<span class="sd">        The CDF array mapping the G axis to the dG axis</span>
+<span class="sd">    mean_profile[axis_size] : list[float]</span>
+<span class="sd">        The overall mean profile of the jump table (as a function of g)</span>
+<span class="sd">    std_profile[axis_size] : list[float]</span>
+<span class="sd">        The overall std profile of the jump table (as a function of g)</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cdf_array[axis_size, axis_size] : list[list[float]]</span>
+<span class="sd">        The CDF array mapping the G axis to the dG axis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cdf_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">G_axis</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dG_axis</span><span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">G_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">G_axis</span><span class="p">)):</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">NormalDist</span><span class="p">(</span><span class="n">mu</span><span class="o">=</span><span class="n">mean_profile</span><span class="p">[</span><span class="n">G_idx</span><span class="p">],</span> <span class="n">sigma</span><span class="o">=</span><span class="n">std_profile</span><span class="p">[</span><span class="n">G_idx</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">dG_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dG_axis</span><span class="p">)):</span>
+            <span class="n">cdf_array</span><span class="p">[</span><span class="n">G_idx</span><span class="p">,</span> <span class="n">dG_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">dG_axis</span><span class="p">[</span><span class="n">dG_idx</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">cdf_array</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

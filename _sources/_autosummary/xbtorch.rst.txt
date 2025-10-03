@@ -1,0 +1,33 @@
+﻿xbtorch
+=======
+
+.. automodule:: xbtorch
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_xbtorch_param
+      initialize
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      XBParams
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   decomposition
+   deployment
+   devices
+   loss
+   nn
+   optim
+   patches
+   quant

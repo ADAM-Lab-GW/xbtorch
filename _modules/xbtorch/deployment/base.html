@@ -1,0 +1,740 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.deployment.base &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.deployment.base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.deployment.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Hardware accelerator simulation module.</span>
+
+<span class="sd">Defines the abstract base class `GenericAccelerator` and several</span>
+<span class="sd">concrete accelerator models (`SimpleFixedPoint`, `Daffodil`) for</span>
+<span class="sd">simulating memristive crossbar arrays in XBTorch.</span>
+
+<span class="sd">Features include:</span>
+
+<span class="sd">- DAC and ADC quantization (fixed-point or board-specific)</span>
+<span class="sd">- Noise modeling (read/write)</span>
+<span class="sd">- Stuck-at defect simulation</span>
+<span class="sd">- Weight encoding and mapping schemes</span>
+<span class="sd">- Array visualization and utility functions</span>
+
+<span class="sd">This module provides a unified interface for simulating hardware</span>
+<span class="sd">effects on neural network training and inference.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qtorch.quant</span><span class="w"> </span><span class="kn">import</span> <span class="n">fixed_point_quantize</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch.deployment.mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_random</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch.deployment.encoding</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">encode_LEA1</span><span class="p">,</span> <span class="n">encode_LEA2</span>
+
+<div class="viewcode-block" id="GenericAccelerator">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenericAccelerator</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for hardware accelerator models in XBTorch.</span>
+
+<span class="sd">    This class simulates memristive crossbar arrays, incorporating</span>
+<span class="sd">    hardware non-idealities such as stuck devices, read/write noise,</span>
+<span class="sd">    limited precision DAC/ADC, and weight encoding/mapping schemes.</span>
+<span class="sd">    Subclasses implement specific quantization methods for DAC and ADC.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    g_min : float</span>
+<span class="sd">        Minimum device conductance (Siemens).</span>
+<span class="sd">    g_max : float</span>
+<span class="sd">        Maximum device conductance (Siemens).</span>
+<span class="sd">    v_read : float</span>
+<span class="sd">        Voltage used for read operations.</span>
+<span class="sd">    read_noise : float</span>
+<span class="sd">        Amplitude of uniform read noise applied during chip readout.</span>
+<span class="sd">    write_noise : float</span>
+<span class="sd">        Standard deviation of Gaussian noise applied during weight writes.</span>
+<span class="sd">    xb_size : tuple of int, optional</span>
+<span class="sd">        Dimensions of the crossbar array (columns, rows). Default: (2500, 2500).</span>
+<span class="sd">    stuck_percentage : float, optional</span>
+<span class="sd">        Fraction of devices randomly stuck at high or low values. Default: 0.0.</span>
+<span class="sd">    stuck_mode : {&quot;ideal&quot;, &quot;real&quot;}, optional</span>
+<span class="sd">        Mode for stuck-at defect modeling:</span>
+<span class="sd">        - &quot;ideal&quot;: stuck devices are fixed at g_min or g_max.</span>
+<span class="sd">        - &quot;real&quot;: stuck devices are fixed at predefined realistic values.</span>
+<span class="sd">    weight_encoding_scheme : callable, optional</span>
+<span class="sd">        Function used to encode weights into conductance matrices.</span>
+<span class="sd">        Default: :func:`encode_simple_binary`.</span>
+<span class="sd">    xb_mapping_scheme : callable, optional</span>
+<span class="sd">        Function for mapping weights to crossbar positions.</span>
+<span class="sd">        Default: :func:`map_random`.</span>
+<span class="sd">    device : str, optional</span>
+<span class="sd">        PyTorch device for simulation (e.g., &quot;cpu&quot; or &quot;cuda&quot;).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _chip : torch.Tensor</span>
+<span class="sd">        Simulated crossbar array storing device conductances.</span>
+<span class="sd">    defect_map : tuple</span>
+<span class="sd">        A tuple of (indices, values) representing defective devices.</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Descriptive string identifying array dimensions and defect rate.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Weight mapping uses both encoding (binary, LEA1, LEA2, etc.) and</span>
+<span class="sd">      placement (e.g., random mapping).</span>
+<span class="sd">    - Noise models include Gaussian for write noise and uniform for</span>
+<span class="sd">      read noise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span> <span class="o">=</span> <span class="n">read_noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">=</span> <span class="n">write_noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_min</span> <span class="o">=</span> <span class="n">g_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_max</span> <span class="o">=</span> <span class="n">g_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_read</span> <span class="o">=</span> <span class="n">v_read</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span> <span class="o">=</span> <span class="n">weight_encoding_scheme</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xb_mapping_scheme</span> <span class="o">=</span> <span class="n">xb_mapping_scheme</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span> <span class="o">=</span> <span class="n">stuck_percentage</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="n">xb_size</span>
+        <span class="c1"># self.stuck_low = 0</span>
+        <span class="c1"># self.stuck_high = self.g_max * 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stuck_mode</span> <span class="o">=</span> <span class="n">stuck_mode</span>
+        <span class="k">if</span> <span class="n">stuck_mode</span> <span class="o">==</span> <span class="s1">&#39;ideal&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stuck_low</span> <span class="o">=</span> <span class="n">g_min</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stuck_high</span> <span class="o">=</span> <span class="n">g_max</span>
+        <span class="k">elif</span> <span class="n">stuck_mode</span> <span class="o">==</span> <span class="s1">&#39;real&#39;</span><span class="p">:</span>
+            <span class="c1"># could be passed as args</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stuck_low</span> <span class="o">=</span> <span class="mi">10</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stuck_high</span> <span class="o">=</span> <span class="mi">500</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stuck mode </span><span class="si">{</span><span class="n">stuck_mode</span><span class="si">}</span><span class="s2"> not implemented&quot;</span><span class="p">)</span>
+
+
+        <span class="c1"># Create defect map</span>
+        <span class="c1"># TODO: Separate out defect maps</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;cols_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">_row_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s1">_stuck_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_chip</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GenericAccelerator.initialize_chip">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.initialize_chip">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_chip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the simulated chip state.</span>
+
+<span class="sd">        - Fills the array with uninitialized values (-1).</span>
+<span class="sd">        - Generates a defect map based on the specified stuck percentage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span> <span class="c1"># uninitialized devices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_defect_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span><span class="p">)</span> <span class="c1"># defect map is a paired list of (defective indices, defective conductance states)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="GenericAccelerator.read_chip">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.read_chip">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_chip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">,</span> <span class="n">fast_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read a subarray of the chip, optionally with read noise.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        row : int</span>
+<span class="sd">            Starting row index.</span>
+<span class="sd">        n_rows : int</span>
+<span class="sd">            Number of rows to read.</span>
+<span class="sd">        col : int</span>
+<span class="sd">            Starting column index.</span>
+<span class="sd">        n_cols : int</span>
+<span class="sd">            Number of columns to read.</span>
+<span class="sd">        fast_mode : bool, optional</span>
+<span class="sd">            If False, raises NotImplementedError. Default: True.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Subarray with applied read noise (if configured).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">subarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="n">row</span><span class="p">:</span><span class="n">row</span><span class="o">+</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span><span class="n">col</span><span class="o">+</span><span class="n">n_cols</span><span class="p">]</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">subarray</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">fast_mode</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not implemented&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span> <span class="o">+</span> <span class="n">noise</span>
+        <span class="k">return</span> <span class="n">subarray</span></div>
+
+
+<div class="viewcode-block" id="GenericAccelerator.gen_defect_map">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.gen_defect_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gen_defect_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a defect map for the chip.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        stuck_percentage : float</span>
+<span class="sd">            Fraction of devices that are stuck.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (indices, values) where:</span>
+<span class="sd">            - indices are tensor indices of defective devices,</span>
+<span class="sd">            - values are their fixed conductances (stuck_high or stuck_low).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_elements</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stuck_percentage</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">numel</span><span class="p">())</span>
+        <span class="n">defect_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num_elements</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">defect_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">num_elements</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">defect_values</span><span class="p">[</span><span class="n">defect_values</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stuck_low</span>
+        <span class="n">defect_values</span><span class="p">[</span><span class="n">defect_values</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stuck_high</span>
+        <span class="k">return</span> <span class="n">defect_indices</span><span class="p">,</span> <span class="n">defect_values</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GenericAccelerator.map_weights_to_array">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.map_weights_to_array">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">map_weights_to_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">additional_args</span><span class="o">=</span><span class="p">{}):</span>        
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map software weights onto the hardware array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sw_weight : torch.Tensor</span>
+<span class="sd">            Software weight matrix to map.</span>
+<span class="sd">        pos_idxs : list of tuple, optional</span>
+<span class="sd">            Starting indices for positive weight encodings.</span>
+<span class="sd">        neg_idxs : list of tuple, optional</span>
+<span class="sd">            Starting indices for negative weight encodings.</span>
+<span class="sd">        additional_args : dict, optional</span>
+<span class="sd">            Additional keyword arguments for the encoding scheme.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (masksposs, masksnegs) masks used for layer ensemble</span>
+<span class="sd">            averaging schemes. Returns (None, None) otherwise.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Adds Gaussian write noise if configured.</span>
+<span class="sd">        - Defect map is reapplied to enforce stuck devices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">encoded_return</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="n">pos_idxs</span><span class="p">,</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="n">neg_idxs</span><span class="p">,</span> <span class="n">additional_args</span><span class="o">=</span><span class="n">additional_args</span><span class="p">)</span>
+        <span class="n">Gposs</span><span class="p">,</span> <span class="n">Gnegs</span> <span class="o">=</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">sw_weight_shape</span> <span class="o">=</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pos_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pos_idxs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="c1"># 0 mean</span>
+                <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">noise</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> 
+                       <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neg_idxs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="c1"># 0 mean</span>
+                <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">noise</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> 
+                       <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Add back defect map information in case the outer method attempted to do an illegal assignment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">masksposs</span><span class="p">,</span> <span class="n">masksnegs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span> <span class="o">==</span> <span class="n">encode_LEA1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span> <span class="o">==</span> <span class="n">encode_LEA2</span><span class="p">):</span>
+            <span class="n">masksposs</span><span class="p">,</span> <span class="n">masksnegs</span> <span class="o">=</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">masksposs</span><span class="p">,</span> <span class="n">masksnegs</span></div>
+
+
+<div class="viewcode-block" id="GenericAccelerator.DAC_quantize">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.DAC_quantize">[docs]</a>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">DAC_quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract method to quantize input voltages via DAC.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vector : torch.Tensor</span>
+<span class="sd">            Full-precision input voltage vector.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Quantized voltage vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="GenericAccelerator.ADC_quantize">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.ADC_quantize">[docs]</a>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ADC_quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract method to quantize output currents via ADC.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vector : torch.Tensor</span>
+<span class="sd">            Full-precision current vector.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Quantized current vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="GenericAccelerator.plot_array">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.plot_array">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Visualize the conductance state of the array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_start, y_start : int, optional</span>
+<span class="sd">            Starting indices of the subarray to plot.</span>
+<span class="sd">        x_count, y_count : int, optional</span>
+<span class="sd">            Dimensions of the subarray to plot.</span>
+<span class="sd">        title : str, optional</span>
+<span class="sd">            Title for the plot.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The read subarray.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Column #&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Row #&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">x_start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">x_count</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">y_start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">y_count</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="c1"># read the full array</span>
+            <span class="n">xedges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">yedges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">read_chip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">fast_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># read only requested subset of the array</span>
+            <span class="n">xedges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">x_count</span><span class="p">))</span>
+            <span class="n">yedges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">y_count</span><span class="p">))</span>
+            <span class="n">read_chip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">x_start</span><span class="p">,</span> <span class="n">x_count</span><span class="p">,</span> <span class="n">y_start</span><span class="p">,</span> <span class="n">y_count</span><span class="p">,</span> <span class="n">fast_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="n">surf</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">xedges</span><span class="p">,</span> <span class="n">yedges</span><span class="p">,</span> <span class="n">read_chip</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>  <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">antialiased</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">surf</span><span class="o">.</span><span class="n">set_edgecolor</span><span class="p">(</span><span class="s1">&#39;face&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">title</span><span class="p">):</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">read_chip</span></div>
+</div>
+
+
+<div class="viewcode-block" id="SimpleFixedPoint">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.SimpleFixedPoint">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimpleFixedPoint</span><span class="p">(</span><span class="n">GenericAccelerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple fixed-point accelerator model.</span>
+
+<span class="sd">    This accelerator simulates fixed-point DAC and ADC quantization</span>
+<span class="sd">    using the QTorch library. It models limited precision effects</span>
+<span class="sd">    with configurable bitwidths.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adc_bits : int, optional (default=5)</span>
+<span class="sd">        Number of bits for ADC quantization.</span>
+<span class="sd">    dac_bits : int, optional (default=5)</span>
+<span class="sd">        Number of bits for DAC quantization.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        See :class:`GenericAccelerator` for supported parameters.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    - Quantization is symmetric, using QTorch’s</span>
+<span class="sd">      :func:`fixed_point_quantize`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adc_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dac_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="s1">&#39;regular&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="n">write_noise</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="n">xb_size</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="n">stuck_mode</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">weight_encoding_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span> <span class="o">=</span> <span class="n">adc_bits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">=</span> <span class="n">dac_bits</span>
+
+<div class="viewcode-block" id="SimpleFixedPoint.DAC_quantize">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.SimpleFixedPoint.DAC_quantize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">DAC_quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quantize input voltage vector using fixed-point DAC.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vector : torch.Tensor</span>
+<span class="sd">            Full-precision input voltage vector.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Quantized voltage vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">max_val</span> <span class="o">*</span> <span class="n">fixed_point_quantize</span><span class="p">(</span><span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">wl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span><span class="p">,</span> <span class="n">fl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SimpleFixedPoint.ADC_quantize">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.SimpleFixedPoint.ADC_quantize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ADC_quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quantize output current vector using fixed-point ADC.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vector : torch.Tensor</span>
+<span class="sd">            Full-precision current vector.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Quantized current vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">max_val</span> <span class="o">*</span> <span class="n">fixed_point_quantize</span><span class="p">(</span><span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">wl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span><span class="p">,</span> <span class="n">fl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Daffodil">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Daffodil</span><span class="p">(</span><span class="n">GenericAccelerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Experimental Daffodil accelerator model.</span>
+
+<span class="sd">    This accelerator simulates the Daffodil prototyping system</span>
+<span class="sd">    developed by NIST/GW/WD, with detailed modeling of the on-board</span>
+<span class="sd">    DAC/ADC behavior based on datasheets and experimental calibration.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        See :class:`GenericAccelerator` for supported parameters.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Models a 12-bit DAC (AD5391BSTZ-5) and an ADC with calibration.</span>
+<span class="sd">    - Includes board-level parameters such as reference voltages,</span>
+<span class="sd">      gains, and transimpedance amplifier settings.</span>
+<span class="sd">    - Provides helper functions for DAC/ADC conversions.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    - NIST/GW/WD Daffodil Prototyping System:</span>
+<span class="sd">      https://arxiv.org/abs/2404.15621</span>
+<span class="sd">    - AD5391BSTZ-5 Datasheet:</span>
+<span class="sd">      https://www.analog.com/media/en/technical-documentation/data-sheets/AD5390_5391_5392.pdf</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># Board level parameters, calibrated from hardware experiments</span>
+        <span class="c1"># Can be overridenn based on further experimentation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">board_vref</span> <span class="o">=</span> <span class="mf">2.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">board_vmax</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">board_vground</span> <span class="o">=</span> <span class="mf">1.7</span>
+
+        <span class="c1"># simulate the 12-bit DAC part AD5391BSTZ-5 present on the Daffodil board</span>
+        <span class="c1"># Device documentation available: https://www.analog.com/media/en/technical-documentation/data-sheets/AD5390_5391_5392.pdf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dac_n</span> <span class="o">=</span> <span class="mi">12</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dac_max_prec</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dac_gain_mode</span> <span class="o">=</span> <span class="mi">4093</span> <span class="c1"># m from the manual</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dac_offset</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># c - 2^(n-1) from the manual</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dac_vref</span> <span class="o">=</span> <span class="mf">2.5</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">adc_gain</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adc_vref</span> <span class="o">=</span> <span class="mf">2.5</span> <span class="c1"># should be between 2 and 3 as per datasheet</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">dpot_r</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">currentscale</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="mi">8</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The Daffodil accelerator is currently experimental. Use with caution.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Helper methods adapted from NIST/GW/WD&#39;s Daffodil prototyping system</span>
+    <span class="c1"># https://arxiv.org/abs/2404.15621</span>
+<div class="viewcode-block" id="Daffodil.dac_calcvout">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil.dac_calcvout">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dac_calcvout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute DAC analog output voltage for a digital register input.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x1 : torch.Tensor</span>
+<span class="sd">            Register values (0 &lt;= x1 &lt;= 2^12).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Corresponding DAC output voltages.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">x1</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">x1</span>  <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_max_prec</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;DAC x1 out of range&quot;</span><span class="p">)</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_gain_mode</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_max_prec</span><span class="p">)</span><span class="o">*</span><span class="n">x1</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_offset</span><span class="p">)</span> <span class="c1"># digital input transfer function</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_vref</span> <span class="o">*</span> <span class="n">x2</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_max_prec</span> </div>
+
+
+<div class="viewcode-block" id="Daffodil.dac_invertvout">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil.dac_invertvout">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dac_invertvout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute nearest DAC register value for a given output voltage.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        v : torch.Tensor</span>
+<span class="sd">            Desired DAC output voltage.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Nearest integer DAC register value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_max_prec</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_offset</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_vref</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_gain_mode</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_vref</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_max_prec</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Daffodil.DAC_quantize">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil.DAC_quantize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">DAC_quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">voltage</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quantize input voltage via the DAC model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        voltage : torch.Tensor</span>
+<span class="sd">            Full-precision voltage input.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Quantized DAC output voltage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_invertvout</span><span class="p">(</span><span class="n">voltage</span><span class="p">)</span>
+        <span class="n">vout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_calcvout</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">vout</span></div>
+
+    
+<div class="viewcode-block" id="Daffodil.adc_predict_voltage">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil.adc_predict_voltage">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">adc_predict_voltage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registervalue</span><span class="p">):</span> <span class="c1">#this takes an ADC value and tells you how much voltage you should have gotten</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict analog voltage from ADC register value.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        registervalue : torch.Tensor</span>
+<span class="sd">            ADC register value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Predicted analog voltage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_gain</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_vref</span><span class="o">*</span><span class="n">registervalue</span><span class="o">/</span><span class="mi">4096</span></div>
+
+
+<div class="viewcode-block" id="Daffodil.adc_invert_voltage">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil.adc_invert_voltage">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">adc_invert_voltage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span><span class="c1">#, gain): #this takes a voltage and tells you the nearest ADC value that maps to it.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Invert analog voltage to nearest ADC register value.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : torch.Tensor</span>
+<span class="sd">            Input voltage.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            ADC register value.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If input voltage exceeds ADC register range.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">registers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4096</span><span class="o">*</span><span class="n">value</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_gain</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_vref</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">registers</span> <span class="o">&gt;</span> <span class="mi">4096</span><span class="p">):</span> 
+            <span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ADC Register overflow&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">registers</span></div>
+
+
+<div class="viewcode-block" id="Daffodil.ADC_quantize">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil.ADC_quantize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ADC_quantize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quantize output current via the ADC model.</span>
+
+<span class="sd">        This method simulates the full signal chain:</span>
+
+<span class="sd">        - Converts crossbar current to voltage using a transimpedance</span>
+<span class="sd">          amplifier model.</span>
+<span class="sd">        - Clips voltages to the ADC’s operating range.</span>
+<span class="sd">        - Maps voltages to ADC register values.</span>
+<span class="sd">        - Converts registers back to voltages.</span>
+<span class="sd">        - Reconstructs quantized currents.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        current : torch.Tensor</span>
+<span class="sd">            Full-precision current vector (from crossbar readout).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Quantized current vector, reconstructed from ADC output.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Transimpedance conversion uses board parameters</span>
+<span class="sd">          (``board_vref``, ``board_vmax``, ``board_vground``,</span>
+<span class="sd">          ``dpot_r``, ``currentscale``).</span>
+<span class="sd">        - Simulated read noise can be optionally added for realism,</span>
+<span class="sd">          but is currently disabled in this implementation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># assumption: voltages applied to columns, currents read from rows of the crossbar</span>
+        <span class="c1"># Transimpedance stage</span>
+        <span class="n">transimpedance_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board_vref</span> <span class="o">+</span> <span class="p">(</span><span class="n">current</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">currentscale</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dpot_r</span>
+        <span class="n">transimpedance_output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">transimpedance_output</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> 
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">board_vmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">board_vground</span><span class="p">)</span>
+        
+        <span class="c1"># Map voltage to ADC register and back</span>
+        <span class="n">adc_registers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adc_invert_voltage</span><span class="p">(</span><span class="n">transimpedance_output</span><span class="p">)</span>
+        <span class="n">vout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adc_predict_voltage</span><span class="p">(</span><span class="n">adc_registers</span><span class="p">)</span>
+
+        <span class="c1"># Reconstruct current from voltage</span>
+        <span class="n">currents</span> <span class="o">=</span> <span class="p">((</span><span class="n">vout</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">board_vref</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dpot_r</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">currentscale</span>
+
+        <span class="c1"># Optional noise model (currently disabled)</span>
+        <span class="c1"># noise = torch.empty_like(currents).uniform_(-self.read_noise, self.read_noise)</span>
+
+        <span class="c1"># currents = currents + noise</span>
+
+        <span class="k">return</span> <span class="n">currents</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

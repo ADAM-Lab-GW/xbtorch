@@ -1,0 +1,18 @@
+xbtorch.deployment
+==================
+
+.. automodule:: xbtorch.deployment
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   base
+   committee
+   correction
+   encoding
+   mapping
+   metrics

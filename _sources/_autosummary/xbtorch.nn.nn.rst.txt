@@ -1,0 +1,22 @@
+xbtorch.nn.nn
+=============
+
+.. automodule:: xbtorch.nn.nn
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      SSE
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Conv2d
+      LSTM
+      Linear
+      RNN
+      SelectLastStep
+   

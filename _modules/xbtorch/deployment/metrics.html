@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.deployment.metrics &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.deployment.metrics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.deployment.metrics</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Error computation and weight encoding utilities for crossbar simulation.</span>
+
+<span class="sd">This module provides functions to evaluate how well software weight matrices</span>
+<span class="sd">are represented on simulated crossbar arrays. It includes tools to compute</span>
+<span class="sd">mapping errors between software weights and their corresponding hardware</span>
+<span class="sd">conductance matrices, as well as utilities for reading and processing</span>
+<span class="sd">encoded weight matrices.</span>
+
+<span class="sd">Functions</span>
+<span class="sd">---------</span>
+<span class="sd">- :func:`compute_error` : Compute hardware mapping errors for all mapped layers in a model.</span>
+<span class="sd">- :func:`error_mapping` : Compute the error between a software weight matrix and its crossbar representation.</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+<span class="sd">Accurate error computation is essential for validating hardware-aware</span>
+<span class="sd">training and mapping strategies. The module assumes that layers have</span>
+<span class="sd">predefined array mappings and that the accelerator supports reading</span>
+<span class="sd">conductance values.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span> 
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xbtorch</span>
+
+<div class="viewcode-block" id="compute_error">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.metrics.html#xbtorch.deployment.metrics.compute_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_error</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute mapping errors for all layers of a model that have crossbar mappings.</span>
+
+<span class="sd">    Iterates over the layers of the model and computes the percentage error</span>
+<span class="sd">    between the software weight matrices and their corresponding mapped</span>
+<span class="sd">    conductance matrices on the hardware accelerator.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : object</span>
+<span class="sd">        The model object containing layers with potential crossbar mappings.</span>
+<span class="sd">        Each layer must have a `_array_mappings` attribute with keys:</span>
+<span class="sd">        `&#39;Gpos&#39;`, `&#39;Gneg&#39;`, and `&#39;output_polling_mode&#39;`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[list[float], list[list[np.ndarray]]]</span>
+<span class="sd">        - List of errors (percentage) for each mapped layer.</span>
+<span class="sd">        - List of pairs `[cmapped, cideal]` for each layer, where `cmapped`</span>
+<span class="sd">          is the crossbar-mapped matrix and `cideal` is the original software weight matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">matrices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s1">&#39;_array_mappings&#39;</span><span class="p">)):</span>
+            <span class="n">error</span><span class="p">,</span> <span class="n">matrix</span> <span class="o">=</span> <span class="n">error_mapping</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="p">,</span> 
+                                  <span class="n">module</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> 
+                                  <span class="n">pos_idxs</span><span class="o">=</span><span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gpos&#39;</span><span class="p">],</span> 
+                                  <span class="n">neg_idxs</span><span class="o">=</span><span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gneg&#39;</span><span class="p">],</span> 
+                                  <span class="n">polling_mode</span><span class="o">=</span><span class="n">module</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">])</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="n">matrices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">errors</span><span class="p">,</span> <span class="n">matrices</span></div>
+
+
+<div class="viewcode-block" id="error_mapping">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.metrics.html#xbtorch.deployment.metrics.error_mapping">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">error_mapping</span><span class="p">(</span><span class="n">accelerator</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">pos_matrices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neg_matrices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polling_mode</span><span class="o">=</span><span class="s1">&#39;avg&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the error between a software weight matrix and its crossbar representation.</span>
+
+<span class="sd">    Converts a software weight matrix into one or more conductance matrices</span>
+<span class="sd">    using positive and negative subarrays, then calculates the normalized</span>
+<span class="sd">    error compared to the ideal software weight.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    accelerator : GenericAccelerator</span>
+<span class="sd">        The accelerator instance containing chip dimensions and read/write methods.</span>
+<span class="sd">    sw_weight : torch.Tensor</span>
+<span class="sd">        The software weight matrix to encode.</span>
+<span class="sd">    pos_idxs : list[tuple[int, int]], optional</span>
+<span class="sd">        List of starting indices for positive conductance subarrays (default: []).</span>
+<span class="sd">    neg_idxs : list[tuple[int, int]], optional</span>
+<span class="sd">        List of starting indices for negative conductance subarrays (default: []).</span>
+<span class="sd">    pos_matrices : list[np.ndarray], optional</span>
+<span class="sd">        Precomputed positive conductance matrices (default: None).</span>
+<span class="sd">    neg_matrices : list[np.ndarray], optional</span>
+<span class="sd">        Precomputed negative conductance matrices (default: None).</span>
+<span class="sd">    polling_mode : str, optional</span>
+<span class="sd">        Method to combine subarray outputs: `&#39;avg&#39;` for averaging, `&#39;sum&#39;` for summation (default: &#39;avg&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[list[float], list[list[np.ndarray]]]</span>
+<span class="sd">        - List of percentage errors for each conductance matrix mapping.</span>
+<span class="sd">        - List of `[cmapped, cideal]` pairs for each mapping.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - `gnorm` is computed as `g_max - g_min` of the accelerator.</span>
+<span class="sd">    - The final mapped matrix is normalized and compared to the ideal software weight.</span>
+<span class="sd">    - Supports both precomputed matrices and reading directly from the accelerator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gnorm_scales</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span>
+    <span class="c1"># gnorm_scales = np.logspace(-1, 1, 25)</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">matrices</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="n">cideal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)</span>
+
+    <span class="n">gnorm</span> <span class="o">=</span> <span class="n">accelerator</span><span class="o">.</span><span class="n">g_max</span> <span class="o">-</span> <span class="n">accelerator</span><span class="o">.</span><span class="n">g_min</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">pos_matrices</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">neg_matrices</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">gposs</span> <span class="o">=</span> <span class="p">[]</span> 
+        <span class="n">gnegs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">pos_idx</span> <span class="ow">in</span> <span class="n">pos_idxs</span><span class="p">:</span>
+            <span class="c1"># gpos = accelerator._chip[pos_idx[0]:pos_idx[0]+sw_weight.shape[0], pos_idx[1]:pos_idx[1]+sw_weight.shape[1]]</span>
+            <span class="n">gpos</span> <span class="o">=</span> <span class="n">accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">gposs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gpos</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="n">neg_idxs</span><span class="p">:</span>
+            <span class="c1"># gneg = accelerator.chip[neg_idx[0]:neg_idx[0]+sw_weight.shape[0], neg_idx[1]:neg_idx[1]+sw_weight.shape[1]]</span>
+            <span class="n">gneg</span> <span class="o">=</span> <span class="n">accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">gnegs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gneg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gposs</span> <span class="o">=</span> <span class="n">pos_matrices</span>
+        <span class="n">gnegs</span> <span class="o">=</span> <span class="n">neg_matrices</span>
+
+    <span class="k">for</span> <span class="n">gnorm_scale</span> <span class="ow">in</span> <span class="n">gnorm_scales</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">polling_mode</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">):</span>
+            <span class="n">cmapped</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gposs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gnegs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">gnorm</span> <span class="o">*</span> <span class="n">gnorm_scale</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmapped</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">gposs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">gnegs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">gnorm</span> <span class="o">*</span> <span class="n">gnorm_scale</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha</span>
+
+        <span class="n">matrices</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">cmapped</span><span class="p">,</span> <span class="n">cideal</span><span class="p">])</span>
+
+        <span class="n">cmapped</span> <span class="o">=</span> <span class="n">cmapped</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">cideal</span> <span class="o">=</span> <span class="n">cideal</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cmapped</span> <span class="o">-</span> <span class="n">cideal</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cideal</span><span class="p">)</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+
+
+    <span class="k">return</span> <span class="n">errors</span><span class="p">,</span> <span class="n">matrices</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

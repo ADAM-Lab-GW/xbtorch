@@ -1,0 +1,374 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.patches.decorators &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.patches.decorators</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.patches.decorators</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Decorators for patching PyTorch layers and optimizers to make them compatible</span>
+<span class="sd">with XBTorch simulation, hardware mapping, and specialized training routines.</span>
+
+<span class="sd">This module provides:</span>
+
+<span class="sd">- `xbtorch_layer`: Wraps a PyTorch layer to support:</span>
+<span class="sd">    - Gradient decomposition algorithms</span>
+<span class="sd">    - Device-level weight simulation</span>
+<span class="sd">    - Inference acceleration via crossbar arrays</span>
+<span class="sd">    - WAGE quantization (optional)</span>
+<span class="sd">    </span>
+<span class="sd">- `xbtorch_optimizer`: Wraps a PyTorch optimizer to support:</span>
+<span class="sd">    - Gradient decomposition</span>
+<span class="sd">    - Device-aware weight updates</span>
+<span class="sd">    - WAGE-style quantization and accumulation</span>
+<span class="sd">    - Optional SW clipping</span>
+
+<span class="sd">Both decorators replace the original `__init__` and `forward` (for layers) or `step` (for optimizers)</span>
+<span class="sd">with XBTorch-aware versions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_xbtorch_param</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+<div class="viewcode-block" id="xbtorch_layer">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.patches.decorators.html#xbtorch.patches.decorators.xbtorch_layer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_layer</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator to patch a PyTorch layer for XBTorch compatibility.</span>
+
+<span class="sd">    This decorator modifies the layer to support:</span>
+<span class="sd">    - XBTorch device simulations (conductance mapping)</span>
+<span class="sd">    - Gradient decomposition algorithms</span>
+<span class="sd">    - Inference acceleration on crossbar arrays</span>
+<span class="sd">    - Optional WAGE quantization</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        The PyTorch layer class to decorate (e.g., nn.Linear, nn.Conv2d).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        The patched layer class with modified `__init__` and `forward` methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">original_init</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span>
+    <span class="n">original_forward</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">forward</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;initialized&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;XBTorch needs to be initialized, please refer to API for instructions.&#39;</span><span class="p">)</span>
+        <span class="n">original_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># for decomposition; currently not supported for multi-weight cells such as LSTM</span>
+        <span class="c1"># TODO: Move this to lib&#39;s __init__ and do an in-based check</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">backward_hook</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">grad_input</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="n">grad_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_full_backward_hook</span><span class="p">(</span><span class="n">backward_hook</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Multi-weight cell </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s1"> is currently not supported with decomposition algorithms.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># deployment (inference accleration)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xb_inference</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;inference_accelerator&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="c1"># TODO: Add support for non-linear layers</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xb_inference</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_array_mappings&#39;</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Array mappings are not present, likely an issue during initialization.&quot;</span><span class="p">)</span>
+
+            <span class="n">gnorm_scale</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;XB inference called without proper initialization of an accelerator profile.&#39;</span><span class="p">)</span>
+
+            <span class="c1"># ternary mapping scheme</span>
+            <span class="n">v_read</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">v_read</span>
+            <span class="n">g_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_min</span>
+
+            <span class="n">sw_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span>
+
+            <span class="n">gamma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># WAGE quantization learns matrices [-gamma, 0, gamma], and so it&#39;s important to scale either G matrices or input voltage vector</span>
+
+            <span class="c1"># convert inputs to voltages, then quantize to DAC-based precision</span>
+            <span class="n">input_voltages</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">*</span> <span class="n">v_read</span> <span class="o">*</span> <span class="n">gamma</span>
+            <span class="n">input_voltages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">DAC_quantize</span><span class="p">(</span><span class="n">input_voltages</span><span class="p">)</span>
+
+            <span class="n">pos_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gpos&#39;</span><span class="p">]</span>
+            <span class="n">neg_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gneg&#39;</span><span class="p">]</span>
+        
+            <span class="c1"># pass to the crossbar, perform VMM, averaging/summing over multiple instances</span>
+            <span class="n">pos_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">neg_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># Todo: can be possibly batched and made faster by using torch.bmm</span>
+            <span class="k">for</span> <span class="n">pos_idx</span> <span class="ow">in</span> <span class="n">pos_idxs</span><span class="p">:</span>
+                <span class="n">gpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">pos_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gpos</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="n">neg_idxs</span><span class="p">:</span>
+                <span class="n">gneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">neg_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gneg</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+            <span class="c1"># Convert the list of tensors to a single tensor</span>
+            <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">)</span>
+            <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">)</span>
+
+            <span class="c1"># for MAO, this has to be sum, for regular mapping, this will be average</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;avg&#39;</span><span class="p">):</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">):</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;reduced_avg&#39;</span><span class="p">):</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos_outputs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskpos&#39;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_outputs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskneg&#39;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;output_polling_mode not implemented&quot;</span><span class="p">)</span>
+            <span class="c1"># readback currents from ADC by simulated quantization again</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">ADC_quantize</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="c1"># equivalent to optimizing the TIA potentiometer resistance. ADC quantization </span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="p">(</span><span class="n">gnorm_scale</span> <span class="o">*</span> <span class="n">g_norm</span> <span class="o">*</span> <span class="n">v_read</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span> <span class="n">output</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">return</span> <span class="n">output</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)):</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="nb">input</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">original_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output</span>
+
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">xbtorch_init</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">forward</span> <span class="o">=</span> <span class="n">xbtorch_forward</span>
+    <span class="k">return</span> <span class="bp">cls</span></div>
+
+
+<div class="viewcode-block" id="xbtorch_optimizer">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.patches.decorators.html#xbtorch.patches.decorators.xbtorch_optimizer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_optimizer</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator to patch a PyTorch optimizer for XBTorch compatibility.</span>
+
+<span class="sd">    This decorator modifies the optimizer to support:</span>
+
+<span class="sd">    - Gradient decomposition algorithms</span>
+<span class="sd">    - Device-level weight simulation and pulse-based updates</span>
+<span class="sd">    - WAGE-style quantization for gradients and weights</span>
+<span class="sd">    - Optional software clipping of weights</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        A PyTorch optimizer class (currently only SGD or Adam are supported).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        The patched optimizer class with modified `__init__` and `step` methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">original_init</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span>
+    <span class="n">original_step</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">step</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;initialized&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;XBTorch needs to be initialized, please refer to API for instructions.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decomp_alg</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;decomposition_algorithm&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;device_type&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_range</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;weight_range&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wage_quantize</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;wage_quantize&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wage_quantize</span><span class="p">):</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span> <span class="o">=</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;wage_params&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;XBTorch only supports SGD and Adam optimizers.&quot;</span><span class="p">)</span>
+
+        <span class="n">original_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Custom step function implementing:</span>
+
+<span class="sd">        - Gradient decomposition</span>
+<span class="sd">        - Device weight updates</span>
+<span class="sd">        - WAGE quantization</span>
+<span class="sd">        - Optional SW clipping</span>
+<span class="sd">        - Calls original optimizer step at the end</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">group_idx</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">param_idx</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]):</span>
+                <span class="n">group_param_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">group_idx</span><span class="p">,</span> <span class="n">param_idx</span><span class="p">)</span>
+
+                <span class="c1"># gradient quantization</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wage_quantize</span><span class="p">):</span> <span class="c1"># wage</span>
+                    <span class="c1"># quantize gradient</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s1">&#39;weight_acc&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Wage quantization used but parameters not initialized correctly. Likely an issue with model patching.&#39;</span><span class="p">)</span>
+
+                    <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="n">group_idx</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span>
+                
+                    <span class="c1"># if (param.grad is None): param.grad = torch.zeros_like(param) # avoid undefined errors for tensors not requiring grad (hidden states for example in RNNs)</span>
+
+                    <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;quantizer_grad&#39;</span><span class="p">](</span><span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+                    
+                    <span class="c1"># quantize momentum</span>
+                    <span class="c1"># this is experimental</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">):</span>
+                            <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                                <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;momentum_buffer&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                    <span class="c1"># Apply the operation to the momentum buffer</span>
+                                    <span class="n">state</span><span class="p">[</span><span class="s1">&#39;momentum_buffer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;quantizer_grad&#39;</span><span class="p">](</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;momentum_buffer&#39;</span><span class="p">],</span> <span class="n">lr</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exp_avg&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="c1"># Apply the operation to the first moment estimate</span>
+                                <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exp_avg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;quantizer_grad&#39;</span><span class="p">](</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;exp_avg&#39;</span><span class="p">],</span> <span class="n">lr</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exp_avg_sq&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+                                <span class="c1"># Apply the operation to the second moment estimate</span>
+                                <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exp_avg_sq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;quantizer_grad&#39;</span><span class="p">](</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;exp_avg_sq&#39;</span><span class="p">],</span> <span class="n">lr</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decomp_alg</span><span class="p">):</span> <span class="c1"># a decomposition algorithm has been specified</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Decomposition algorithm used but parameters not initialized correctly. Likely an issue with model patching.&#39;</span><span class="p">)</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decomp_alg</span><span class="o">.</span><span class="n">decompose</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">delta</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">):</span> <span class="c1"># a device type has been specified, so we include device weight modeling</span>
+                    <span class="n">pulse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="o">.</span><span class="n">gradient_to_pulse</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">pulse</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">group_idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">param_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Gradient during device update is becoming zero. Consider increasing learning rate if this continues.&#39;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">pulse</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">100</span> <span class="ow">and</span> <span class="n">group_idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">param_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Gradient during device update is exploding. Consider decreasing learning rate if this continues.&#39;</span><span class="p">)</span>
+                    <span class="n">conductances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="o">.</span><span class="n">weight_to_conductance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+                    <span class="n">conductances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">conductances</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">pulse</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="p">)</span>
+                    <span class="n">new_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="o">.</span><span class="n">conductance_to_weight</span><span class="p">(</span><span class="n">conductances</span><span class="p">)</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">data</span> <span class="o">-</span> <span class="n">new_weights</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wage_quantize</span> <span class="ow">and</span> <span class="n">param</span><span class="o">.</span><span class="n">ndimension</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span> <span class="c1"># skip over biases</span>
+                    <span class="c1"># WAGE accumulate weight in gradient precision</span>
+                    <span class="c1"># assume no batch norm</span>
+                    <span class="n">w_acc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;grad_clip&#39;</span><span class="p">](</span><span class="n">param</span><span class="o">.</span><span class="n">weight_acc</span><span class="p">)</span>
+                    <span class="n">w_acc</span> <span class="o">-=</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">weight_acc</span> <span class="o">=</span> <span class="n">w_acc</span>
+
+                    <span class="n">new_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_params</span><span class="p">[</span><span class="s1">&#39;quantizer_weight&#39;</span><span class="p">](</span>
+                        <span class="n">param</span><span class="o">.</span><span class="n">weight_acc</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">weight_scale</span>
+                    <span class="p">)</span>
+
+                    <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">data</span> <span class="o">-</span> <span class="n">new_weights</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">lr</span><span class="p">)</span> <span class="c1"># in order to maintain consistency with optimizer.step() </span>
+
+        <span class="n">original_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="c1">#  can be done inside loop to avoid another loop at end</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_type</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wage_quantize</span><span class="p">):</span> <span class="c1"># sw clipping, only done when WAGE is not used</span>
+            <span class="k">for</span> <span class="n">group_idx</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">param_idx</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]):</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># clamp bw range</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">xbtorch_init</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="n">xbtorch_step</span>
+    <span class="k">return</span> <span class="bp">cls</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

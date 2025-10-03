@@ -1,0 +1,14 @@
+xbtorch.quant.wage\_init
+========================
+
+.. automodule:: xbtorch.quant.wage_init
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      scale_limit
+      truncated_normal_
+      wage_init_
+   

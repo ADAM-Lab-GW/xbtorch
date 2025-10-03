@@ -1,0 +1,16 @@
+xbtorch.devices.presets
+=======================
+
+.. automodule:: xbtorch.devices.presets
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AnalyticalIdeal
+      AnalyticalReal
+      TabularAnalyticalReal
+      TabularCompactFeFETKriging
+      TabularExperimentalFemFETKriging
+   

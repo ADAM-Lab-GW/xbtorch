@@ -1,0 +1,454 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.deployment.correction &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.deployment.correction</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.deployment.correction</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Fault-tolerant neural network architectures for crossbar-based accelerators.</span>
+
+<span class="sd">This module implements the **Collaborative Logistic Classifier (CLC)**</span>
+<span class="sd">method from Liu et al., *&quot;A Fault-Tolerant Neural Network Architecture&quot;*.</span>
+<span class="sd">CLC introduces redundancy into the final classification layer using</span>
+<span class="sd">multiple logistic sub-classifiers and error-correcting codewords. This</span>
+<span class="sd">design improves robustness to hardware defects, device variability, and</span>
+<span class="sd">noise commonly encountered in memristive crossbars.</span>
+
+<span class="sd">The workflow includes:</span>
+
+<span class="sd">- Collaborative classifiers (:class:`CollaborativeLogisticClassifier`)</span>
+<span class="sd">- Custom loss function balancing BCE and Hamming distance penalties</span>
+<span class="sd">  (:class:`CollaborativeLoss`)</span>
+<span class="sd">- Codeword construction with large Hamming distances</span>
+<span class="sd">  (:func:`dnn_favorable_searching_code`)</span>
+<span class="sd">- Decoding methods to map predictions back to class indices</span>
+<span class="sd">  (:func:`variable_length_decode`)</span>
+<span class="sd">- Training and testing utilities</span>
+<span class="sd">  (:func:`train_collaborative`, :func:`test_collaborative`)</span>
+<span class="sd">- Model patching helper to replace standard classifiers</span>
+<span class="sd">  (:func:`add_collaborative_logistic_classifiers`)</span>
+
+<span class="sd">References</span>
+<span class="sd">----------</span>
+<span class="sd">- Tao Liu et al., &quot;A Fault-Tolerant Neural Network Architecture&quot;.</span>
+<span class="sd">- Original implementation:</span>
+<span class="sd">  https://github.com/osama-usuf/A-Fault-Tolerant-Neural-Network-Architecture</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<div class="viewcode-block" id="CollaborativeLogisticClassifier">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.CollaborativeLogisticClassifier">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CollaborativeLogisticClassifier</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Collaborative logistic classifier layer.</span>
+
+<span class="sd">    This layer replaces the final classification layer in a network</span>
+<span class="sd">    with multiple logistic classifiers, one per &quot;committee member&quot;.</span>
+<span class="sd">    Each classifier outputs a probability (via sigmoid), and the final</span>
+<span class="sd">    prediction is decoded using collaborative error-correcting codewords.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_size : int</span>
+<span class="sd">        Dimension of the input feature vector.</span>
+<span class="sd">    num_classifiers : int</span>
+<span class="sd">        Number of collaborative logistic classifiers.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    classifiers : nn.Linear</span>
+<span class="sd">        Linear layer with `num_classifiers` outputs, no bias.</span>
+<span class="sd">    significance : nn.Parameter</span>
+<span class="sd">        Trainable parameter vector controlling the relative importance</span>
+<span class="sd">        of each classifier.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">num_classifiers</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CollaborativeLogisticClassifier</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifiers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">num_classifiers</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">significance</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_classifiers</span><span class="p">))</span>
+
+<div class="viewcode-block" id="CollaborativeLogisticClassifier.forward">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.CollaborativeLogisticClassifier.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass through the collaborative classifiers.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : torch.Tensor</span>
+<span class="sd">            Input tensor of shape ``(batch_size, input_size)``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Sigmoid probabilities of shape ``(batch_size, num_classifiers)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classifiers</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+</div>
+
+    
+<div class="viewcode-block" id="CollaborativeLoss">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.CollaborativeLoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CollaborativeLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Custom loss for collaborative logistic classifiers.</span>
+
+<span class="sd">    This combines binary cross-entropy (BCE) loss with a penalty term</span>
+<span class="sd">    based on the Hamming distance between the predicted and target</span>
+<span class="sd">    codewords. The penalty encourages outputs to stay closer to the</span>
+<span class="sd">    target codeword in code space, increasing fault tolerance.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    codewords : torch.Tensor</span>
+<span class="sd">        Matrix of target codewords, shape ``(num_classes, num_classifiers)``.</span>
+<span class="sd">    model : nn.Module</span>
+<span class="sd">        Collaborative model using :class:`CollaborativeLogisticClassifier`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    reg_lambda : float</span>
+<span class="sd">        Regularization weight for the Hamming distance penalty (default=0.1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">codewords</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CollaborativeLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">codewords</span> <span class="o">=</span> <span class="n">codewords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span> <span class="o">=</span> <span class="mf">0.1</span>
+        
+<div class="viewcode-block" id="CollaborativeLoss.forward">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.CollaborativeLoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute collaborative loss.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output : torch.Tensor</span>
+<span class="sd">            Model predictions, shape ``(batch_size, num_classifiers)``.</span>
+<span class="sd">        target : torch.Tensor</span>
+<span class="sd">            True class indices, shape ``(batch_size,)``.</span>
+<span class="sd">        threshold : float, optional</span>
+<span class="sd">            Threshold for binarizing predictions. Default: 0.5.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Scalar loss value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bce_loss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">)</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="n">bce_loss</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">codewords</span><span class="p">[</span><span class="n">target</span><span class="p">])</span>
+        
+        <span class="c1"># Calculate significance based on Hamming distance between predicted codeword and target codeword</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">output</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="n">hamming_distances</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">codewords</span><span class="p">[</span><span class="n">target</span><span class="p">],</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">hamming_distances</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">weighted_losses</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span><span class="p">)</span><span class="o">*</span><span class="n">losses</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1">#* self.model.collaborative_classifier.significance.unsqueeze(0)</span>
+
+        <span class="k">return</span> <span class="n">weighted_losses</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="c1"># average over the mini-batch dimension</span></div>
+</div>
+
+
+<div class="viewcode-block" id="dnn_favorable_searching_code">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.dnn_favorable_searching_code">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dnn_favorable_searching_code</span><span class="p">(</span><span class="n">conf_matrix</span><span class="p">,</span> <span class="n">num_classifiers</span><span class="p">,</span> <span class="n">hamming_distance</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct favorable error-correcting codewords for collaborative classifiers.</span>
+
+<span class="sd">    Based on a confusion matrix, assigns binary codewords to classes</span>
+<span class="sd">    such that inter-class Hamming distances are maximized, ensuring</span>
+<span class="sd">    robustness against errors in individual classifiers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conf_matrix : array-like</span>
+<span class="sd">        Confusion matrix from training or validation, shape</span>
+<span class="sd">        ``(num_classes, num_classes)``.</span>
+<span class="sd">    num_classifiers : int</span>
+<span class="sd">        Number of collaborative classifiers (codeword length).</span>
+<span class="sd">    hamming_distance : int, optional (default=3)</span>
+<span class="sd">        Minimum required Hamming distance between codewords.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        - dict : mapping of class index → codeword (as integer).</span>
+<span class="sd">        - torch.Tensor : codeword matrix of shape</span>
+<span class="sd">          ``(num_classes, num_classifiers)``, with binary entries.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - If no codewords are found at the desired Hamming distance, the</span>
+<span class="sd">      distance is iteratively reduced.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Part 1: Prepare the searching table (Lines 1-8)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hamm_dist</span><span class="p">(</span><span class="n">code1</span><span class="p">,</span> <span class="n">code2</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c1</span> <span class="o">!=</span> <span class="n">c2</span> <span class="k">for</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">code1</span><span class="p">,</span> <span class="n">code2</span><span class="p">))</span>
+    
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="n">conf_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">code_length</span> <span class="o">=</span> <span class="n">num_classifiers</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">hamming_distance</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_classifiers</span><span class="p">):</span>
+            <span class="n">binary_code</span> <span class="o">=</span> <span class="nb">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;0</span><span class="si">{</span><span class="n">code_length</span><span class="si">}</span><span class="s1">b&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">hamm_dist</span><span class="p">(</span><span class="n">binary_code</span><span class="p">,</span> <span class="nb">format</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;0</span><span class="si">{</span><span class="n">code_length</span><span class="si">}</span><span class="s1">b&#39;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="n">hamming_distance</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">T</span><span class="p">):</span>
+                <span class="n">T</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">hamming_distance</span> <span class="o">-=</span> <span class="mi">1</span>
+    
+    <span class="c1"># Part 2: Searching code</span>
+    <span class="n">O</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">O</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">num_classes</span> <span class="ow">and</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_classifiers</span><span class="p">:</span>
+        <span class="n">binary_code</span> <span class="o">=</span> <span class="nb">format</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;0</span><span class="si">{</span><span class="n">code_length</span><span class="si">}</span><span class="s1">b&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">hamm_dist</span><span class="p">(</span><span class="n">binary_code</span><span class="p">,</span> <span class="nb">format</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;0</span><span class="si">{</span><span class="n">code_length</span><span class="si">}</span><span class="s1">b&#39;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="n">hamming_distance</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">O</span><span class="p">):</span>
+            <span class="n">O</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Part 3: Code-tp-class assignment</span>
+    <span class="n">O</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">O</span><span class="p">)</span>
+    <span class="n">codeword_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">conf_matrix</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">num_classes</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">max_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">max_index</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span> <span class="ow">and</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">codeword_dict</span><span class="p">:</span>
+            <span class="n">codeword_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">O</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">k</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        
+    <span class="n">codeword_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s1">0</span><span class="si">{</span><span class="n">code_length</span><span class="si">}</span><span class="s1">b</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">codeword_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">codeword_dict</span><span class="p">,</span> <span class="n">codeword_matrix</span></div>
+
+
+<div class="viewcode-block" id="variable_length_decode">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.variable_length_decode">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">variable_length_decode</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">codewords</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decode model outputs to class predictions using codewords.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    output : torch.Tensor</span>
+<span class="sd">        Model outputs, shape ``(batch_size, num_classifiers)``.</span>
+<span class="sd">    codewords : torch.Tensor</span>
+<span class="sd">        Codeword matrix of shape ``(num_classes, num_classifiers)``.</span>
+<span class="sd">    threshold : float, optional (default=0.5)</span>
+<span class="sd">        Threshold for binarizing outputs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        Predicted class indices, shape ``(batch_size,)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output_binary</span> <span class="o">=</span> <span class="p">(</span><span class="n">output</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">output_binary</span><span class="p">,</span> <span class="n">codewords</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">distances</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="train_collaborative">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.train_collaborative">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">train_collaborative</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">loss_fn</span><span class="p">,</span> <span class="n">codewords</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Train a collaborative classifier model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : nn.Module</span>
+<span class="sd">        Collaborative model (with :class:`CollaborativeLogisticClassifier`).</span>
+<span class="sd">    loader : torch.utils.data.DataLoader</span>
+<span class="sd">        DataLoader providing training batches.</span>
+<span class="sd">    optimizer : torch.optim.Optimizer</span>
+<span class="sd">        Optimizer for training.</span>
+<span class="sd">    loss_fn : nn.Module</span>
+<span class="sd">        Loss function, typically :class:`CollaborativeLoss`.</span>
+<span class="sd">    codewords : torch.Tensor</span>
+<span class="sd">        Codeword matrix, shape ``(num_classes, num_classifiers)``.</span>
+<span class="sd">    device : str or torch.device</span>
+<span class="sd">        Device for computation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">loader</span><span class="p">):</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="test_collaborative">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.test_collaborative">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_collaborative</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">codewords</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate a collaborative classifier model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : nn.Module</span>
+<span class="sd">        Collaborative model.</span>
+<span class="sd">    loader : torch.utils.data.DataLoader</span>
+<span class="sd">        DataLoader providing evaluation batches.</span>
+<span class="sd">    codewords : torch.Tensor</span>
+<span class="sd">        Codeword matrix, shape ``(num_classes, num_classifiers)``.</span>
+<span class="sd">    device : str or torch.device</span>
+<span class="sd">        Device for computation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Accuracy over the dataset (0–1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">correct</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="n">variable_length_decode</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">codewords</span><span class="p">)</span>
+            <span class="n">correct</span> <span class="o">+=</span> <span class="n">pred</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">correct</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_collaborative_logistic_classifiers">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.add_collaborative_logistic_classifiers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_collaborative_logistic_classifiers</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">num_classifiers</span><span class="p">,</span> <span class="n">idx</span><span class="o">=-</span><span class="mi">2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Replace the last layer of a model with collaborative classifiers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : nn.Module</span>
+<span class="sd">        Model (patched xbtorch model) containing a ``model`` attribute</span>
+<span class="sd">        with a module list.</span>
+<span class="sd">    num_classifiers : int</span>
+<span class="sd">        Number of collaborative logistic classifiers to insert.</span>
+<span class="sd">    idx : int, optional (default=-2)</span>
+<span class="sd">        Index of the layer to replace.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the model does not contain a ``model`` attribute in the</span>
+<span class="sd">        expected format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># if doesn&#39;t have model attr, raise error</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Module list not in expected format, likely a patching issue.&quot;</span><span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">collaborative_classifier</span> <span class="o">=</span> <span class="n">CollaborativeLogisticClassifier</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num_classifiers</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">collaborative_classifier</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

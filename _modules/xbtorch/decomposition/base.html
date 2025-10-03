@@ -1,0 +1,257 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.decomposition.base &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">XBTorch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
+      <li class="breadcrumb-item active">xbtorch.decomposition.base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xbtorch.decomposition.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Base gradient decomposition module.</span>
+
+<span class="sd">This module defines the abstract base class `GenericDecomposition` for</span>
+<span class="sd">all gradient decomposition strategies in XBTorch, along with a</span>
+<span class="sd">reference implementation `FullOuterProduct`.</span>
+
+<span class="sd">Gradient decomposition methods are used to approximate or compress</span>
+<span class="sd">gradients during training, which is especially useful for</span>
+<span class="sd">memristive neural networks or low-rank gradient compression.</span>
+
+<span class="sd">Subclasses must implement the `decompose` method to define their</span>
+<span class="sd">specific decomposition strategy.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<div class="viewcode-block" id="GenericDecomposition">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.decomposition.base.html#xbtorch.decomposition.base.GenericDecomposition">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenericDecomposition</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for gradient decomposition strategies in XBTorch.</span>
+
+<span class="sd">    Gradient decomposition methods approximate or compress the gradient</span>
+<span class="sd">    information during training of memristive neural networks. This is</span>
+<span class="sd">    particularly useful for reducing communication overhead and memory</span>
+<span class="sd">    footprint in distributed training, and for minimizing the number of</span>
+<span class="sd">    device writes in crossbar-based hardware.</span>
+
+<span class="sd">    Subclasses must implement the :meth:`decompose` method.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This class defines the API contract for all gradient decomposition</span>
+<span class="sd">    methods. Implementations can range from the full outer product</span>
+<span class="sd">    (baseline) to more advanced low-rank approximations such as</span>
+<span class="sd">    Streaming Batch PCA, Non-negative Matrix Factorization, or SVD.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    For background, see:</span>
+<span class="sd">    - Huang et al., &quot;Low-rank gradient descent for memory-efficient training of deep in-memory arrays&quot;, ACM JETC, 2023.</span>
+<span class="sd">    - Hoskins et al., &quot;Streaming batch eigenupdates for hardware neural networks&quot;, Frontiers in Neuroscience, 2019.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the generic decomposition base class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="GenericDecomposition.decompose">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.decomposition.base.html#xbtorch.decomposition.base.GenericDecomposition.decompose">[docs]</a>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decompose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">gradient</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decompose the gradient according to the chosen strategy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input : torch.Tensor</span>
+<span class="sd">            The input activations for the current layer, with shape</span>
+<span class="sd">            ``(batch_size, input_dim)``.</span>
+<span class="sd">        delta : torch.Tensor</span>
+<span class="sd">            The backpropagated errors (deltas) for the current layer,</span>
+<span class="sd">            with shape ``(batch_size, output_dim)``.</span>
+<span class="sd">        gradient : torch.Tensor</span>
+<span class="sd">            The reference gradient tensor with shape ``(output_dim, input_dim)``,</span>
+<span class="sd">            used to allocate the output decomposition.</span>
+<span class="sd">        group_param_idx : int or Any</span>
+<span class="sd">            Index or identifier for grouping parameters, used by certain</span>
+<span class="sd">            decomposition methods. Can be ignored if not applicable.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The decomposed gradient tensor with the same shape as</span>
+<span class="sd">            ``gradient``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="FullOuterProduct">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.decomposition.base.html#xbtorch.decomposition.base.FullOuterProduct">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FullOuterProduct</span><span class="p">(</span><span class="n">GenericDecomposition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Full outer product gradient decomposition.</span>
+
+<span class="sd">    This baseline method computes the complete gradient matrix as the</span>
+<span class="sd">    outer product between deltas (errors) and inputs, aggregated across</span>
+<span class="sd">    all samples in the batch. It is equivalent to the standard PyTorch</span>
+<span class="sd">    gradient computation, without scaling by batch size.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    While accurate, this method does not reduce the gradient’s memory</span>
+<span class="sd">    footprint. It serves as a reference point against which low-rank</span>
+<span class="sd">    approximations (e.g., PCA, NMF, SVD) can be compared in terms of</span>
+<span class="sd">    efficiency and robustness on memristive hardware.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the full outer product decomposition strategy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="FullOuterProduct.decompose">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.decomposition.base.html#xbtorch.decomposition.base.FullOuterProduct.decompose">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decompose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">gradient</span><span class="p">,</span> <span class="n">group_param_idx</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the full outer product between deltas and inputs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input : torch.Tensor</span>
+<span class="sd">            The input activations for the current layer,</span>
+<span class="sd">            shape ``(batch_size, input_dim)``.</span>
+<span class="sd">        delta : torch.Tensor</span>
+<span class="sd">            The backpropagated errors (deltas) for the current layer,</span>
+<span class="sd">            shape ``(batch_size, output_dim)``.</span>
+<span class="sd">        gradient : torch.Tensor</span>
+<span class="sd">            A tensor used to initialize the output with the correct shape</span>
+<span class="sd">            ``(output_dim, input_dim)``.</span>
+<span class="sd">        group_param_idx : int or Any</span>
+<span class="sd">            Unused in this method, included for API consistency.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The full gradient matrix of shape ``(output_dim, input_dim)``,</span>
+<span class="sd">            computed as the batch sum of outer products between deltas</span>
+<span class="sd">            and inputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">outer_prod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">gradient</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+            <span class="c1"># &lt;outer&lt;ds, xs&gt;&gt; equivalent to PyTorch&#39;s gradient, norm ~ 0 without any scaling by batch size</span>
+            <span class="c1"># PyTorch does this so that magnitudes of the gradients are scale-invariant of batch size</span>
+            <span class="n">outer_prod</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">delta</span><span class="p">[</span><span class="n">sample</span><span class="p">],</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">outer_prod</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+xbtorch.quant
+=============
+
+.. automodule:: xbtorch.quant
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   quantizers
+   wage_init
+   wage_qtorch

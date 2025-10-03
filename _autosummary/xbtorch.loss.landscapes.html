@@ -1,0 +1,288 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.loss.landscapes &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xbtorch.nn" href="xbtorch.nn.html" />
+    <link rel="prev" title="xbtorch.loss" href="xbtorch.loss.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">XBTorch API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.html">xbtorch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.decomposition.html">xbtorch.decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.deployment.html">xbtorch.deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="xbtorch.loss.html">xbtorch.loss</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.loss.landscapes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.loss.landscapes.compute_grid_loss"><code class="docutils literal notranslate"><span class="pre">compute_grid_loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.loss.landscapes.reduction_pca"><code class="docutils literal notranslate"><span class="pre">reduction_pca()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.loss.landscapes.reduction_random"><code class="docutils literal notranslate"><span class="pre">reduction_random()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.nn.html">xbtorch.nn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.patches.html">xbtorch.patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.quant.html">xbtorch.quant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.optim.html">xbtorch.optim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">XBTorch API</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.html">xbtorch</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.loss.html">xbtorch.loss</a></li>
+      <li class="breadcrumb-item active">xbtorch.loss.landscapes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/xbtorch.loss.landscapes.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xbtorch.loss.landscapes">
+<span id="xbtorch-loss-landscapes"></span><h1>xbtorch.loss.landscapes<a class="headerlink" href="#module-xbtorch.loss.landscapes" title="Link to this heading"></a></h1>
+<p>Tools for analyzing and visualizing neural network loss landscapes.</p>
+<p>This module provides functions to reduce high-dimensional weight spaces
+to 2D directions, perturb model weights along those directions, and
+compute the corresponding loss grid for visualization or analysis.</p>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#xbtorch.loss.landscapes.reduction_pca" title="xbtorch.loss.landscapes.reduction_pca"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduction_pca()</span></code></a> : Reduce weight matrix to 2D using principal component analysis.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.loss.landscapes.reduction_random" title="xbtorch.loss.landscapes.reduction_random"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduction_random()</span></code></a> : Reduce weight matrix to 2D using random orthogonal directions.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.loss.landscapes.compute_grid_loss" title="xbtorch.loss.landscapes.compute_grid_loss"><code class="xref py py-func docutils literal notranslate"><span class="pre">compute_grid_loss()</span></code></a> : Compute loss values on a 2D grid of weight perturbations.</p></li>
+</ul>
+</section>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.loss.landscapes.compute_grid_loss" title="xbtorch.loss.landscapes.compute_grid_loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_grid_loss</span></code></a>(model, full_weights, ...)</p></td>
+<td><p>Compute the loss landscape on a 2D grid along two given directions in weight space.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.loss.landscapes.reduction_pca" title="xbtorch.loss.landscapes.reduction_pca"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reduction_pca</span></code></a>(matrix[, seed])</p></td>
+<td><p>Perform PCA on a weight matrix to reduce it to two principal directions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.loss.landscapes.reduction_random" title="xbtorch.loss.landscapes.reduction_random"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reduction_random</span></code></a>(matrix[, seed])</p></td>
+<td><p>Generate two random orthogonal directions for dimensionality reduction.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.loss.landscapes.compute_grid_loss">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.loss.landscapes.</span></span><span class="sig-name descname"><span class="pre">compute_grid_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_range</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_range</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_dirs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">criterion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/loss/landscapes.html#compute_grid_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.loss.landscapes.compute_grid_loss" title="Link to this definition"></a></dt>
+<dd><p>Compute the loss landscape on a 2D grid along two given directions in weight space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – Neural network model.</p></li>
+<li><p><strong>full_weights</strong> (<em>dict</em>) – Dictionary of stored weight tensors by layer name and epoch.
+Format: full_weights[layer_name][epoch].</p></li>
+<li><p><strong>param_name</strong> (<em>str</em>) – Name of the parameter to perturb in the model.</p></li>
+<li><p><strong>x_range</strong> (<em>tuple</em><em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – Minimum and maximum scaling along the first direction.</p></li>
+<li><p><strong>y_range</strong> (<em>tuple</em><em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – Minimum and maximum scaling along the second direction.</p></li>
+<li><p><strong>reduced_dirs</strong> (<em>np.ndarray</em>) – 2 x num_features array of perturbation directions.</p></li>
+<li><p><strong>data_loader</strong> (<em>torch.utils.data.DataLoader</em>) – Data loader for evaluating loss.</p></li>
+<li><p><strong>criterion</strong> (<em>torch.nn.Module</em>) – Loss function.</p></li>
+<li><p><strong>device</strong> (<em>torch.device</em>) – PyTorch device to perform computations on.</p></li>
+<li><p><strong>epoch</strong> (<em>int</em>) – Epoch of the stored weights to initialize model.</p></li>
+<li><p><strong>resolution</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of steps per unit interval in the grid (default: 1).</p></li>
+<li><p><strong>fast</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, perform a faster evaluation during training (default: True).</p></li>
+<li><p><strong>log</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, print progress logs during computation (default: False).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>xv<span class="classifier">np.ndarray</span></dt><dd><p>2D grid of x-axis values.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>yv<span class="classifier">np.ndarray</span></dt><dd><p>2D grid of y-axis values.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>loss_grid<span class="classifier">np.ndarray</span></dt><dd><p>Grid of computed loss values at each perturbation point.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.loss.landscapes.reduction_pca">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.loss.landscapes.</span></span><span class="sig-name descname"><span class="pre">reduction_pca</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/loss/landscapes.html#reduction_pca"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.loss.landscapes.reduction_pca" title="Link to this definition"></a></dt>
+<dd><p>Perform PCA on a weight matrix to reduce it to two principal directions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> (<em>np.ndarray</em>) – Input weight matrix of shape (num_samples, num_features).</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – Random seed for PCA initialization (default: 0).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>path_2d<span class="classifier">np.ndarray</span></dt><dd><p>Transformed matrix projected onto the first two principal components.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>reduced_dirs<span class="classifier">np.ndarray</span></dt><dd><p>The principal component directions (2 x num_features).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>info<span class="classifier">dict</span></dt><dd><p>Dictionary containing explained variance ratio: {‘explained_vars’: array([var1, var2])}.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.loss.landscapes.reduction_random">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.loss.landscapes.</span></span><span class="sig-name descname"><span class="pre">reduction_random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/loss/landscapes.html#reduction_random"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.loss.landscapes.reduction_random" title="Link to this definition"></a></dt>
+<dd><p>Generate two random orthogonal directions for dimensionality reduction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> (<em>np.ndarray</em>) – Input weight matrix of shape (num_samples, num_features).</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – Random seed for reproducibility.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>None</dt><dd><p>Placeholder for 2D path (not computed).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>reduced_dirs<span class="classifier">np.ndarray</span></dt><dd><p>Two random orthonormal directions (2 x num_features).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>info<span class="classifier">dict</span></dt><dd><p>Empty dictionary (no explained variance available).</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xbtorch.loss.html" class="btn btn-neutral float-left" title="xbtorch.loss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xbtorch.nn.html" class="btn btn-neutral float-right" title="xbtorch.nn" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

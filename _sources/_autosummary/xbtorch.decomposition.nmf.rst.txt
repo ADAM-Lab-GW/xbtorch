@@ -1,0 +1,12 @@
+xbtorch.decomposition.nmf
+=========================
+
+.. automodule:: xbtorch.decomposition.nmf
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      NMF
+   

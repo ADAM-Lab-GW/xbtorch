@@ -1,0 +1,19 @@
+xbtorch.quant.quantizers
+========================
+
+.. automodule:: xbtorch.quant.quantizers
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      fixed_point_quantize_wrapper
+      get_range_fixed_point
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      FixedPointQuantF
+   

@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.deployment.correction &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xbtorch.deployment.encoding" href="xbtorch.deployment.encoding.html" />
+    <link rel="prev" title="xbtorch.deployment.committee" href="xbtorch.deployment.committee.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">XBTorch API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.html">xbtorch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.decomposition.html">xbtorch.decomposition</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="xbtorch.deployment.html">xbtorch.deployment</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.base.html">xbtorch.deployment.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.committee.html">xbtorch.deployment.committee</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.deployment.correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier"><code class="docutils literal notranslate"><span class="pre">CollaborativeLogisticClassifier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLoss"><code class="docutils literal notranslate"><span class="pre">CollaborativeLoss</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.add_collaborative_logistic_classifiers"><code class="docutils literal notranslate"><span class="pre">add_collaborative_logistic_classifiers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.dnn_favorable_searching_code"><code class="docutils literal notranslate"><span class="pre">dnn_favorable_searching_code()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.test_collaborative"><code class="docutils literal notranslate"><span class="pre">test_collaborative()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.train_collaborative"><code class="docutils literal notranslate"><span class="pre">train_collaborative()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.correction.variable_length_decode"><code class="docutils literal notranslate"><span class="pre">variable_length_decode()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.encoding.html">xbtorch.deployment.encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.mapping.html">xbtorch.deployment.mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.metrics.html">xbtorch.deployment.metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.loss.html">xbtorch.loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.nn.html">xbtorch.nn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.patches.html">xbtorch.patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.quant.html">xbtorch.quant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.optim.html">xbtorch.optim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">XBTorch API</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.html">xbtorch</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.deployment.html">xbtorch.deployment</a></li>
+      <li class="breadcrumb-item active">xbtorch.deployment.correction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/xbtorch.deployment.correction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xbtorch.deployment.correction">
+<span id="xbtorch-deployment-correction"></span><h1>xbtorch.deployment.correction<a class="headerlink" href="#module-xbtorch.deployment.correction" title="Link to this heading"></a></h1>
+<p>Fault-tolerant neural network architectures for crossbar-based accelerators.</p>
+<p>This module implements the <strong>Collaborative Logistic Classifier (CLC)</strong>
+method from Liu et al., <em>“A Fault-Tolerant Neural Network Architecture”</em>.
+CLC introduces redundancy into the final classification layer using
+multiple logistic sub-classifiers and error-correcting codewords. This
+design improves robustness to hardware defects, device variability, and
+noise commonly encountered in memristive crossbars.</p>
+<p>The workflow includes:</p>
+<ul class="simple">
+<li><p>Collaborative classifiers (<a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier" title="xbtorch.deployment.correction.CollaborativeLogisticClassifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">CollaborativeLogisticClassifier</span></code></a>)</p></li>
+<li><p>Custom loss function balancing BCE and Hamming distance penalties
+(<a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLoss" title="xbtorch.deployment.correction.CollaborativeLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CollaborativeLoss</span></code></a>)</p></li>
+<li><p>Codeword construction with large Hamming distances
+(<a class="reference internal" href="#xbtorch.deployment.correction.dnn_favorable_searching_code" title="xbtorch.deployment.correction.dnn_favorable_searching_code"><code class="xref py py-func docutils literal notranslate"><span class="pre">dnn_favorable_searching_code()</span></code></a>)</p></li>
+<li><p>Decoding methods to map predictions back to class indices
+(<a class="reference internal" href="#xbtorch.deployment.correction.variable_length_decode" title="xbtorch.deployment.correction.variable_length_decode"><code class="xref py py-func docutils literal notranslate"><span class="pre">variable_length_decode()</span></code></a>)</p></li>
+<li><p>Training and testing utilities
+(<a class="reference internal" href="#xbtorch.deployment.correction.train_collaborative" title="xbtorch.deployment.correction.train_collaborative"><code class="xref py py-func docutils literal notranslate"><span class="pre">train_collaborative()</span></code></a>, <a class="reference internal" href="#xbtorch.deployment.correction.test_collaborative" title="xbtorch.deployment.correction.test_collaborative"><code class="xref py py-func docutils literal notranslate"><span class="pre">test_collaborative()</span></code></a>)</p></li>
+<li><p>Model patching helper to replace standard classifiers
+(<a class="reference internal" href="#xbtorch.deployment.correction.add_collaborative_logistic_classifiers" title="xbtorch.deployment.correction.add_collaborative_logistic_classifiers"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_collaborative_logistic_classifiers()</span></code></a>)</p></li>
+</ul>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Tao Liu et al., “A Fault-Tolerant Neural Network Architecture”.</p></li>
+<li><p>Original implementation:
+<a class="reference external" href="https://github.com/osama-usuf/A-Fault-Tolerant-Neural-Network-Architecture">https://github.com/osama-usuf/A-Fault-Tolerant-Neural-Network-Architecture</a></p></li>
+</ul>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.add_collaborative_logistic_classifiers" title="xbtorch.deployment.correction.add_collaborative_logistic_classifiers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_collaborative_logistic_classifiers</span></code></a>(...)</p></td>
+<td><p>Replace the last layer of a model with collaborative classifiers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.dnn_favorable_searching_code" title="xbtorch.deployment.correction.dnn_favorable_searching_code"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dnn_favorable_searching_code</span></code></a>(conf_matrix, ...)</p></td>
+<td><p>Construct favorable error-correcting codewords for collaborative classifiers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.test_collaborative" title="xbtorch.deployment.correction.test_collaborative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_collaborative</span></code></a>(model, loader, codewords, ...)</p></td>
+<td><p>Evaluate a collaborative classifier model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.train_collaborative" title="xbtorch.deployment.correction.train_collaborative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_collaborative</span></code></a>(model, loader, ...)</p></td>
+<td><p>Train a collaborative classifier model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.variable_length_decode" title="xbtorch.deployment.correction.variable_length_decode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">variable_length_decode</span></code></a>(output, codewords[, ...])</p></td>
+<td><p>Decode model outputs to class predictions using codewords.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier" title="xbtorch.deployment.correction.CollaborativeLogisticClassifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CollaborativeLogisticClassifier</span></code></a>(input_size, ...)</p></td>
+<td><p>Collaborative logistic classifier layer.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLoss" title="xbtorch.deployment.correction.CollaborativeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CollaborativeLoss</span></code></a>(codewords, model)</p></td>
+<td><p>Custom loss for collaborative logistic classifiers.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLogisticClassifier">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">CollaborativeLogisticClassifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_classifiers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#CollaborativeLogisticClassifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Collaborative logistic classifier layer.</p>
+<p>This layer replaces the final classification layer in a network
+with multiple logistic classifiers, one per “committee member”.
+Each classifier outputs a probability (via sigmoid), and the final
+prediction is decoded using collaborative error-correcting codewords.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – Dimension of the input feature vector.</p></li>
+<li><p><strong>num_classifiers</strong> (<em>int</em>) – Number of collaborative logistic classifiers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLogisticClassifier.classifiers">
+<span class="sig-name descname"><span class="pre">classifiers</span></span><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier.classifiers" title="Link to this definition"></a></dt>
+<dd><p>Linear layer with <cite>num_classifiers</cite> outputs, no bias.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="xbtorch.nn.nn.html#xbtorch.nn.nn.Linear" title="xbtorch.nn.nn.Linear">nn.Linear</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLogisticClassifier.significance">
+<span class="sig-name descname"><span class="pre">significance</span></span><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier.significance" title="Link to this definition"></a></dt>
+<dd><p>Trainable parameter vector controlling the relative importance
+of each classifier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nn.Parameter</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLogisticClassifier.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#CollaborativeLogisticClassifier.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass through the collaborative classifiers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">input_size)</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sigmoid probabilities of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_classifiers)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">CollaborativeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">codewords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#CollaborativeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLoss" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Custom loss for collaborative logistic classifiers.</p>
+<p>This combines binary cross-entropy (BCE) loss with a penalty term
+based on the Hamming distance between the predicted and target
+codewords. The penalty encourages outputs to stay closer to the
+target codeword in code space, increasing fault tolerance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>codewords</strong> (<em>torch.Tensor</em>) – Matrix of target codewords, shape <code class="docutils literal notranslate"><span class="pre">(num_classes,</span> <span class="pre">num_classifiers)</span></code>.</p></li>
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Collaborative model using <a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier" title="xbtorch.deployment.correction.CollaborativeLogisticClassifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">CollaborativeLogisticClassifier</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLoss.reg_lambda">
+<span class="sig-name descname"><span class="pre">reg_lambda</span></span><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLoss.reg_lambda" title="Link to this definition"></a></dt>
+<dd><p>Regularization weight for the Hamming distance penalty (default=0.1).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.CollaborativeLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#CollaborativeLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.CollaborativeLoss.forward" title="Link to this definition"></a></dt>
+<dd><p>Compute collaborative loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> (<em>torch.Tensor</em>) – Model predictions, shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_classifiers)</span></code>.</p></li>
+<li><p><strong>target</strong> (<em>torch.Tensor</em>) – True class indices, shape <code class="docutils literal notranslate"><span class="pre">(batch_size,)</span></code>.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold for binarizing predictions. Default: 0.5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scalar loss value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.add_collaborative_logistic_classifiers">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">add_collaborative_logistic_classifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_classifiers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#add_collaborative_logistic_classifiers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.add_collaborative_logistic_classifiers" title="Link to this definition"></a></dt>
+<dd><p>Replace the last layer of a model with collaborative classifiers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Model (patched xbtorch model) containing a <code class="docutils literal notranslate"><span class="pre">model</span></code> attribute
+with a module list.</p></li>
+<li><p><strong>num_classifiers</strong> (<em>int</em>) – Number of collaborative logistic classifiers to insert.</p></li>
+<li><p><strong>idx</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=-2</em><em>)</em>) – Index of the layer to replace.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the model does not contain a <code class="docutils literal notranslate"><span class="pre">model</span></code> attribute in the
+    expected format.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.dnn_favorable_searching_code">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">dnn_favorable_searching_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_classifiers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hamming_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#dnn_favorable_searching_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.dnn_favorable_searching_code" title="Link to this definition"></a></dt>
+<dd><p>Construct favorable error-correcting codewords for collaborative classifiers.</p>
+<p>Based on a confusion matrix, assigns binary codewords to classes
+such that inter-class Hamming distances are maximized, ensuring
+robustness against errors in individual classifiers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conf_matrix</strong> (<em>array-like</em>) – Confusion matrix from training or validation, shape
+<code class="docutils literal notranslate"><span class="pre">(num_classes,</span> <span class="pre">num_classes)</span></code>.</p></li>
+<li><p><strong>num_classifiers</strong> (<em>int</em>) – Number of collaborative classifiers (codeword length).</p></li>
+<li><p><strong>hamming_distance</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=3</em><em>)</em>) – Minimum required Hamming distance between codewords.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>dict : mapping of class index → codeword (as integer).</p></li>
+<li><p>torch.Tensor : codeword matrix of shape
+<code class="docutils literal notranslate"><span class="pre">(num_classes,</span> <span class="pre">num_classifiers)</span></code>, with binary entries.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>If no codewords are found at the desired Hamming distance, the
+distance is iteratively reduced.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.test_collaborative">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">test_collaborative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codewords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#test_collaborative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.test_collaborative" title="Link to this definition"></a></dt>
+<dd><p>Evaluate a collaborative classifier model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Collaborative model.</p></li>
+<li><p><strong>loader</strong> (<em>torch.utils.data.DataLoader</em>) – DataLoader providing evaluation batches.</p></li>
+<li><p><strong>codewords</strong> (<em>torch.Tensor</em>) – Codeword matrix, shape <code class="docutils literal notranslate"><span class="pre">(num_classes,</span> <span class="pre">num_classifiers)</span></code>.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em>) – Device for computation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Accuracy over the dataset (0–1).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.train_collaborative">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">train_collaborative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codewords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#train_collaborative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.train_collaborative" title="Link to this definition"></a></dt>
+<dd><p>Train a collaborative classifier model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Collaborative model (with <a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLogisticClassifier" title="xbtorch.deployment.correction.CollaborativeLogisticClassifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">CollaborativeLogisticClassifier</span></code></a>).</p></li>
+<li><p><strong>loader</strong> (<em>torch.utils.data.DataLoader</em>) – DataLoader providing training batches.</p></li>
+<li><p><strong>optimizer</strong> (<em>torch.optim.Optimizer</em>) – Optimizer for training.</p></li>
+<li><p><strong>loss_fn</strong> (<em>nn.Module</em>) – Loss function, typically <a class="reference internal" href="#xbtorch.deployment.correction.CollaborativeLoss" title="xbtorch.deployment.correction.CollaborativeLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CollaborativeLoss</span></code></a>.</p></li>
+<li><p><strong>codewords</strong> (<em>torch.Tensor</em>) – Codeword matrix, shape <code class="docutils literal notranslate"><span class="pre">(num_classes,</span> <span class="pre">num_classifiers)</span></code>.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em>) – Device for computation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.deployment.correction.variable_length_decode">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.correction.</span></span><span class="sig-name descname"><span class="pre">variable_length_decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codewords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/correction.html#variable_length_decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.correction.variable_length_decode" title="Link to this definition"></a></dt>
+<dd><p>Decode model outputs to class predictions using codewords.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> (<em>torch.Tensor</em>) – Model outputs, shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_classifiers)</span></code>.</p></li>
+<li><p><strong>codewords</strong> (<em>torch.Tensor</em>) – Codeword matrix of shape <code class="docutils literal notranslate"><span class="pre">(num_classes,</span> <span class="pre">num_classifiers)</span></code>.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em><em>, </em><em>optional</em><em> (</em><em>default=0.5</em><em>)</em>) – Threshold for binarizing outputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted class indices, shape <code class="docutils literal notranslate"><span class="pre">(batch_size,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xbtorch.deployment.committee.html" class="btn btn-neutral float-left" title="xbtorch.deployment.committee" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xbtorch.deployment.encoding.html" class="btn btn-neutral float-right" title="xbtorch.deployment.encoding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+xbtorch.optim
+=============
+
+.. automodule:: xbtorch.optim
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Adam
+      SGD
+   

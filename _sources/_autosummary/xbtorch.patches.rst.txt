@@ -1,0 +1,14 @@
+xbtorch.patches
+===============
+
+.. automodule:: xbtorch.patches
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   decorators
+   model

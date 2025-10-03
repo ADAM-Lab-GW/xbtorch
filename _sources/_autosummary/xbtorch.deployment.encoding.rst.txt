@@ -1,0 +1,16 @@
+xbtorch.deployment.encoding
+===========================
+
+.. automodule:: xbtorch.deployment.encoding
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      encode_LEA1
+      encode_LEA2
+      encode_MAO
+      encode_simple_binary
+      quantize_to_nearest
+   

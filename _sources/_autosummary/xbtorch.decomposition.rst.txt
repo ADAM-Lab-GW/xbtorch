@@ -1,0 +1,16 @@
+xbtorch.decomposition
+=====================
+
+.. automodule:: xbtorch.decomposition
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   base
+   nmf
+   sbpca
+   svd

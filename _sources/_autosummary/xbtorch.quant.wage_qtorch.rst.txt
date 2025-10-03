@@ -1,0 +1,21 @@
+xbtorch.quant.wage\_qtorch
+==========================
+
+.. automodule:: xbtorch.quant.wage_qtorch
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      C
+      QG
+      QW
+      shift
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      WAGEQuantizer
+   

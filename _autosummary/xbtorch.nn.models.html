@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xbtorch.nn.models &mdash; XBTorch  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xbtorch.nn.nn" href="xbtorch.nn.nn.html" />
+    <link rel="prev" title="xbtorch.nn.datasets" href="xbtorch.nn.datasets.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            XBTorch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Core Concepts</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">XBTorch API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.html">xbtorch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.decomposition.html">xbtorch.decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.deployment.html">xbtorch.deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.loss.html">xbtorch.loss</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="xbtorch.nn.html">xbtorch.nn</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.datasets.html">xbtorch.nn.datasets</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.nn.models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.nn.models.LeNet5"><code class="docutils literal notranslate"><span class="pre">LeNet5</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.nn.models.RNN"><code class="docutils literal notranslate"><span class="pre">RNN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.nn.models.SimpleLSTM"><code class="docutils literal notranslate"><span class="pre">SimpleLSTM</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.nn.models.VGG"><code class="docutils literal notranslate"><span class="pre">VGG</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.nn.html">xbtorch.nn.nn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.nn.utils.html">xbtorch.nn.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.patches.html">xbtorch.patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.quant.html">xbtorch.quant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xbtorch.optim.html">xbtorch.optim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XBTorch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">XBTorch API</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.html">xbtorch</a></li>
+          <li class="breadcrumb-item"><a href="xbtorch.nn.html">xbtorch.nn</a></li>
+      <li class="breadcrumb-item active">xbtorch.nn.models</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/xbtorch.nn.models.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xbtorch.nn.models">
+<span id="xbtorch-nn-models"></span><h1>xbtorch.nn.models<a class="headerlink" href="#module-xbtorch.nn.models" title="Link to this heading"></a></h1>
+<p>Predefined neural network architectures for use with XBTorch.</p>
+<p>This module provides implementations of standard models such as LeNet-5, VGG,
+and RNN/LSTM-based models suitable for image classification and sequential data tasks.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#xbtorch.nn.models.LeNet5" title="xbtorch.nn.models.LeNet5"><code class="xref py py-class docutils literal notranslate"><span class="pre">LeNet5</span></code></a> : Classic CNN for small images (e.g., MNIST).</p></li>
+<li><p><a class="reference internal" href="#xbtorch.nn.models.VGG" title="xbtorch.nn.models.VGG"><code class="xref py py-class docutils literal notranslate"><span class="pre">VGG</span></code></a> : Deep CNN for image classification tasks (VGG-like).</p></li>
+<li><p><a class="reference internal" href="#xbtorch.nn.models.RNN" title="xbtorch.nn.models.RNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNN</span></code></a> : Simple RNN model with linear output layer.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.nn.models.SimpleLSTM" title="xbtorch.nn.models.SimpleLSTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleLSTM</span></code></a> : LSTM model with linear output for time-series tasks.</p></li>
+</ul>
+</section>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.nn.models.LeNet5" title="xbtorch.nn.models.LeNet5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LeNet5</span></code></a>()</p></td>
+<td><p>Classic LeNet-5 CNN architecture for grayscale image classification.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.nn.models.RNN" title="xbtorch.nn.models.RNN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RNN</span></code></a>(input_size, hidden_size, num_layers, ...)</p></td>
+<td><p>Simple RNN model for sequential data classification.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.nn.models.SimpleLSTM" title="xbtorch.nn.models.SimpleLSTM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimpleLSTM</span></code></a>(input_size, hidden_size, ...)</p></td>
+<td><p>LSTM model suitable for simple time-series or sequence classification tasks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.nn.models.VGG" title="xbtorch.nn.models.VGG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VGG</span></code></a>([num_classes])</p></td>
+<td><p>VGG-like CNN architecture for image classification.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.nn.models.LeNet5">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.nn.models.</span></span><span class="sig-name descname"><span class="pre">LeNet5</span></span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#LeNet5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.LeNet5" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Classic LeNet-5 CNN architecture for grayscale image classification.</p>
+<dl class="simple">
+<dt>Architecture:</dt><dd><ul class="simple">
+<li><p>32C5: Conv2d(1, 32, 5x5), ReLU</p></li>
+<li><p>MP2: MaxPool2d(2x2)</p></li>
+<li><p>64C5: Conv2d(32, 64, 5x5), ReLU</p></li>
+<li><p>MP2: MaxPool2d(2x2)</p></li>
+<li><p>Flatten</p></li>
+<li><p>512FC: Linear(1024-&gt;512), ReLU</p></li>
+<li><p>10SSE: Linear(512-&gt;10)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.nn.models.LeNet5.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#LeNet5.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.LeNet5.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass through the network.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#LeNet5.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.nn.models.RNN">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.nn.models.</span></span><span class="sig-name descname"><span class="pre">RNN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#RNN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.RNN" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Simple RNN model for sequential data classification.</p>
+<dl class="simple">
+<dt>Architecture:</dt><dd><ul class="simple">
+<li><p>nn.RNN</p></li>
+<li><p>xbnn.SelectLastStep()  : select last hidden state</p></li>
+<li><p>Linear(hidden_size -&gt; output_size)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – Number of input features per time step.</p></li>
+<li><p><strong>hidden_size</strong> (<em>int</em>) – Number of hidden units in the RNN.</p></li>
+<li><p><strong>num_layers</strong> (<em>int</em>) – Number of RNN layers.</p></li>
+<li><p><strong>output_size</strong> (<em>int</em>) – Number of output classes.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.nn.models.RNN.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#RNN.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.RNN.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass through the network.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#RNN.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.nn.models.SimpleLSTM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.nn.models.</span></span><span class="sig-name descname"><span class="pre">SimpleLSTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#SimpleLSTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.SimpleLSTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>LSTM model suitable for simple time-series or sequence classification tasks.</p>
+<dl class="simple">
+<dt>Architecture:</dt><dd><ul class="simple">
+<li><p>nn.LSTM</p></li>
+<li><p>xbnn.SelectLastStep() : select last hidden state</p></li>
+<li><p>Linear(hidden_size -&gt; output_size)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – Number of input features per time step.</p></li>
+<li><p><strong>hidden_size</strong> (<em>int</em>) – Number of hidden units in the LSTM.</p></li>
+<li><p><strong>num_layers</strong> (<em>int</em>) – Number of LSTM layers.</p></li>
+<li><p><strong>output_size</strong> (<em>int</em>) – Number of output classes.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.nn.models.SimpleLSTM.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#SimpleLSTM.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.SimpleLSTM.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass through the network.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#SimpleLSTM.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xbtorch.nn.models.VGG">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.nn.models.</span></span><span class="sig-name descname"><span class="pre">VGG</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#VGG"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.VGG" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>VGG-like CNN architecture for image classification.</p>
+<dl class="simple">
+<dt>Default architecture:</dt><dd><ul class="simple">
+<li><p>2 × (128C3) - MP2</p></li>
+<li><p>2 × (256C3) - MP2</p></li>
+<li><p>2 × (512C3) - MP2</p></li>
+<li><p>Flatten</p></li>
+<li><p>1024FC</p></li>
+<li><p>num_classes output</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_classes</strong> (<em>int</em>) – Number of output classes (default: 10).</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.nn.models.VGG.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#VGG.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.nn.models.VGG.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass through the network.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/nn/models.html#VGG.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xbtorch.nn.datasets.html" class="btn btn-neutral float-left" title="xbtorch.nn.datasets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xbtorch.nn.nn.html" class="btn btn-neutral float-right" title="xbtorch.nn.nn" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, George Washington University.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
