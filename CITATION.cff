@@ -18,7 +18,7 @@ authors:
     given-names: Gina C.
     affiliation: George Washington University
 date-released: 2025-01-01
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 doi: "10.48550/arXiv.XXXX.XXXXX"
 url: "https://github.com/ADAM-Lab-GW/xbtorch"

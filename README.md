@@ -1,7 +1,7 @@
 # XBTorch
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-latest-brightgreen.svg)](<ADD_DOCS_LINK>)
+[![Docs](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://musical-doodle-pg28p2m.pages.github.io/)
 [![Arxiv](https://img.shields.io/badge/arXiv-XYZ-b31b1b.svg)](https://arxiv.org/abs/XYZ)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-compatible-orange)](https://pytorch.org)
@@ -16,7 +16,7 @@ It enables researchers and engineers to:
 - Evaluate **fault-tolerant inference** on simulated crossbar arrays,
 - Seamlessly integrate with existing PyTorch models with minimal code changes.
 
-👉 For detailed guides, please see the [XBTorch Documentation](<ADD_DOCS_LINK>).
+👉 For detailed guides, please see the [XBTorch Documentation](https://musical-doodle-pg28p2m.pages.github.io/).
 
 ---
 
@@ -32,7 +32,7 @@ $ source .env/bin/activate
 
 This will install XBTorch in *editable mode*, allowing you to modify the source code directly.
 
-For more detailed instructions (including optional dependencies and troubleshooting), review our [documentation](ADD_DOCS_LINK).
+For more detailed instructions (including optional dependencies and troubleshooting), review our [documentation](https://musical-doodle-pg28p2m.pages.github.io/).
 
 ---
 
@@ -58,7 +58,7 @@ optimizer = xboptim.SGD(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
 ```
 
-For full examples (e.g., MNIST training, hardware-aware inference), see the `examples/` directory or the [documentation](ADD_DOCS_LINK).
+For full examples (e.g., MNIST training, hardware-aware inference), see the `examples/` directory or the [documentation](https://musical-doodle-pg28p2m.pages.github.io/).
 
 ---
 
@@ -83,7 +83,7 @@ If you use this library, please cite this repository according to the informatio
 This library was developed as a collaboration between:
 
 * [The George Washington University (GWU)](https://gwu.edu)
-* [DEVCOM Army Research Laboratory (ARL)]()
+* [DEVCOM Army Research Laboratory (ARL)](https://www.orau.org/ARLFellowship/fellowship-types/how-to-apply-journeyman.htm)
 * [Western Digital Research](https://www.westerndigital.com/company/innovation/academic-collaborations)
 
 The project is licensed under the **BSD-3 license** (see [LICENSE](LICENSE)).
