@@ -13,6 +13,65 @@ import xbtorch
 import torch
 
 def xbtorch_model(original_model):
+    """
+    Patch a PyTorch model for XBTorch compatibility.
+
+    This function takes an existing model (with a ``.model`` attribute that is
+    an ``nn.Sequential`` or similar container) and replaces supported layers
+    (e.g., ``nn.Linear``, ``nn.Conv2d``, ``nn.RNN``, ``nn.LSTM``) with their
+    XBTorch equivalents. It preserves trained parameters by copying the
+    state dictionary, and it attaches additional functionality for 
+    hardware-aware training and inference.
+
+    Features
+    --------
+    - **Device simulation**: Layers are converted into XBTorch versions that
+      support device-aware weight updates (noise, variability).
+    - **WAGE quantization**: If enabled during initialization, activation,
+      error, and weight quantization modules are automatically inserted.
+    - **Inference accelerator integration**: If an inference accelerator was
+      initialized, the returned model gains methods to toggle hardware-aware
+      inference and to map weights onto simulated crossbar arrays.
+    - **Seamless PyTorch API**: All layers remain compatible with PyTorch
+      training, optimizers, and loss functions.
+
+    Parameters
+    ----------
+    original_model : torch.nn.Module
+        A PyTorch model instance with a ``.model`` attribute (typically an
+        ``nn.Sequential``) that contains the layers to be patched.
+
+    Returns
+    -------
+    model : torch.nn.Module
+        The patched model. Additional methods may be attached depending on
+        initialization parameters:
+        
+        - ``model.xb_eval(enable=True/False)``  
+          Toggle hardware-aware inference mode.
+        - ``model.initialize_array_mappings(output_polling_mode='avg', ...)``  
+          Map weights onto the simulated accelerator crossbar.
+        - ``model.get_array_mappings()``  
+          Retrieve conductance array mappings for inspection or reuse.
+
+    Raises
+    ------
+    RuntimeError
+        If XBTorch has not been initialized with :func:`xbtorch.initialize`.
+    RuntimeError
+        If the provided model does not have a ``.model`` attribute.
+    ValueError
+        If an encountered PyTorch layer type is not supported by XBTorch.
+
+    Notes
+    -----
+    - Unsupported modules are kept as-is, but a warning is printed.
+    - Quantization requires WAGE parameters (bit-widths, rounding) to have
+      been set during initialization.
+    - Inference accelerator mappings assume that crossbar dimensions and
+      encoding/mapping schemes are defined during initialization.
+    """
+    # TODO: .model shouldn't be required, should have an option to specify layers
     # TODO: This should be used if a model was already created i.e. on an instance
     # Copies state dictionary as well
     if (not get_xbtorch_param('initialized')): raise RuntimeError('XBTorch needs to be initialized, please refer to API for instructions.')
