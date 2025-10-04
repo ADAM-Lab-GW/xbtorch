@@ -79,17 +79,52 @@
              
   <section id="xbtorch-documentation">
 <h1>XBTorch Documentation<a class="headerlink" href="#xbtorch-documentation" title="Link to this heading"></a></h1>
-<p><strong>XBTorch</strong> is a research framework for optimization and study of
-memristive neural networks based on emerging neuromorphic systems.
-It provides a modular and extensible set of tools for modeling device non-idealities,
-mapping neural networks to crossbar accelerators, exploring fault-tolerant
-architectures, etc.</p>
-<p>In particular, XBTorch streamlines:</p>
+<p>XBTorch is a <strong>PyTorch-native framework</strong> for simulating <em>crossbar-based deep neural networks</em>
+with emerging memory technologies such as <strong>ReRAM, FeFETs, PCM, and MTJs</strong>.</p>
+<p>By providing a unified simulation interface, XBTorch enables researchers and engineers to:</p>
 <ul class="simple">
-<li><p>Hardware-aware decompositions and hardware-accurate training</p></li>
-<li><p>Weight encoding schemes with realistic device modeling</p></li>
-<li><p>Deployment strategies for inference across noisy and defective accelerators</p></li>
-<li><p>Fault-tolerant and analog noise-tolerant algorithm design</p></li>
+<li><p>Model realistic <strong>device-level behaviors</strong> (variability, noise, nonlinearity),</p></li>
+<li><p>Perform <strong>hardware-aware training</strong> with quantization and gradient decomposition,</p></li>
+<li><p>Evaluate <strong>fault-tolerant inference</strong> on simulated crossbar arrays,</p></li>
+<li><p>Seamlessly integrate with existing PyTorch workflows.</p></li>
+</ul>
+<section id="motivation">
+<h2>Motivation<a class="headerlink" href="#motivation" title="Link to this heading"></a></h2>
+<p>Traditional deep learning relies on the von Neumann architecture, where the
+“memory wall” (data transfer between CPU/GPU and memory) becomes a bottleneck.
+In-memory computing with memristive devices bypasses this by performing
+multiply-accumulate (MAC) operations directly in memory arrays, potentially
+reducing energy consumption by orders of magnitude.</p>
+<p>However, real devices are noisy, variable, and prone to faults.
+XBTorch bridges this gap by making <strong>device-aware simulation</strong> accessible
+directly from PyTorch, so that models can be trained, tested, and deployed
+with realistic hardware constraints in mind.</p>
+</section>
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Device Models</strong>: Analytical and tabular models for ReRAM, FeFET, and beyond.</p></li>
+<li><p><strong>Hardware-aware Training</strong>: WAGE quantization, gradient decomposition, and noise injection.</p></li>
+<li><p><strong>Loss Landscape Visualization</strong>: Tools to analyze robustness under parameter perturbations.</p></li>
+<li><p><strong>Hardware-aware Inference</strong>: Stateful crossbar accelerators with encoding, mapping, and
+fault-tolerance schemes (e.g., Layer Ensemble Averaging).</p></li>
+<li><p><strong>Seamless PyTorch Integration</strong>: Minimal code changes required to port an existing model.</p></li>
+</ul>
+</section>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<p>New to XBTorch? Start with these sections:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="install.html"><span class="doc">Installation</span></a> — set up your environment</p></li>
+<li><p><a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> — run your first XBTorch-enabled model</p></li>
+<li><p><a class="reference internal" href="concepts.html"><span class="doc">Core Concepts</span></a> — learn about device models, training, and inference</p></li>
+</ul>
+</section>
+<section id="links">
+<h2>Links<a class="headerlink" href="#links" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>GitHub: <a class="reference external" href="https://github.com/ADAM-Lab-GW/xbtorch">https://github.com/ADAM-Lab-GW/xbtorch</a></p></li>
+<li><p>Paper: [to be updated with arXiv/NeurIPS link]</p></li>
 </ul>
 <p>XBTorch was introduced in:</p>
 <div class="admonition note">
@@ -102,6 +137,7 @@ TBD. <a class="reference external" href="https://arxiv.org/abs/XYZ">https://arxi
 </div>
 <div class="toctree-wrapper compound">
 </div>
+</section>
 </section>
 <section id="reference">
 <h1>Reference<a class="headerlink" href="#reference" title="Link to this heading"></a></h1>

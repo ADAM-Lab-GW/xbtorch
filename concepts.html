@@ -46,7 +46,16 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Core Concepts</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Core Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#device-models">Device Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware-aware-training">Hardware-aware Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gradient-decomposition">Gradient Decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loss-landscapes">Loss Landscapes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware-aware-inference">Hardware-aware Inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#design-philosophy">Design Philosophy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
@@ -80,32 +89,80 @@
              
   <section id="core-concepts">
 <h1>Core Concepts<a class="headerlink" href="#core-concepts" title="Link to this heading"></a></h1>
-<p>XBTorch is organized around four pillars:</p>
-<ol class="arabic simple">
-<li><p><strong>Decomposition</strong>
-- Defines how gradients are approximated or compressed
-- Examples: FullOuterProduct, NMF, SBPCA, SVD-based methods</p></li>
-<li><p><strong>Deployment</strong>
-- Maps software weights to hardware arrays
-- Encodings: simple binary, LEA1, LEA2, MAO
-- Mapping strategies: random placement, non-overlapping allocation
-- Fault-tolerant strategies: committee machines, collaborative classifiers</p></li>
-<li><p><strong>Devices</strong>
-- Models crossbar-level physics
-- Parameters: read/write noise, stuck devices, ADC/DAC quantization
-- Includes real prototypes like <strong>Daffodil</strong></p></li>
-<li><p><strong>Fault-Tolerance</strong>
-- Improves robustness against hardware variability
-- Committee machine ensembling
-- Collaborative loss and logistic classifiers</p></li>
-</ol>
-<figure class="align-center" id="id1">
-<img alt="XBTorch workflow" src="_static/xbtorch-overview.png" />
-<figcaption>
-<p><span class="caption-text">XBTorch workflow showing decomposition, deployment, and evaluation
-of neural networks on simulated accelerators.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
-</figcaption>
-</figure>
+<p>XBTorch provides a modular framework to simulate memristive neural networks
+with in-memory computing paradigms. Below we summarize the major components.</p>
+<section id="device-models">
+<h2>Device Models<a class="headerlink" href="#device-models" title="Link to this heading"></a></h2>
+<p>Implemented in <a class="reference internal" href="_autosummary/xbtorch.devices.html#module-xbtorch.devices" title="xbtorch.devices"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.devices</span></code></a>.</p>
+<ul class="simple">
+<li><p><strong>Analytical models</strong>: Mathematical formulations with explicit noise terms
+(e.g., device-to-device variability, nonlinearity).</p></li>
+<li><p><strong>Tabular models</strong>: Lookup-based representations of device switching,
+calibrated from experimental data.</p></li>
+</ul>
+<p>Users can either:
+- Use presets (ReRAM, FeFET models),
+- Or create custom models via interpolation from measured datasets.</p>
+</section>
+<section id="hardware-aware-training">
+<h2>Hardware-aware Training<a class="headerlink" href="#hardware-aware-training" title="Link to this heading"></a></h2>
+<p>Implemented in <a class="reference internal" href="_autosummary/xbtorch.patches.html#module-xbtorch.patches" title="xbtorch.patches"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.patches</span></code></a> and <a class="reference internal" href="_autosummary/xbtorch.quant.html#module-xbtorch.quant" title="xbtorch.quant"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.quant</span></code></a>.</p>
+<ul class="simple">
+<li><p>All weight updates are inherently noisy.</p></li>
+<li><p>Supports <strong>quantization-aware training</strong> via WAGE (2-8-8-8 configurations for ternary weight networks).</p></li>
+<li><p>Users can plug in custom quantization functions for weights, activations, gradients, and errors.</p></li>
+<li><p>Compatible with QTorch for custom number formats.</p></li>
+</ul>
+</section>
+<section id="gradient-decomposition">
+<h2>Gradient Decomposition<a class="headerlink" href="#gradient-decomposition" title="Link to this heading"></a></h2>
+<p>Implemented in <a class="reference internal" href="_autosummary/xbtorch.decomposition.html#module-xbtorch.decomposition" title="xbtorch.decomposition"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.decomposition</span></code></a>.</p>
+<ul class="simple">
+<li><p>Large gradient matrices are approximated with <strong>low-rank decompositions</strong>.</p></li>
+<li><p>Supported methods:
+- Streaming Batch PCA (SBPCA)
+- Singular Value Decomposition (SVD)
+- Non-negative Matrix Factorization (NMF)</p></li>
+<li><p>Reduces communication cost in distributed training and extends device lifetime (fewer writes).</p></li>
+</ul>
+</section>
+<section id="loss-landscapes">
+<h2>Loss Landscapes<a class="headerlink" href="#loss-landscapes" title="Link to this heading"></a></h2>
+<p>Implemented in <a class="reference internal" href="_autosummary/xbtorch.loss.html#module-xbtorch.loss" title="xbtorch.loss"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.loss</span></code></a>.</p>
+<ul class="simple">
+<li><p>Visualizes the optimization trajectory under device-level perturbations.</p></li>
+<li><p>Useful for studying robustness and parameter-space geometry of memristive networks.</p></li>
+</ul>
+</section>
+<section id="hardware-aware-inference">
+<h2>Hardware-aware Inference<a class="headerlink" href="#hardware-aware-inference" title="Link to this heading"></a></h2>
+<p>Implemented in <a class="reference internal" href="_autosummary/xbtorch.deployment.html#module-xbtorch.deployment" title="xbtorch.deployment"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.deployment</span></code></a>.</p>
+<ul class="simple">
+<li><p>Stateful crossbar emulation with explicit mapping of weights to device arrays.</p></li>
+<li><p>Supports encoding schemes (e.g., differential weight encoding).</p></li>
+<li><p>Models system-level noise sources: ADC/DAC precision, stuck devices, write/read noise.</p></li>
+<li><p>Includes fault-tolerance algorithms:
+- Layer Ensemble Averaging (LEA),
+- Committee Machines,
+- Mapping with inner fault tolerance.</p></li>
+</ul>
+</section>
+<section id="design-philosophy">
+<h2>Design Philosophy<a class="headerlink" href="#design-philosophy" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>PyTorch-native API</strong>: Extend existing models with minimal modifications.</p></li>
+<li><p><strong>Technology-agnostic</strong>: Works with ReRAM, FeFET, PCM, MTJ, or custom devices.</p></li>
+<li><p><strong>Research-oriented</strong>: Modules for device modeling, training, and inference unify algorithmic exploration.</p></li>
+</ul>
+</section>
+<section id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Explore provided tutorials in the <code class="docutils literal notranslate"><span class="pre">examples/</span></code> directory.</p></li>
+<li><p>Explore the <a class="reference internal" href="api.html"><span class="doc">XBTorch API</span></a>.</p></li>
+<li><p>Customize a device model using your own experimental data.</p></li>
+</ul>
+</section>
 </section>
 
 

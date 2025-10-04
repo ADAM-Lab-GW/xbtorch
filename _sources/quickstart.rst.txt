@@ -1,37 +1,67 @@
 Quickstart
 ==========
 
-This example reproduces Figure 1 from the paper:
-mapping a simple PyTorch network onto a noisy accelerator.
+This guide walks you through adapting an existing PyTorch script into an XBTorch-enabled simulation.
+
+Minimal Example
+---------------
+Suppose you have a simple MLP in PyTorch:
 
 .. code-block:: python
 
    import torch
    import torch.nn as nn
-   from xbtorch.deployment import SimpleFixedPoint
-   from xbtorch.decomposition import FullOuterProduct
+   import torch.optim as optim
 
-   # Define a toy model
-   model = nn.Sequential(
-       nn.Linear(10, 5),
-       nn.ReLU(),
-       nn.Linear(5, 2)
-   )
+   from my_models import MLP
 
-   # Instantiate an accelerator
-   acc = SimpleFixedPoint(adc_bits=5, dac_bits=5, g_min=50, g_max=100)
+   model = MLP(500, 100, 10)
+   optimizer = optim.SGD(model.parameters(), lr=0.01)
+   criterion = nn.CrossEntropyLoss()
 
-   # Example input
-   x = torch.randn(1, 10)
+With XBTorch, only minimal changes are needed:
 
-   # Forward pass
-   y = model(x)
+.. code-block:: python
 
-   print("Output:", y)
+   import torch.nn as nn
+   import xbtorch
+   import xbtorch.optim as xboptim
+   from xbtorch.patches import xbtorch_model
+   from my_models import MLP
 
----
+   # Initialize XBTorch with default settings
+   xbtorch.initialize()
 
-Next steps
------------
-- Learn about :doc:`concepts` in XBTorch
-- See the :doc:`api` reference
+   # Define model
+   model = MLP(500, 100, 10)
+
+   # Patch model for crossbar simulation
+   model = xbtorch_model(model)
+
+   # Define hardware-aware optimizer
+   optimizer = xboptim.SGD(model.parameters(), lr=0.01)
+   criterion = nn.CrossEntropyLoss()
+
+   # Training loop
+   for epoch in range(10):
+       model.train()
+       ...
+       # Standard PyTorch training logic applies
+
+Key Idea
+--------
+The transition from PyTorch to XBTorch is seamless:
+
+- Replace ``torch.optim`` with :mod:`xbtorch.optim`.
+- Wrap your model with :mod:`xbtorch.patches.model.xbtorch_model()`.
+- Initialize the framework with :mod:`xbtorch.initialize()`.
+
+From here, you can activate specific modules for:
+
+- Device modeling (realistic FeFET/ReRAM devices),
+- Hardware-aware training (noisy weight updates, quantization),
+- Hardware-aware inference (fault-tolerant deployment).
+
+Next Steps
+----------
+We recommend reviewing :doc:`Core Concepts <concepts>` next.

@@ -94,6 +94,65 @@
 <div class="viewcode-block" id="xbtorch_model">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.patches.model.html#xbtorch.patches.model.xbtorch_model">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_model</span><span class="p">(</span><span class="n">original_model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Patch a PyTorch model for XBTorch compatibility.</span>
+
+<span class="sd">    This function takes an existing model (with a ``.model`` attribute that is</span>
+<span class="sd">    an ``nn.Sequential`` or similar container) and replaces supported layers</span>
+<span class="sd">    (e.g., ``nn.Linear``, ``nn.Conv2d``, ``nn.RNN``, ``nn.LSTM``) with their</span>
+<span class="sd">    XBTorch equivalents. It preserves trained parameters by copying the</span>
+<span class="sd">    state dictionary, and it attaches additional functionality for </span>
+<span class="sd">    hardware-aware training and inference.</span>
+
+<span class="sd">    Features</span>
+<span class="sd">    --------</span>
+<span class="sd">    - **Device simulation**: Layers are converted into XBTorch versions that</span>
+<span class="sd">      support device-aware weight updates (noise, variability).</span>
+<span class="sd">    - **WAGE quantization**: If enabled during initialization, activation,</span>
+<span class="sd">      error, and weight quantization modules are automatically inserted.</span>
+<span class="sd">    - **Inference accelerator integration**: If an inference accelerator was</span>
+<span class="sd">      initialized, the returned model gains methods to toggle hardware-aware</span>
+<span class="sd">      inference and to map weights onto simulated crossbar arrays.</span>
+<span class="sd">    - **Seamless PyTorch API**: All layers remain compatible with PyTorch</span>
+<span class="sd">      training, optimizers, and loss functions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    original_model : torch.nn.Module</span>
+<span class="sd">        A PyTorch model instance with a ``.model`` attribute (typically an</span>
+<span class="sd">        ``nn.Sequential``) that contains the layers to be patched.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    model : torch.nn.Module</span>
+<span class="sd">        The patched model. Additional methods may be attached depending on</span>
+<span class="sd">        initialization parameters:</span>
+<span class="sd">        </span>
+<span class="sd">        - ``model.xb_eval(enable=True/False)``  </span>
+<span class="sd">          Toggle hardware-aware inference mode.</span>
+<span class="sd">        - ``model.initialize_array_mappings(output_polling_mode=&#39;avg&#39;, ...)``  </span>
+<span class="sd">          Map weights onto the simulated accelerator crossbar.</span>
+<span class="sd">        - ``model.get_array_mappings()``  </span>
+<span class="sd">          Retrieve conductance array mappings for inspection or reuse.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If XBTorch has not been initialized with :func:`xbtorch.initialize`.</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If the provided model does not have a ``.model`` attribute.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If an encountered PyTorch layer type is not supported by XBTorch.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Unsupported modules are kept as-is, but a warning is printed.</span>
+<span class="sd">    - Quantization requires WAGE parameters (bit-widths, rounding) to have</span>
+<span class="sd">      been set during initialization.</span>
+<span class="sd">    - Inference accelerator mappings assume that crossbar dimensions and</span>
+<span class="sd">      encoding/mapping schemes are defined during initialization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO: .model shouldn&#39;t be required, should have an option to specify layers</span>
     <span class="c1"># TODO: This should be used if a model was already created i.e. on an instance</span>
     <span class="c1"># Copies state dictionary as well</span>
     <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">get_xbtorch_param</span><span class="p">(</span><span class="s1">&#39;initialized&#39;</span><span class="p">)):</span> <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;XBTorch needs to be initialized, please refer to API for instructions.&#39;</span><span class="p">)</span>

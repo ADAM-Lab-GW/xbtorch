@@ -107,14 +107,76 @@ with XBTorch operations.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.patches.model.xbtorch_model" title="xbtorch.patches.model.xbtorch_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xbtorch_model</span></code></a>(original_model)</p></td>
-<td><p></p></td>
+<td><p>Patch a PyTorch model for XBTorch compatibility.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.patches.model.xbtorch_model">
 <span class="sig-prename descclassname"><span class="pre">xbtorch.patches.model.</span></span><span class="sig-name descname"><span class="pre">xbtorch_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/patches/model.html#xbtorch_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.patches.model.xbtorch_model" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Patch a PyTorch model for XBTorch compatibility.</p>
+<p>This function takes an existing model (with a <code class="docutils literal notranslate"><span class="pre">.model</span></code> attribute that is
+an <code class="docutils literal notranslate"><span class="pre">nn.Sequential</span></code> or similar container) and replaces supported layers
+(e.g., <code class="docutils literal notranslate"><span class="pre">nn.Linear</span></code>, <code class="docutils literal notranslate"><span class="pre">nn.Conv2d</span></code>, <code class="docutils literal notranslate"><span class="pre">nn.RNN</span></code>, <code class="docutils literal notranslate"><span class="pre">nn.LSTM</span></code>) with their
+XBTorch equivalents. It preserves trained parameters by copying the
+state dictionary, and it attaches additional functionality for
+hardware-aware training and inference.</p>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Device simulation</strong>: Layers are converted into XBTorch versions that
+support device-aware weight updates (noise, variability).</p></li>
+<li><p><strong>WAGE quantization</strong>: If enabled during initialization, activation,
+error, and weight quantization modules are automatically inserted.</p></li>
+<li><p><strong>Inference accelerator integration</strong>: If an inference accelerator was
+initialized, the returned model gains methods to toggle hardware-aware
+inference and to map weights onto simulated crossbar arrays.</p></li>
+<li><p><strong>Seamless PyTorch API</strong>: All layers remain compatible with PyTorch
+training, optimizers, and loss functions.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">param original_model<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A PyTorch model instance with a <code class="docutils literal notranslate"><span class="pre">.model</span></code> attribute (typically an
+<code class="docutils literal notranslate"><span class="pre">nn.Sequential</span></code>) that contains the layers to be patched.</p>
+</dd>
+<dt class="field-even">type original_model<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.nn.Module</p>
+</dd>
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model</strong> – The patched model. Additional methods may be attached depending on
+initialization parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">model.xb_eval(enable=True/False)</span></code>
+Toggle hardware-aware inference mode.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model.initialize_array_mappings(output_polling_mode='avg',</span> <span class="pre">...)</span></code>
+Map weights onto the simulated accelerator crossbar.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model.get_array_mappings()</span></code>
+Retrieve conductance array mappings for inspection or reuse.</p></li>
+</ul>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.nn.Module</p>
+</dd>
+<dt class="field-odd">raises RuntimeError<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If XBTorch has not been initialized with <a class="reference internal" href="xbtorch.html#xbtorch.initialize" title="xbtorch.initialize"><code class="xref py py-func docutils literal notranslate"><span class="pre">xbtorch.initialize()</span></code></a>.</p>
+</dd>
+<dt class="field-even">raises RuntimeError<span class="colon">:</span></dt>
+<dd class="field-even"><p>If the provided model does not have a <code class="docutils literal notranslate"><span class="pre">.model</span></code> attribute.</p>
+</dd>
+<dt class="field-odd">raises ValueError<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If an encountered PyTorch layer type is not supported by XBTorch.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Unsupported modules are kept as-is, but a warning is printed.</p></li>
+<li><p>Quantization requires WAGE parameters (bit-widths, rounding) to have
+been set during initialization.</p></li>
+<li><p>Inference accelerator mappings assume that crossbar dimensions and
+encoding/mapping schemes are defined during initialization.</p></li>
+</ul>
+</section>
+</dd></dl>
 
 </section>
 
