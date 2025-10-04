@@ -53,6 +53,7 @@ Implemented in :mod:`xbtorch.deployment`.
 - Supports encoding schemes (e.g., differential weight encoding).
 - Models system-level noise sources: ADC/DAC precision, stuck devices, write/read noise.
 - Includes fault-tolerance algorithms:
+
   - Layer Ensemble Averaging (LEA),
   - Committee Machines,
   - Mapping with inner fault tolerance.
