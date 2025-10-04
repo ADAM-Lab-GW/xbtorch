@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "XBTorch: A Framework for Optimization and Study of Emerging Neuromorphic Systems"
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Yousuf
+    given-names: Osama
+    affiliation: George Washington University / Western Digital Research
+  - family-names: Glasmann
+    given-names: Andreu L.
+    affiliation: DEVCOM Army Research Laboratory
+  - family-names: Najmaei
+    given-names: Sina
+    affiliation: DEVCOM Army Research Laboratory
+  - family-names: Lueker-Boden
+    given-names: Martin
+    affiliation: Western Digital Research
+  - family-names: Adam
+    given-names: Gina C.
+    affiliation: George Washington University
+date-released: 2025-01-01
+version: 0.1.0
+license: BSD-3-Clause
+doi: "10.48550/arXiv.XXXX.XXXXX"
+url: "https://github.com/ADAM-Lab-GW/xbtorch"

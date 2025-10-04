@@ -14,6 +14,7 @@ Implemented in :mod:`xbtorch.devices`.
   calibrated from experimental data.
 
 Users can either:
+
 - Use presets (ReRAM, FeFET models),
 - Or create custom models via interpolation from measured datasets.
 
