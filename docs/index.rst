@@ -1,23 +1,50 @@
-.. XBTorch documentation master file, created by
-   sphinx-quickstart on Tue Sep 30 22:03:23 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 XBTorch Documentation
 =====================
 
-**XBTorch** is a research framework for optimization and study of
-memristive neural networks based on emerging neuromorphic systems. 
-It provides a modular and extensible set of tools for modeling device non-idealities, 
-mapping neural networks to crossbar accelerators, exploring fault-tolerant
-architectures, etc. 
+XBTorch is a **PyTorch-native framework** for simulating *crossbar-based deep neural networks* 
+with emerging memory technologies such as **ReRAM, FeFETs, PCM, and MTJs**.  
 
-In particular, XBTorch streamlines:
+By providing a unified simulation interface, XBTorch enables researchers and engineers to:
 
-- Hardware-aware decompositions and hardware-accurate training
-- Weight encoding schemes with realistic device modeling
-- Deployment strategies for inference across noisy and defective accelerators
-- Fault-tolerant and analog noise-tolerant algorithm design
+- Model realistic **device-level behaviors** (variability, noise, nonlinearity),
+- Perform **hardware-aware training** with quantization and gradient decomposition,
+- Evaluate **fault-tolerant inference** on simulated crossbar arrays,
+- Seamlessly integrate with existing PyTorch workflows.
+
+Motivation
+----------
+Traditional deep learning relies on the von Neumann architecture, where the 
+"memory wall" (data transfer between CPU/GPU and memory) becomes a bottleneck.  
+In-memory computing with memristive devices bypasses this by performing 
+multiply-accumulate (MAC) operations directly in memory arrays, potentially 
+reducing energy consumption by orders of magnitude.
+
+However, real devices are noisy, variable, and prone to faults. 
+XBTorch bridges this gap by making **device-aware simulation** accessible 
+directly from PyTorch, so that models can be trained, tested, and deployed 
+with realistic hardware constraints in mind.
+
+Key Features
+------------
+- **Device Models**: Analytical and tabular models for ReRAM, FeFET, and beyond.
+- **Hardware-aware Training**: WAGE quantization, gradient decomposition, and noise injection.
+- **Loss Landscape Visualization**: Tools to analyze robustness under parameter perturbations.
+- **Hardware-aware Inference**: Stateful crossbar accelerators with encoding, mapping, and 
+  fault-tolerance schemes (e.g., Layer Ensemble Averaging).
+- **Seamless PyTorch Integration**: Minimal code changes required to port an existing model.
+
+Getting Started
+---------------
+New to XBTorch? Start with these sections:
+
+- :doc:`install` — set up your environment
+- :doc:`quickstart` — run your first XBTorch-enabled model
+- :doc:`concepts` — learn about device models, training, and inference
+
+Links
+-----
+- GitHub: https://github.com/ADAM-Lab-GW/xbtorch
+- Paper: [to be updated with arXiv/NeurIPS link]
 
 XBTorch was introduced in:
 
