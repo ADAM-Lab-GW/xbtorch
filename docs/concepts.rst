@@ -33,6 +33,7 @@ Implemented in :mod:`xbtorch.decomposition`.
 
 - Large gradient matrices are approximated with **low-rank decompositions**.
 - Supported methods:
+
   - Streaming Batch PCA (SBPCA)
   - Singular Value Decomposition (SVD)
   - Non-negative Matrix Factorization (NMF)
