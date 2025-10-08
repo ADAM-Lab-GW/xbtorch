@@ -121,10 +121,13 @@ calibrated from experimental data.</p></li>
 <p>Implemented in <a class="reference internal" href="_autosummary/xbtorch.decomposition.html#module-xbtorch.decomposition" title="xbtorch.decomposition"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xbtorch.decomposition</span></code></a>.</p>
 <ul class="simple">
 <li><p>Large gradient matrices are approximated with <strong>low-rank decompositions</strong>.</p></li>
-<li><p>Supported methods:
-- Streaming Batch PCA (SBPCA)
-- Singular Value Decomposition (SVD)
-- Non-negative Matrix Factorization (NMF)</p></li>
+<li><p>Supported methods:</p>
+<ul>
+<li><p>Streaming Batch PCA (SBPCA)</p></li>
+<li><p>Singular Value Decomposition (SVD)</p></li>
+<li><p>Non-negative Matrix Factorization (NMF)</p></li>
+</ul>
+</li>
 <li><p>Reduces communication cost in distributed training and extends device lifetime (fewer writes).</p></li>
 </ul>
 </section>
