@@ -13,9 +13,23 @@ Suppose you have a simple MLP in PyTorch:
    import torch.nn as nn
    import torch.optim as optim
 
-   from my_models import MLP
+   # Define a simple 2-layer perceptron network
+   class SimpleMLP(nn.Module):
+      def __init__(self, input_size, hidden_size, output_size):
+         self.input_size = input_size
+         super(SimpleMLP, self).__init__()
+         self.model = nn.Sequential(
+               nn.Linear(input_size, hidden_size, bias=False),
+               nn.ReLU(),
+               nn.Linear(hidden_size, output_size, bias=False),
+         )
 
-   model = MLP(500, 100, 10)
+      def forward(self, x):
+         x = x.view(-1, self.input_size)  # Flatten the image
+         x = self.model(x)
+         return x
+
+   model = SimpleMLP(500, 100, 10)
    optimizer = optim.SGD(model.parameters(), lr=0.01)
    criterion = nn.CrossEntropyLoss()
 
@@ -27,13 +41,14 @@ With XBTorch, only minimal changes are needed:
    import xbtorch
    import xbtorch.optim as xboptim
    from xbtorch.patches import xbtorch_model
-   from my_models import MLP
+
+   # ... SimpleMLP definition skipped for brevity
 
    # Initialize XBTorch with default settings
    xbtorch.initialize()
 
    # Define model
-   model = MLP(500, 100, 10)
+   model = SimpleMLP(500, 100, 10)
 
    # Patch model for crossbar simulation
    model = xbtorch_model(model)
@@ -44,9 +59,9 @@ With XBTorch, only minimal changes are needed:
 
    # Training loop
    for epoch in range(10):
-       model.train()
-       ...
-       # Standard PyTorch training logic applies
+      model.train()
+      ...
+      # Standard PyTorch training logic applies
 
 Key Idea
 --------
