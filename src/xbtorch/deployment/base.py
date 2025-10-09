@@ -125,6 +125,12 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
         self._chip[self.defect_map[0]] = self.defect_map[1]
 
+    def get_xb_size(self):
+        """
+        Retrieve the size (rows, columns) of the simulated crossbar.
+        """
+        return (self.columns, self.rows)
+
     def read_chip(self, row, n_rows, col, n_cols, fast_mode=True):
         """
         Read a subarray of the chip, optionally with read noise.
@@ -267,7 +273,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         """
         pass
     
-    def plot_array(self, x_start=None, x_count=None, y_start=None, y_count=None, title=None):
+    def plot_array(self, x_start=None, x_count=None, y_start=None, y_count=None, title=None, show=False):
         """
         Visualize the conductance state of the array.
 
@@ -279,6 +285,8 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
             Dimensions of the subarray to plot.
         title : str, optional
             Title for the plot.
+        show : bool, optional
+            Display the plot at the end.
 
         Returns
         -------
@@ -307,7 +315,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         plt.axis('image')
         if (title):
             plt.title(title)
-        plt.show()
+        if show: plt.show()
         return read_chip
 
 class SimpleFixedPoint(GenericAccelerator):
@@ -335,7 +343,7 @@ class SimpleFixedPoint(GenericAccelerator):
 
     """
 
-    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, xb_size=(2500, 2500), write_noise=0, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, weight_encoding_scheme='regular', device='cpu'):
+    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, xb_size=(2500, 2500), write_noise=0, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, weight_encoding_scheme=encode_simple_binary, device='cpu'):
         super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
