@@ -46,19 +46,37 @@ import xbtorch.optim as xboptim
 from xbtorch.patches import xbtorch_model
 import torch.nn as nn
 
+# Define a simple 2-layer perceptron network
+class SimpleMLP(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        self.input_size = input_size
+        super(SimpleMLP, self).__init__()
+        self.model = nn.Sequential(
+            nn.Linear(input_size, hidden_size, bias=False),
+            nn.ReLU(),
+            nn.Linear(hidden_size, output_size, bias=False),
+        )
+
+    def forward(self, x):
+        x = x.view(-1, self.input_size)  # Flatten the image
+        x = self.model(x)
+        return x
+
 # Initialize
 xbtorch.initialize()
 
 # Define your model
-model = MyMLP()
+model = SimpleMLP(10, 5, 2)
 model = xbtorch_model(model)   # patch with XBTorch
 
 # Optimizer
 optimizer = xboptim.SGD(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
+
+# ... Implement your training loop as usual!
 ```
 
-For full examples (e.g., MNIST training, hardware-aware inference), see the `examples/` directory or the [documentation](https://musical-doodle-pg28p2m.pages.github.io/).
+For full examples (e.g., hardware-aware training and inference, fault-tolerance, etc.), see the `examples/` directory or the [documentation](https://musical-doodle-pg28p2m.pages.github.io/).
 
 ---
 
@@ -96,12 +114,14 @@ Research groups interested in collaborating are encouraged to reach out:
 
 Osama Yousuf<br>
 [Osama.Yousuf1@wdc.com](mailto:Osama.Yousuf1@wdc.com)<br>
+Western Digital Research<br>
 R&D Engineering, Memory Technology<br>
 
 Prof. Gina Adam<br>
 [GinaAdam@gwu.edu](mailto:GinaAdam@gwu.edu)<br>
 Adaptive Devices and Microsystems Group<br>
 Department of Electrical and Computer Engineering<br>
+George Washington University<br>
 
 Andreu L. Glasmann<br>
 [Andreu.L.Glasmann.Civ@army.mil](mailto:andreu.l.glasmann.civ@army.mil)<br>
