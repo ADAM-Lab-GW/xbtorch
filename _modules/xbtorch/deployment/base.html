@@ -209,6 +209,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="GenericAccelerator.get_xb_size">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.get_xb_size">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_xb_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the size (rows, columns) of the simulated crossbar.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="GenericAccelerator.read_chip">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.read_chip">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">read_chip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">,</span> <span class="n">fast_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -368,7 +377,7 @@
     
 <div class="viewcode-block" id="GenericAccelerator.plot_array">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.plot_array">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">plot_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Visualize the conductance state of the array.</span>
 
@@ -380,6 +389,8 @@
 <span class="sd">            Dimensions of the subarray to plot.</span>
 <span class="sd">        title : str, optional</span>
 <span class="sd">            Title for the plot.</span>
+<span class="sd">        show : bool, optional</span>
+<span class="sd">            Display the plot at the end.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -408,7 +419,7 @@
         <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">title</span><span class="p">):</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">read_chip</span></div>
 </div>
 
@@ -440,7 +451,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adc_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dac_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="s1">&#39;regular&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adc_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dac_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="n">write_noise</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="n">xb_size</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="n">stuck_mode</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">weight_encoding_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span> <span class="o">=</span> <span class="n">adc_bits</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">=</span> <span class="n">dac_bits</span>
