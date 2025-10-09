@@ -10,7 +10,5 @@ xbtorch.nn
    :toctree:
    :recursive:
 
-   datasets
-   models
    nn
    utils
