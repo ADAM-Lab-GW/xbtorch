@@ -69,59 +69,64 @@ def xbtorch_layer(cls):
     def xbtorch_forward(self, input):
         # TODO: Add support for non-linear layers
         if (self._xb_inference):
-            if (not hasattr(self, '_array_mappings')):
-                raise ValueError("Array mappings are not present, likely an issue during initialization.")
+            if (self.inference_accelerator.stateful):
+                if (not hasattr(self, '_array_mappings')):
+                    raise ValueError("Array mappings are not present, likely an issue during initialization.")
 
-            gnorm_scale = 1.0
-            if (not self.inference_accelerator): raise ValueError('XB inference called without proper initialization of an accelerator profile.')
+                gnorm_scale = 1.0
+                if (not self.inference_accelerator): raise ValueError('XB inference called without proper initialization of an accelerator profile.')
 
-            # ternary mapping scheme
-            v_read = self.inference_accelerator.v_read
-            g_norm = self.inference_accelerator.g_max - self.inference_accelerator.g_min
+                # ternary mapping scheme
+                v_read = self.inference_accelerator.v_read
+                g_norm = self.inference_accelerator.g_max - self.inference_accelerator.g_min
 
-            sw_weight = self.weight.data
+                sw_weight = self.weight.data
 
-            gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
+                gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
 
-            # convert inputs to voltages, then quantize to DAC-based precision
-            input_voltages = input * v_read * gamma
-            input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
+                # convert inputs to voltages, then quantize to DAC-based precision
+                input_voltages = input * v_read * gamma
+                input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
 
-            pos_idxs = self._array_mappings['Gpos']
-            neg_idxs = self._array_mappings['Gneg']
-        
-            # pass to the crossbar, perform VMM, averaging/summing over multiple instances
-            pos_outputs = []
-            neg_outputs = []
+                pos_idxs = self._array_mappings['Gpos']
+                neg_idxs = self._array_mappings['Gneg']
+            
+                # pass to the crossbar, perform VMM, averaging/summing over multiple instances
+                pos_outputs = []
+                neg_outputs = []
 
-            # Todo: can be possibly batched and made faster by using torch.bmm
-            for pos_idx in pos_idxs:
-                gpos = self.inference_accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
-                pos_outputs.append(input_voltages @ gpos.T)
+                # Todo: can be possibly batched and made faster by using torch.bmm
+                for pos_idx in pos_idxs:
+                    gpos = self.inference_accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
+                    pos_outputs.append(input_voltages @ gpos.T)
 
-            for neg_idx in neg_idxs:
-                gneg = self.inference_accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
-                neg_outputs.append(input_voltages @ gneg.T)
+                for neg_idx in neg_idxs:
+                    gneg = self.inference_accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
+                    neg_outputs.append(input_voltages @ gneg.T)
 
-            # Convert the list of tensors to a single tensor
-            pos_outputs = torch.stack(pos_outputs)
-            neg_outputs = torch.stack(neg_outputs)
+                # Convert the list of tensors to a single tensor
+                pos_outputs = torch.stack(pos_outputs)
+                neg_outputs = torch.stack(neg_outputs)
 
-            # for MAO, this has to be sum, for regular mapping, this will be average
-            if (self._array_mappings['output_polling_mode'] == 'avg'):
-                output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
-            elif (self._array_mappings['output_polling_mode'] == 'sum'):
-                output = torch.sum(pos_outputs, dim=0) - torch.sum(neg_outputs, dim=0)
-            elif (self._array_mappings['output_polling_mode'] == 'reduced_avg'):
-                output = torch.sum(pos_outputs * self._array_mappings['maskpos'], dim=0) / self._array_mappings['alpha'] - torch.sum(neg_outputs * self._array_mappings['maskneg'], dim=0) / self._array_mappings['alpha']
+                # for MAO, this has to be sum, for regular mapping, this will be average
+                if (self._array_mappings['output_polling_mode'] == 'avg'):
+                    output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
+                elif (self._array_mappings['output_polling_mode'] == 'sum'):
+                    output = torch.sum(pos_outputs, dim=0) - torch.sum(neg_outputs, dim=0)
+                elif (self._array_mappings['output_polling_mode'] == 'reduced_avg'):
+                    output = torch.sum(pos_outputs * self._array_mappings['maskpos'], dim=0) / self._array_mappings['alpha'] - torch.sum(neg_outputs * self._array_mappings['maskneg'], dim=0) / self._array_mappings['alpha']
+                else:
+                    raise ValueError("output_polling_mode not implemented")
+                # readback currents from ADC by simulated quantization again
+                output = self.inference_accelerator.ADC_quantize(output) # equivalent to optimizing the TIA potentiometer resistance. ADC quantization 
+                output = output / (gnorm_scale * g_norm * v_read)
+
+                if (self.bias is not None): output += self.bias.data
+                return output
             else:
-                raise ValueError("output_polling_mode not implemented")
-            # readback currents from ADC by simulated quantization again
-            output = self.inference_accelerator.ADC_quantize(output) # equivalent to optimizing the TIA potentiometer resistance. ADC quantization 
-            output = output / (gnorm_scale * g_norm * v_read)
-
-            if (self.bias is not None): output += self.bias.data
-            return output
+                # stateless forward, weights were never encoded and mapped to a crossbar. Here, we'll do everything on-the-fly.
+                print("STATELESS!!")
+                raise ValueError
         else:
             if (hasattr(self, 'weight')): 
                 self.weight.input = input

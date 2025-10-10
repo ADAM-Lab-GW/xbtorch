@@ -12,6 +12,9 @@ import xbtorch
 
 import torch
 
+import transformers
+import torch.nn as nn
+
 def xbtorch_model(original_model):
     """
     Patch a PyTorch model for XBTorch compatibility.
@@ -93,15 +96,20 @@ def xbtorch_model(original_model):
         wl_error = wage_params['wl_error']
         wl_weight = wage_params['wl_weight']
 
-    if (not hasattr(original_model, 'model')): raise RuntimeError('Unable to find module list for patching, see network training example for correct patching workflow.')
+    if (hasattr(original_model, 'model')): 
+        modules = original_model.model
+    else:
+        modules = [module for _, module in original_model.named_children()]
+        # raise RuntimeError('Unable to find module list for patching, see network training example for correct patching workflow.')
 
     new_model = []
     if (wage_quantize): 
         new_model.append(quantizer_act_error(wl_activation, -1))
 
-    for module in original_model.model:
+    for module in modules:
         # TODO: A cleaner way to implement this could be to specify regex patterns for layers to be patched, or just specify them as a list
         # This should simplify model definitions, as well as patched re-creations here
+        print("MODULE", type(module), module)
         if (type(module) in xbtorch.layer_types):
             if (type(module)) == nn.Linear:
                 args = (module.in_features, module.out_features, module.bias is not None)
@@ -138,13 +146,13 @@ def xbtorch_model(original_model):
         else:
             print(f'XBPatching for module {module} is not defined, using as is.')
             new_model.append(module)
-            # exit()
 
     if (wage_quantize and new_model[-1] not in xbtorch.activation_types): 
         # add act/error quantizer if the last module is an activation
         new_model.append(quantizer_act_error(-1, wl_error))
 
-    original_model.model = nn.Sequential(*new_model)
+    if (hasattr(original_model, 'model')): 
+        original_model.model = nn.Sequential(*new_model)
 
     if (wage_quantize):
         # wage parameters
@@ -214,3 +222,23 @@ def xbtorch_model(original_model):
         original_model.get_array_mappings = get_array_mappings
 
     return original_model
+
+def replace_all_linear_layers(model: transformers.models, 
+                              custom_layer_cls: nn.Module, 
+                              custom_layer_kwargs: dict={},
+                              exclude: list=[]) -> None:
+    """
+        Recursively replace all linear modules within model with some customized layer module.
+    """
+    for name, module in model.named_children():
+        
+        # this is not a nested exclusion
+        if exclude and name in exclude:
+            continue
+        
+        if isinstance(module, nn.Linear):
+            new_module = custom_layer_cls(module, **custom_layer_kwargs) # params are assumed to be copied inside the custom layer class
+            setattr(model, name, new_module)
+
+        else:
+            replace_all_linear_layers(model=module, custom_layer_cls=custom_layer_cls, custom_layer_kwargs=custom_layer_kwargs, exclude=exclude)
