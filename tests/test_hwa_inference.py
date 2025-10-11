@@ -39,7 +39,7 @@ def test_stateless_accelerator(mlp_model_regular):
     xbtorch.initialize(pytorch_device=device, inference_accelerator=acc)
 
     model = mlp_model_regular.to(device)
-    model = xbtorch_model(model)
+    model = xbtorch_model(model, replace_all=True)
 
     model.xb_eval(enable=False)
 
