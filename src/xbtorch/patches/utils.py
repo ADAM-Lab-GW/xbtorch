@@ -46,7 +46,7 @@ def replace_all_layers_stateless(model: transformers.models,
         else:
             replace_all_layers_stateless(model=module, exclude=exclude)
 
-def replace_all_layers_stateful(original_model, wage_quantize):
+def replace_all_layers_stateful(model, wage_quantize):
     """
         Recursively replace all modules within a model with XBTorch modules for stateful operation. 
         Supports wage quantization.
@@ -62,7 +62,7 @@ def replace_all_layers_stateful(original_model, wage_quantize):
 
         new_model.append(quantizer_act_error(wl_activation, -1))
         
-    for module in original_model.model:
+    for module in model.model:
         if (type(module) in xbtorch.layer_types):
             if (type(module)) == nn.Linear:
                 args = (module.in_features, module.out_features, module.bias is not None)
@@ -104,14 +104,14 @@ def replace_all_layers_stateful(original_model, wage_quantize):
         # add act/error quantizer if the last module is an activation
         new_model.append(quantizer_act_error(-1, wl_error))
 
-    if (hasattr(original_model, 'model')): 
-        original_model.model = nn.Sequential(*new_model)
+    if (hasattr(model, 'model')): 
+        model.model = nn.Sequential(*new_model)
 
     if (wage_quantize):
         # wage parameters
-        original_model.weight_scale = {}
-        original_model.weight_acc = {}
-        for name, param in original_model.named_parameters():
+        model.weight_scale = {}
+        model.weight_acc = {}
+        for name, param in model.named_parameters():
             if ("weight" in name): wage_init.wage_init_(param, wl_weight, factor=1.0)
             param.weight_acc = param.data
 
