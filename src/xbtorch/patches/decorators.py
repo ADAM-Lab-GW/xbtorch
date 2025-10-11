@@ -125,8 +125,56 @@ def xbtorch_layer(cls):
                 return output
             else:
                 # stateless forward, weights were never encoded and mapped to a crossbar. Here, we'll do everything on-the-fly.
-                print("STATELESS!!")
-                raise ValueError
+
+                gnorm_scale = 1.0
+                if (not self.inference_accelerator): raise ValueError('XB inference called without proper initialization of an accelerator profile.')
+
+                # ternary mapping scheme
+                v_read = self.inference_accelerator.v_read
+                g_norm = self.inference_accelerator.g_max - self.inference_accelerator.g_min
+
+                sw_weight = self.weight.data
+
+                gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
+
+                # convert inputs to voltages, then quantize to DAC-based precision
+                input_voltages = input * v_read * gamma
+                input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
+
+                # stateless operation
+                # first, let's convert weights to conductances
+                # TODO: raise error if redundnancy based scheme required with stateless operation, not supported atm
+                # would require splitting initialize layer mappings for stateless and stateful
+
+            
+                Gposs, Gnegs = self.inference_accelerator.map_weights_to_array_stateless(sw_weight)
+            
+                # pass to the crossbar, perform VMM, averaging/summing over multiple instances
+                pos_outputs = []
+                neg_outputs = []
+
+                # Todo: can be possibly batched and made faster by using torch.bmm
+                for Gpos in Gposs:
+                    gpos = self.inference_accelerator.read_chip_stateless(Gpos)
+                    pos_outputs.append(input_voltages @ gpos.T)
+
+                for Gneg in Gnegs:
+                    gneg = self.inference_accelerator.read_chip_stateless(Gneg)
+                    neg_outputs.append(input_voltages @ gneg.T)
+
+                # Convert the list of tensors to a single tensor
+                pos_outputs = torch.stack(pos_outputs)
+                neg_outputs = torch.stack(neg_outputs)
+
+                output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
+                # TODO: output polling modes are not implemented for now
+
+                # readback currents from ADC by simulated quantization again
+                output = self.inference_accelerator.ADC_quantize(output) # equivalent to optimizing the TIA potentiometer resistance. ADC quantization 
+                output = output / (gnorm_scale * g_norm * v_read)
+
+                if (self.bias is not None): output += self.bias.data
+                return output
         else:
             if (hasattr(self, 'weight')): 
                 self.weight.input = input

@@ -115,6 +115,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
         self.stateful = stateful
+
+        if (self.stuck_percentage > 0 and not self.stateful):
+            raise ValueError("Stuck devices can not be simulated without a stateful representation of a crossbar. See examples for usage.")
     
         self.columns, self.rows = xb_size if stateful else (-1, -1)
         # self.stuck_low = 0
@@ -202,6 +205,36 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         if (not fast_mode): raise ValueError("Not implemented")
         if (self.read_noise > 0): subarray = subarray + noise
         return subarray
+    
+    def read_chip_stateless(self, subarray):
+        """
+        Read a subarray of the chip, optionally with read noise.
+
+        This method requires the object to be in a stateful mode.
+        If `self.stateful` is False, a RuntimeError is raised.
+
+        Parameters
+        ----------
+        G
+
+        Returns
+        -------
+        torch.Tensor
+            Subarray with applied read noise (if configured).
+
+
+        Raises
+        ------
+        RuntimeError
+            If `self.stateful` is False.
+        ValueError
+            If `fast_mode` is False (not implemented yet).
+
+        """
+
+        noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
+        if (self.read_noise > 0): subarray = subarray + noise
+        return subarray
 
     def gen_defect_map(self, stuck_percentage):
         """
@@ -230,6 +263,30 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         defect_values[defect_values == 0] = self.stuck_low
         defect_values[defect_values == 1] = self.stuck_high
         return defect_indices, defect_values.to(self.device)
+
+    def map_weights_to_array_stateless(self, sw_weight):
+
+        if (self.stateful):
+            return
+
+        encoded_return =  self.weight_encoding_scheme(self, sw_weight)
+        Gposs, Gnegs = encoded_return[0], encoded_return[1]
+        sw_weight_shape = sw_weight.shape
+
+        # write noise
+        for i, Gpos in enumerate(Gposs):
+            if (self.write_noise > 0):
+                noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
+                Gposs[i] = Gposs[i] + noise
+
+
+        for i, Gneg in enumerate(Gnegs):
+            if (self.write_noise > 0):
+                noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
+                Gnegs[i] = Gnegs[i] + noise
+
+        # TODO: read noise
+        return Gposs, Gnegs
 
     def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):        
         """
@@ -271,7 +328,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 Gposs[i] = Gposs[i] + noise
 
             self._chip[pos_idx[0]:pos_idx[0]+sw_weight_shape[0], 
-                       pos_idx[1]:pos_idx[1]+sw_weight_shape[1]] = Gposs[i]
+                    pos_idx[1]:pos_idx[1]+sw_weight_shape[1]] = Gposs[i]
 
         for i, neg_idx in enumerate(neg_idxs):
             if (self.write_noise > 0):
@@ -279,7 +336,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 Gnegs[i] = Gnegs[i] + noise
 
             self._chip[neg_idx[0]:neg_idx[0]+sw_weight_shape[0], 
-                       neg_idx[1]:neg_idx[1]+sw_weight_shape[1]] = Gnegs[i]
+                    neg_idx[1]:neg_idx[1]+sw_weight_shape[1]] = Gnegs[i]
 
         # Add back defect map information in case the outer method attempted to do an illegal assignment
         self._chip[self.defect_map[0]] = self.defect_map[1]
