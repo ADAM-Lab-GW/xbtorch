@@ -11,6 +11,7 @@ def replace_all_layers_stateless(model: transformers.models,
     """
         Recursively replace all modules within a model with XBTorch modules for stateless operation. 
     """
+
     for name, module in model.named_children():
         
         # this is not a nested exclusion

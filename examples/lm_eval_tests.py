@@ -3,7 +3,7 @@ from transformers import AutoTokenizer
 from lm_eval import evaluator
 from lm_eval.models.huggingface import HFLM
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from xbtorch.deployment import NoisyLlamaForCausalLM, SimpleFixedPoint
 import xbtorch
@@ -21,7 +21,6 @@ def noisy_lm_evaluate(model_path,
                     batch_size=32,
                     **config_kwargs):
 
-    print("ASD0")
     # Fix mutable defaults
     if accelerator_kwargs is None:
         accelerator_kwargs = {}
@@ -30,17 +29,15 @@ def noisy_lm_evaluate(model_path,
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    print("ASD1")
     acc = SimpleFixedPoint(
         g_min=100,
         g_max=200,
         device=device,
         stateful=False,
-        adc_bits=8,
-        dac_bits=8
+        adc_bits=4,
+        dac_bits=4
     )
 
-    print("ASD2")
     xbtorch.initialize(inference_accelerator=acc, pytorch_device=device)
 
     # Default kwargs for model loading
@@ -51,17 +48,15 @@ def noisy_lm_evaluate(model_path,
     # Let user override defaults
     config_kwargs = {**default_config_kwargs, **config_kwargs}
 
-    print("ASD3")
-    model = NoisyLlamaForCausalLM.from_pretrained(model_path,
-                                                  accelerator_name=accelerator_name,
-                                                  accelerator_kwargs=accelerator_kwargs,
-                                                  **config_kwargs,
-                                                  exclude=exclude)
+    # model = NoisyLlamaForCausalLM.from_pretrained(model_path,
+    #                                               accelerator_name=accelerator_name,
+    #                                               accelerator_kwargs=accelerator_kwargs,
+    #                                               **config_kwargs,
+    #                                               exclude=exclude)
 
-    # model = LlamaForCausalLM(model_path,
-    #                              **config_kwargs)
+    model = AutoModelForCausalLM.from_pretrained(model_path, **config_kwargs)
     
-    model = xbtorch_model(model, replace_all=True)
+    model = xbtorch_model(model, replace_all=True, exclude=exclude)
 
     model.xb_eval(enable=True)
 
