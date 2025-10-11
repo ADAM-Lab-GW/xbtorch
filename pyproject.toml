@@ -125,6 +125,8 @@ dependencies = [
   "ninja>=1.11",
   "qtorch>=0.3",
   "smt>=2.9.4",
+  "transfomers>=4.57.0",
+  "lm_eval>=0.4.9"
 ]
 
 # List additional groups of dependencies here (e.g. development
