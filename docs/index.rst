@@ -51,7 +51,7 @@ XBTorch was introduced in:
 .. note::
 
     O. Yousuf.
-    *"XBTorch: A Framework for Optimization and Study of Emerging Neuromorphic Systems"*.  
+    *"XBTorch: XBTorch: A Unified Framework for Modeling and Co-Design of Crossbar-Based Deep Learning Accelerators"*.  
     TBD. https://arxiv.org/abs/XYZ
 
 .. toctree::
