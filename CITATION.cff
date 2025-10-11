@@ -1,19 +1,19 @@
 cff-version: 1.2.0
-title: "XBTorch: A Framework for Optimization and Study of Emerging Neuromorphic Systems"
+title: "XBTorch: A Unified Framework for Modeling and Co-Design of Crossbar-Based Deep Learning Accelerators"
 message: "If you use this software, please cite it as below."
 authors:
   - family-names: Yousuf
     given-names: Osama
-    affiliation: George Washington University / Western Digital Research
+    affiliation: George Washington University / DEVCOM Army Research Laboratory / Western Digital Research
   - family-names: Glasmann
     given-names: Andreu L.
-    affiliation: DEVCOM Army Research Laboratory
-  - family-names: Najmaei
-    given-names: Sina
     affiliation: DEVCOM Army Research Laboratory
   - family-names: Lueker-Boden
     given-names: Martin
     affiliation: Western Digital Research
+  - family-names: Najmaei
+    given-names: Sina
+    affiliation: DEVCOM Army Research Laboratory
   - family-names: Adam
     given-names: Gina C.
     affiliation: George Washington University
