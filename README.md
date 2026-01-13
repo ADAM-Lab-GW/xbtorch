@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://musical-doodle-pg28p2m.pages.github.io/)
-[![Arxiv](https://img.shields.io/badge/arXiv-XYZ-b31b1b.svg)](https://arxiv.org/abs/2601.07086)
+[![Arxiv](https://img.shields.io/badge/arXiv-2601.07086-b31b1b.svg)](https://arxiv.org/abs/2601.07086)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-compatible-orange)](https://pytorch.org)
 
@@ -133,4 +133,5 @@ DEVCOM Army Research Lab<br>
 
 
 BSD-3 License. See the [LICENSE](LICENSE) file for details.
+
 
