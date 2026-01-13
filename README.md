@@ -89,8 +89,8 @@ If you use this library, please cite this repository according to the informatio
   author    = {Yousuf, Osama and Glasmann, Andreu L. and Lueker-Boden, Martin and Najmaei, Sina and Adam, Gina C.},
   title     = {XBTorch: A Unified Framework for Modeling and Co-Design of Crossbar-Based Deep Learning Accelerators},
   booktitle = {arXiv},
-  year      = {2025},
-  url       = {https://arxiv.org/abs/XYZ}
+  year      = {2026},
+  url       = {https://arxiv.org/abs/2601.07086}
 }
 ```
 
@@ -130,5 +130,6 @@ DEVCOM Army Research Lab<br>
 ---
 
 ## License
+
 
 BSD-3 License. See the [LICENSE](LICENSE) file for details.
