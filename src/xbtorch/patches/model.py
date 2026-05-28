@@ -94,9 +94,9 @@ def xbtorch_model(original_model, replace_all=False, exclude=None):
 
         def initialize_array_mappings(output_polling_mode='avg', existing_mappings=[], additional_args={}):
             
-            if replace_all:
-                print("Can not map to array in stateless operation.")
-                return
+            if replace_all or not xb_inference_accelerator.stateful:
+                raise ValueError("Can not map to array in stateless operation.")
+                # return
             
             # existing_mappings can be used as a reference to avoid conflicting mappings across unique models on the xb (primary use case: committee machines)
             # reset/initialize mappings of this layer on the simulated crossbar
