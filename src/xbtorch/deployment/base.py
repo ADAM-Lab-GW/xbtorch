@@ -23,7 +23,7 @@ from qtorch.quant import fixed_point_quantize
 import numpy as np
 
 from xbtorch.deployment.mapping import map_random
-from xbtorch.deployment.encoding import encode_simple_binary, encode_LEA1, encode_LEA2
+from xbtorch.deployment.weight_encoding import encode_simple_binary, encode_LEA1, encode_LEA2
 
 ACCELERATOR_REGISTRY = {}
 
@@ -67,6 +67,10 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         Mode for stuck-at defect modeling:
         - "ideal": stuck devices are fixed at g_min or g_max.
         - "real": stuck devices are fixed at predefined realistic values.
+    input_encoding_scheme : {"instant", "linear"}, optional
+        Mode for stuck-at defect modeling:
+        - "instant": Instantaneous voltage-amplitude encoding of inputs.
+        - "linear": Linear, bit-sliced encoding of inputs.
     weight_encoding_scheme : callable, optional
         Function used to encode weights into conductance matrices.
         Default: :func:`encode_simple_binary`.
@@ -103,14 +107,17 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                  xb_size=(2500, 2500), 
                  stuck_percentage=0.0, 
                  stuck_mode='real', 
+                 input_encoding_scheme='instant',
                  weight_encoding_scheme=encode_simple_binary, 
-                 xb_mapping_scheme=map_random, 
+                 xb_mapping_scheme=map_random,
                  device="cpu"):
+
         self.read_noise = read_noise
         self.write_noise = write_noise
         self.g_min = g_min
         self.g_max = g_max
         self.v_read = v_read
+        self.input_encoding_scheme = input_encoding_scheme
         self.weight_encoding_scheme = weight_encoding_scheme
         self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
@@ -132,6 +139,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
             self.stuck_high = 500
         else:
             raise ValueError(f"Stuck mode {stuck_mode} not implemented")
+
+        if input_encoding_scheme not in ["instant", "linear"]:
+            raise ValueError(f"IO Encoding mode {input_encoding_scheme} not implemented")
 
         # Create defect map
         # TODO: Separate out defect maps;
@@ -285,7 +295,6 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
                 Gnegs[i] = Gnegs[i] + noise
 
-        # TODO: read noise
         return Gposs, Gnegs
 
     def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):        
@@ -468,10 +477,12 @@ class SimpleFixedPoint(GenericAccelerator):
                  write_noise=0, 
                  stuck_percentage=0.0, 
                  stuck_mode='real', 
+                 input_encoding_scheme='instant',
                  xb_mapping_scheme=map_random, 
                  weight_encoding_scheme=encode_simple_binary, 
                  device='cpu'):
-        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stateful=stateful, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
+                # TODO: Input encoding modes and output encoding modes should go here
+        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stateful=stateful, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, input_encoding_scheme=input_encoding_scheme, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
 
@@ -489,8 +500,37 @@ class SimpleFixedPoint(GenericAccelerator):
         torch.Tensor
             Quantized voltage vector.
         """
-        max_val = torch.max(vector)
-        return max_val * fixed_point_quantize(vector / max_val, wl=self.dac_bits, fl=self.dac_bits-1, symmetric=True)
+
+        max_val = torch.max(torch.abs(vector))
+
+        if self.input_encoding_scheme == "instant":
+        
+            return max_val * fixed_point_quantize(
+                vector / max_val,
+                wl=self.dac_bits,
+                fl=self.dac_bits - 1,
+                symmetric=True
+            )
+
+        elif self.input_encoding_scheme == "linear":
+
+            normalized = torch.clamp(vector / max_val, -1.0, 1.0)
+
+            levels = 2 ** self.dac_bits - 1
+            quantized = torch.round(normalized * levels)
+
+            slices = []
+            sign = torch.sign(quantized)
+            mag = torch.abs(quantized).long()
+
+            for bit in range(self.dac_bits):
+                bit_slice = ((mag >> bit) & 1).float()
+                slices.append(sign * bit_slice * max_val)
+
+            return slices
+
+        else:
+            raise ValueError("Unsupported encoding scheme")
 
     def ADC_quantize(self, vector):
         """
@@ -506,8 +546,17 @@ class SimpleFixedPoint(GenericAccelerator):
         torch.Tensor
             Quantized current vector.
         """
-        max_val = torch.max(vector)
-        return max_val * fixed_point_quantize(vector / max_val, wl=self.adc_bits, fl=self.adc_bits-1, symmetric=True)
+
+        max_val = torch.max(torch.abs(vector))
+
+        return max_val * fixed_point_quantize(
+            vector / max_val,
+            wl=self.adc_bits,
+            fl=self.adc_bits - 1,
+            symmetric=True
+        )
+
+        # TODO: Support for ADC per-slice is not implemented
 
 @register_accelerator("Daffodil")
 class Daffodil(GenericAccelerator):
@@ -539,8 +588,8 @@ class Daffodil(GenericAccelerator):
     
     """
 
-    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, device='cpu'):
-        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, xb_mapping_scheme, device=device)
+    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', input_encoding_scheme='instant', xb_mapping_scheme=map_random, device='cpu'):
+        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, input_encoding_scheme, xb_mapping_scheme, device=device)
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation

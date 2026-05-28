@@ -84,10 +84,6 @@ def xbtorch_layer(cls):
 
                 gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
 
-                # convert inputs to voltages, then quantize to DAC-based precision
-                input_voltages = input * v_read * gamma
-                input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
-
                 pos_idxs = self._array_mappings['Gpos']
                 neg_idxs = self._array_mappings['Gneg']
             
@@ -95,18 +91,70 @@ def xbtorch_layer(cls):
                 pos_outputs = []
                 neg_outputs = []
 
-                # Todo: can be possibly batched and made faster by using torch.bmm
-                for pos_idx in pos_idxs:
-                    gpos = self.inference_accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
-                    pos_outputs.append(input_voltages @ gpos.T)
+                if self.inference_accelerator.input_encoding_scheme == "instant":
+                    # convert inputs to voltages, then quantize to DAC-based precision
+                    input_voltages = input * v_read * gamma
+                    input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
 
-                for neg_idx in neg_idxs:
-                    gneg = self.inference_accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
-                    neg_outputs.append(input_voltages @ gneg.T)
+                    # Todo: can be possibly batched and made faster by using torch.bmm
+                    for pos_idx in pos_idxs:
+                        gpos = self.inference_accelerator.read_chip(pos_idx[0], sw_weight.shape[0], pos_idx[1], sw_weight.shape[1])
+                        pos_outputs.append(input_voltages @ gpos.T)
 
-                # Convert the list of tensors to a single tensor
-                pos_outputs = torch.stack(pos_outputs)
-                neg_outputs = torch.stack(neg_outputs)
+                    for neg_idx in neg_idxs:
+                        gneg = self.inference_accelerator.read_chip(neg_idx[0], sw_weight.shape[0], neg_idx[1], sw_weight.shape[1])
+                        neg_outputs.append(input_voltages @ gneg.T)
+
+                    # Convert the list of tensors to a single tensor
+                    pos_outputs = torch.stack(pos_outputs)
+                    neg_outputs = torch.stack(neg_outputs)
+
+                else:
+                    # Linear temporal bit-sliced encoding
+                    input_slices = self.inference_accelerator.DAC_quantize(
+                        input * v_read * gamma
+                    )
+
+                    pos_outputs_accum = []
+                    neg_outputs_accum = []
+
+                    for bit_idx, input_slice in enumerate(input_slices):
+                        bit_weight = 2 ** bit_idx
+
+                        pos_slice_outputs = []
+                        neg_slice_outputs = []
+
+                        for pos_idx in pos_idxs:
+                            gpos = self.inference_accelerator.read_chip(
+                                pos_idx[0],
+                                sw_weight.shape[0],
+                                pos_idx[1],
+                                sw_weight.shape[1]
+                            )
+                            pos_slice_outputs.append(input_slice @ gpos.T)
+
+                        for neg_idx in neg_idxs:
+                            gneg = self.inference_accelerator.read_chip(
+                                neg_idx[0],
+                                sw_weight.shape[0],
+                                neg_idx[1],
+                                sw_weight.shape[1]
+                            )
+                            neg_slice_outputs.append(input_slice @ gneg.T)
+
+                        pos_slice_outputs = torch.stack(pos_slice_outputs)
+                        neg_slice_outputs = torch.stack(neg_slice_outputs)
+
+                        pos_outputs_accum.append(bit_weight * pos_slice_outputs)
+                        neg_outputs_accum.append(bit_weight * neg_slice_outputs)
+
+                    pos_outputs = torch.stack(pos_outputs_accum).sum(dim=0)
+                    neg_outputs = torch.stack(neg_outputs_accum).sum(dim=0)
+
+                    # normalize temporal accumulation
+                    scale = (2 ** self.inference_accelerator.dac_bits - 1)
+                    pos_outputs = pos_outputs / scale
+                    neg_outputs = neg_outputs / scale
 
                 # for MAO, this has to be sum, for regular mapping, this will be average
                 if (self._array_mappings['output_polling_mode'] == 'avg'):
@@ -137,15 +185,11 @@ def xbtorch_layer(cls):
 
                 gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
 
-                # convert inputs to voltages, then quantize to DAC-based precision
-                input_voltages = input * v_read * gamma
-                input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
 
                 # stateless operation
                 # first, let's convert weights to conductances
                 # TODO: raise error if redundnancy based scheme required with stateless operation, not supported atm
                 # would require splitting initialize layer mappings for stateless and stateful
-
             
                 Gposs, Gnegs = self.inference_accelerator.map_weights_to_array_stateless(sw_weight)
             
@@ -153,18 +197,60 @@ def xbtorch_layer(cls):
                 pos_outputs = []
                 neg_outputs = []
 
-                # Todo: can be possibly batched and made faster by using torch.bmm
-                for Gpos in Gposs:
-                    gpos = self.inference_accelerator.read_chip_stateless(Gpos)
-                    pos_outputs.append(input_voltages @ gpos.T)
+                if self.inference_accelerator.input_encoding_scheme == "instant":
+                    # convert inputs to voltages, then quantize to DAC-based precision
+                    input_voltages = input * v_read * gamma
+                    input_voltages = self.inference_accelerator.DAC_quantize(input_voltages)
 
-                for Gneg in Gnegs:
-                    gneg = self.inference_accelerator.read_chip_stateless(Gneg)
-                    neg_outputs.append(input_voltages @ gneg.T)
+                    # Todo: can be possibly batched and made faster by using torch.bmm
+                    for Gpos in Gposs:
+                        gpos = self.inference_accelerator.read_chip_stateless(Gpos)
+                        pos_outputs.append(input_voltages @ gpos.T)
 
-                # Convert the list of tensors to a single tensor
-                pos_outputs = torch.stack(pos_outputs)
-                neg_outputs = torch.stack(neg_outputs)
+                    for Gneg in Gnegs:
+                        gneg = self.inference_accelerator.read_chip_stateless(Gneg)
+                        neg_outputs.append(input_voltages @ gneg.T)
+
+                    # Convert the list of tensors to a single tensor
+                    pos_outputs = torch.stack(pos_outputs)
+                    neg_outputs = torch.stack(neg_outputs)
+
+                else:
+                    # Linear temporal bit-sliced encoding
+                    input_slices = self.inference_accelerator.DAC_quantize(
+                        input * v_read * gamma
+                    )
+
+                    pos_outputs_accum = []
+                    neg_outputs_accum = []
+
+                    for bit_idx, input_slice in enumerate(input_slices):
+                        bit_weight = 2 ** bit_idx
+
+                        pos_slice_outputs = []
+                        neg_slice_outputs = []
+
+                        for Gpos in Gposs:
+                            gpos = self.inference_accelerator.read_chip_stateless(Gpos)
+                            pos_slice_outputs.append(input_slice @ gpos.T)
+
+                        for Gneg in Gnegs:
+                            gneg = self.inference_accelerator.read_chip_stateless(Gneg)
+                            neg_slice_outputs.append(input_slice @ gneg.T)
+
+                        pos_slice_outputs = torch.stack(pos_slice_outputs)
+                        neg_slice_outputs = torch.stack(neg_slice_outputs)
+
+                        pos_outputs_accum.append(bit_weight * pos_slice_outputs)
+                        neg_outputs_accum.append(bit_weight * neg_slice_outputs)
+
+                    pos_outputs = torch.stack(pos_outputs_accum).sum(dim=0)
+                    neg_outputs = torch.stack(neg_outputs_accum).sum(dim=0)
+
+                    # normalize temporal accumulation
+                    scale = (2 ** self.inference_accelerator.dac_bits - 1)
+                    pos_outputs = pos_outputs / scale
+                    neg_outputs = neg_outputs / scale               
 
                 output = torch.mean(pos_outputs, dim=0) - torch.mean(neg_outputs, dim=0)
                 # TODO: output polling modes are not implemented for now
