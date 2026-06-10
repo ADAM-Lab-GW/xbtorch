@@ -1,7 +1,7 @@
-xbtorch.deployment.encoding
-===========================
+xbtorch.deployment.weight\_encoding
+===================================
 
-.. automodule:: xbtorch.deployment.encoding
+.. automodule:: xbtorch.deployment.weight_encoding
 
    
    .. rubric:: Functions

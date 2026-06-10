@@ -1,0 +1,14 @@
+xbtorch.patches.utils
+=====================
+
+.. automodule:: xbtorch.patches.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      replace_all_layers_stateful
+      replace_all_layers_stateless
+      toggle_xb_eval_all_layers_stateless
+   

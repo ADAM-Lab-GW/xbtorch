@@ -4,6 +4,12 @@ xbtorch.deployment.base
 .. automodule:: xbtorch.deployment.base
 
    
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      register_accelerator
+   
    .. rubric:: Classes
 
    .. autosummary::

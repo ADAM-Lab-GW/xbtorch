@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xbtorch.patches.model &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -19,7 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="xbtorch.quant" href="xbtorch.quant.html" />
+    <link rel="next" title="xbtorch.patches.utils" href="xbtorch.patches.utils.html" />
     <link rel="prev" title="xbtorch.patches.decorators" href="xbtorch.patches.decorators.html" /> 
 </head>
 
@@ -63,6 +63,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.patches.model.xbtorch_model"><code class="docutils literal notranslate"><span class="pre">xbtorch_model()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.patches.utils.html">xbtorch.patches.utils</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xbtorch.quant.html">xbtorch.quant</a></li>
@@ -106,14 +107,14 @@ with XBTorch operations.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.patches.model.xbtorch_model" title="xbtorch.patches.model.xbtorch_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xbtorch_model</span></code></a>(original_model)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.patches.model.xbtorch_model" title="xbtorch.patches.model.xbtorch_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xbtorch_model</span></code></a>(original_model[, replace_all, ...])</p></td>
 <td><p>Patch a PyTorch model for XBTorch compatibility.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="xbtorch.patches.model.xbtorch_model">
-<span class="sig-prename descclassname"><span class="pre">xbtorch.patches.model.</span></span><span class="sig-name descname"><span class="pre">xbtorch_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/patches/model.html#xbtorch_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.patches.model.xbtorch_model" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">xbtorch.patches.model.</span></span><span class="sig-name descname"><span class="pre">xbtorch_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replace_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/patches/model.html#xbtorch_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.patches.model.xbtorch_model" title="Link to this definition"></a></dt>
 <dd><p>Patch a PyTorch model for XBTorch compatibility.</p>
 <p>This function takes an existing model (with a <code class="docutils literal notranslate"><span class="pre">.model</span></code> attribute that is
 an <code class="docutils literal notranslate"><span class="pre">nn.Sequential</span></code> or similar container) and replaces supported layers
@@ -185,7 +186,7 @@ encoding/mapping schemes are defined during initialization.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="xbtorch.patches.decorators.html" class="btn btn-neutral float-left" title="xbtorch.patches.decorators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="xbtorch.quant.html" class="btn btn-neutral float-right" title="xbtorch.quant" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="xbtorch.patches.utils.html" class="btn btn-neutral float-right" title="xbtorch.patches.utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

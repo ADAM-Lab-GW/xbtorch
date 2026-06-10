@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Index &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -231,15 +231,15 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_LEA1">encode_LEA1() (in module xbtorch.deployment.encoding)</a>
+      <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_LEA1">encode_LEA1() (in module xbtorch.deployment.weight_encoding)</a>
 </li>
-      <li><a href="_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_LEA2">encode_LEA2() (in module xbtorch.deployment.encoding)</a>
+      <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_LEA2">encode_LEA2() (in module xbtorch.deployment.weight_encoding)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_MAO">encode_MAO() (in module xbtorch.deployment.encoding)</a>
+      <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_MAO">encode_MAO() (in module xbtorch.deployment.weight_encoding)</a>
 </li>
-      <li><a href="_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_simple_binary">encode_simple_binary() (in module xbtorch.deployment.encoding)</a>
+      <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_simple_binary">encode_simple_binary() (in module xbtorch.deployment.weight_encoding)</a>
 </li>
       <li><a href="_autosummary/xbtorch.deployment.metrics.html#xbtorch.deployment.metrics.error_mapping">error_mapping() (in module xbtorch.deployment.metrics)</a>
 </li>
@@ -357,6 +357,8 @@
 </li>
       <li><a href="_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.map_weights_to_array">map_weights_to_array() (xbtorch.deployment.base.GenericAccelerator method)</a>
 </li>
+      <li><a href="_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.map_weights_to_array_stateless">map_weights_to_array_stateless() (xbtorch.deployment.base.GenericAccelerator method)</a>
+</li>
       <li>
     module
 
@@ -381,11 +383,11 @@
 </li>
         <li><a href="_autosummary/xbtorch.deployment.correction.html#module-xbtorch.deployment.correction">xbtorch.deployment.correction</a>
 </li>
-        <li><a href="_autosummary/xbtorch.deployment.encoding.html#module-xbtorch.deployment.encoding">xbtorch.deployment.encoding</a>
-</li>
         <li><a href="_autosummary/xbtorch.deployment.mapping.html#module-xbtorch.deployment.mapping">xbtorch.deployment.mapping</a>
 </li>
         <li><a href="_autosummary/xbtorch.deployment.metrics.html#module-xbtorch.deployment.metrics">xbtorch.deployment.metrics</a>
+</li>
+        <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#module-xbtorch.deployment.weight_encoding">xbtorch.deployment.weight_encoding</a>
 </li>
         <li><a href="_autosummary/xbtorch.devices.html#module-xbtorch.devices">xbtorch.devices</a>
 </li>
@@ -412,6 +414,8 @@
         <li><a href="_autosummary/xbtorch.patches.decorators.html#module-xbtorch.patches.decorators">xbtorch.patches.decorators</a>
 </li>
         <li><a href="_autosummary/xbtorch.patches.model.html#module-xbtorch.patches.model">xbtorch.patches.model</a>
+</li>
+        <li><a href="_autosummary/xbtorch.patches.utils.html#module-xbtorch.patches.utils">xbtorch.patches.utils</a>
 </li>
         <li><a href="_autosummary/xbtorch.quant.html#module-xbtorch.quant">xbtorch.quant</a>
 </li>
@@ -458,7 +462,7 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.quantize_to_nearest">quantize_to_nearest() (in module xbtorch.deployment.encoding)</a>
+      <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.quantize_to_nearest">quantize_to_nearest() (in module xbtorch.deployment.weight_encoding)</a>
 </li>
       <li><a href="_autosummary/xbtorch.quant.wage_qtorch.html#xbtorch.quant.wage_qtorch.QW">QW() (in module xbtorch.quant.wage_qtorch)</a>
 </li>
@@ -470,13 +474,21 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.read_chip">read_chip() (xbtorch.deployment.base.GenericAccelerator method)</a>
 </li>
+      <li><a href="_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.read_chip_stateless">read_chip_stateless() (xbtorch.deployment.base.GenericAccelerator method)</a>
+</li>
       <li><a href="_autosummary/xbtorch.loss.landscapes.html#xbtorch.loss.landscapes.reduction_pca">reduction_pca() (in module xbtorch.loss.landscapes)</a>
 </li>
       <li><a href="_autosummary/xbtorch.loss.landscapes.html#xbtorch.loss.landscapes.reduction_random">reduction_random() (in module xbtorch.loss.landscapes)</a>
 </li>
+      <li><a href="_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.CollaborativeLoss.reg_lambda">reg_lambda (xbtorch.deployment.correction.CollaborativeLoss attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.CollaborativeLoss.reg_lambda">reg_lambda (xbtorch.deployment.correction.CollaborativeLoss attribute)</a>
+      <li><a href="_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.register_accelerator">register_accelerator() (in module xbtorch.deployment.base)</a>
+</li>
+      <li><a href="_autosummary/xbtorch.patches.utils.html#xbtorch.patches.utils.replace_all_layers_stateful">replace_all_layers_stateful() (in module xbtorch.patches.utils)</a>
+</li>
+      <li><a href="_autosummary/xbtorch.patches.utils.html#xbtorch.patches.utils.replace_all_layers_stateless">replace_all_layers_stateless() (in module xbtorch.patches.utils)</a>
 </li>
       <li><a href="_autosummary/xbtorch.devices.base.html#xbtorch.devices.base.AnalyticalDevice.reset_cached_params">reset_cached_params() (xbtorch.devices.base.AnalyticalDevice method)</a>
 
@@ -548,11 +560,13 @@
 </li>
       <li><a href="_autosummary/xbtorch.nn.utils.html#xbtorch.nn.utils.test_classifier">test_classifier() (in module xbtorch.nn.utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xbtorch.deployment.correction.html#xbtorch.deployment.correction.test_collaborative">test_collaborative() (in module xbtorch.deployment.correction)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xbtorch.deployment.committee.html#xbtorch.deployment.committee.test_committee">test_committee() (in module xbtorch.deployment.committee)</a>
+</li>
+      <li><a href="_autosummary/xbtorch.patches.utils.html#xbtorch.patches.utils.toggle_xb_eval_all_layers_stateless">toggle_xb_eval_all_layers_stateless() (in module xbtorch.patches.utils)</a>
 </li>
       <li><a href="_autosummary/xbtorch.nn.utils.html#xbtorch.nn.utils.train_classifier">train_classifier() (in module xbtorch.nn.utils)</a>
 </li>
@@ -671,13 +685,6 @@
 </li>
       </ul></li>
       <li>
-    xbtorch.deployment.encoding
-
-      <ul>
-        <li><a href="_autosummary/xbtorch.deployment.encoding.html#module-xbtorch.deployment.encoding">module</a>
-</li>
-      </ul></li>
-      <li>
     xbtorch.deployment.mapping
 
       <ul>
@@ -689,6 +696,13 @@
 
       <ul>
         <li><a href="_autosummary/xbtorch.deployment.metrics.html#module-xbtorch.deployment.metrics">module</a>
+</li>
+      </ul></li>
+      <li>
+    xbtorch.deployment.weight_encoding
+
+      <ul>
+        <li><a href="_autosummary/xbtorch.deployment.weight_encoding.html#module-xbtorch.deployment.weight_encoding">module</a>
 </li>
       </ul></li>
       <li>
@@ -782,6 +796,13 @@
 
       <ul>
         <li><a href="_autosummary/xbtorch.patches.model.html#module-xbtorch.patches.model">module</a>
+</li>
+      </ul></li>
+      <li>
+    xbtorch.patches.utils
+
+      <ul>
+        <li><a href="_autosummary/xbtorch.patches.utils.html#module-xbtorch.patches.utils">module</a>
 </li>
       </ul></li>
       <li>

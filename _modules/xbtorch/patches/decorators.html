@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xbtorch.patches.decorators &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
@@ -150,59 +150,198 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">xbtorch_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
         <span class="c1"># TODO: Add support for non-linear layers</span>
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xb_inference</span><span class="p">):</span>
-            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_array_mappings&#39;</span><span class="p">)):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Array mappings are not present, likely an issue during initialization.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_array_mappings&#39;</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Array mappings are not present, likely an issue during initialization.&quot;</span><span class="p">)</span>
 
-            <span class="n">gnorm_scale</span> <span class="o">=</span> <span class="mf">1.0</span>
-            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;XB inference called without proper initialization of an accelerator profile.&#39;</span><span class="p">)</span>
+                <span class="n">gnorm_scale</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;XB inference called without proper initialization of an accelerator profile.&#39;</span><span class="p">)</span>
 
-            <span class="c1"># ternary mapping scheme</span>
-            <span class="n">v_read</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">v_read</span>
-            <span class="n">g_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_min</span>
+                <span class="c1"># ternary mapping scheme</span>
+                <span class="n">v_read</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">v_read</span>
+                <span class="n">g_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_min</span>
 
-            <span class="n">sw_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">sw_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span>
 
-            <span class="n">gamma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># WAGE quantization learns matrices [-gamma, 0, gamma], and so it&#39;s important to scale either G matrices or input voltage vector</span>
+                <span class="n">gamma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># WAGE quantization learns matrices [-gamma, 0, gamma], and so it&#39;s important to scale either G matrices or input voltage vector</span>
 
-            <span class="c1"># convert inputs to voltages, then quantize to DAC-based precision</span>
-            <span class="n">input_voltages</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">*</span> <span class="n">v_read</span> <span class="o">*</span> <span class="n">gamma</span>
-            <span class="n">input_voltages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">DAC_quantize</span><span class="p">(</span><span class="n">input_voltages</span><span class="p">)</span>
+                <span class="n">pos_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gpos&#39;</span><span class="p">]</span>
+                <span class="n">neg_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gneg&#39;</span><span class="p">]</span>
+            
+                <span class="c1"># pass to the crossbar, perform VMM, averaging/summing over multiple instances</span>
+                <span class="n">pos_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">neg_outputs</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="n">pos_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gpos&#39;</span><span class="p">]</span>
-            <span class="n">neg_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;Gneg&#39;</span><span class="p">]</span>
-        
-            <span class="c1"># pass to the crossbar, perform VMM, averaging/summing over multiple instances</span>
-            <span class="n">pos_outputs</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">neg_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">input_encoding_scheme</span> <span class="o">==</span> <span class="s2">&quot;instant&quot;</span><span class="p">:</span>
+                    <span class="c1"># convert inputs to voltages, then quantize to DAC-based precision</span>
+                    <span class="n">input_voltages</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">*</span> <span class="n">v_read</span> <span class="o">*</span> <span class="n">gamma</span>
+                    <span class="n">input_voltages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">DAC_quantize</span><span class="p">(</span><span class="n">input_voltages</span><span class="p">)</span>
 
-            <span class="c1"># Todo: can be possibly batched and made faster by using torch.bmm</span>
-            <span class="k">for</span> <span class="n">pos_idx</span> <span class="ow">in</span> <span class="n">pos_idxs</span><span class="p">:</span>
-                <span class="n">gpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                <span class="n">pos_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gpos</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                    <span class="c1"># Todo: can be possibly batched and made faster by using torch.bmm</span>
+                    <span class="k">for</span> <span class="n">pos_idx</span> <span class="ow">in</span> <span class="n">pos_idxs</span><span class="p">:</span>
+                        <span class="n">gpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">pos_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gpos</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="n">neg_idxs</span><span class="p">:</span>
-                <span class="n">gneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                <span class="n">neg_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gneg</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="n">neg_idxs</span><span class="p">:</span>
+                        <span class="n">gneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">neg_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gneg</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
-            <span class="c1"># Convert the list of tensors to a single tensor</span>
-            <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">)</span>
-            <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">)</span>
+                    <span class="c1"># Convert the list of tensors to a single tensor</span>
+                    <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">)</span>
+                    <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">)</span>
 
-            <span class="c1"># for MAO, this has to be sum, for regular mapping, this will be average</span>
-            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;avg&#39;</span><span class="p">):</span>
-                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">):</span>
-                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;reduced_avg&#39;</span><span class="p">):</span>
-                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos_outputs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskpos&#39;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_outputs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskneg&#39;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Linear temporal bit-sliced encoding</span>
+                    <span class="n">input_slices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">DAC_quantize</span><span class="p">(</span>
+                        <span class="nb">input</span> <span class="o">*</span> <span class="n">v_read</span> <span class="o">*</span> <span class="n">gamma</span>
+                    <span class="p">)</span>
+
+                    <span class="n">pos_outputs_accum</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">neg_outputs_accum</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="k">for</span> <span class="n">bit_idx</span><span class="p">,</span> <span class="n">input_slice</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_slices</span><span class="p">):</span>
+                        <span class="n">bit_weight</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">bit_idx</span>
+
+                        <span class="n">pos_slice_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">neg_slice_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+
+                        <span class="k">for</span> <span class="n">pos_idx</span> <span class="ow">in</span> <span class="n">pos_idxs</span><span class="p">:</span>
+                            <span class="n">gpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span>
+                                <span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="p">)</span>
+                            <span class="n">pos_slice_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_slice</span> <span class="o">@</span> <span class="n">gpos</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="n">neg_idxs</span><span class="p">:</span>
+                            <span class="n">gneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip</span><span class="p">(</span>
+                                <span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="p">)</span>
+                            <span class="n">neg_slice_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_slice</span> <span class="o">@</span> <span class="n">gneg</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                        <span class="n">pos_slice_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_slice_outputs</span><span class="p">)</span>
+                        <span class="n">neg_slice_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_slice_outputs</span><span class="p">)</span>
+
+                        <span class="n">pos_outputs_accum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bit_weight</span> <span class="o">*</span> <span class="n">pos_slice_outputs</span><span class="p">)</span>
+                        <span class="n">neg_outputs_accum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bit_weight</span> <span class="o">*</span> <span class="n">neg_slice_outputs</span><span class="p">)</span>
+
+                    <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_outputs_accum</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_outputs_accum</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                    <span class="c1"># normalize temporal accumulation</span>
+                    <span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">pos_outputs</span> <span class="o">/</span> <span class="n">scale</span>
+                    <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">neg_outputs</span> <span class="o">/</span> <span class="n">scale</span>
+
+                <span class="c1"># for MAO, this has to be sum, for regular mapping, this will be average</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;avg&#39;</span><span class="p">):</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">):</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;output_polling_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;reduced_avg&#39;</span><span class="p">):</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos_outputs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskpos&#39;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_outputs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;maskneg&#39;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_mappings</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;output_polling_mode not implemented&quot;</span><span class="p">)</span>
+                <span class="c1"># readback currents from ADC by simulated quantization again</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">ADC_quantize</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="c1"># equivalent to optimizing the TIA potentiometer resistance. ADC quantization </span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="p">(</span><span class="n">gnorm_scale</span> <span class="o">*</span> <span class="n">g_norm</span> <span class="o">*</span> <span class="n">v_read</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span> <span class="n">output</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">return</span> <span class="n">output</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;output_polling_mode not implemented&quot;</span><span class="p">)</span>
-            <span class="c1"># readback currents from ADC by simulated quantization again</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">ADC_quantize</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="c1"># equivalent to optimizing the TIA potentiometer resistance. ADC quantization </span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="p">(</span><span class="n">gnorm_scale</span> <span class="o">*</span> <span class="n">g_norm</span> <span class="o">*</span> <span class="n">v_read</span><span class="p">)</span>
+                <span class="c1"># stateless forward, weights were never encoded and mapped to a crossbar. Here, we&#39;ll do everything on-the-fly.</span>
 
-            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span> <span class="n">output</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span>
-            <span class="k">return</span> <span class="n">output</span>
+                <span class="n">gnorm_scale</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;XB inference called without proper initialization of an accelerator profile.&#39;</span><span class="p">)</span>
+
+                <span class="c1"># ternary mapping scheme</span>
+                <span class="n">v_read</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">v_read</span>
+                <span class="n">g_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">g_min</span>
+
+                <span class="n">sw_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span>
+
+                <span class="n">gamma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># WAGE quantization learns matrices [-gamma, 0, gamma], and so it&#39;s important to scale either G matrices or input voltage vector</span>
+
+
+                <span class="c1"># stateless operation</span>
+                <span class="c1"># first, let&#39;s convert weights to conductances</span>
+                <span class="c1"># TODO: raise error if redundnancy based scheme required with stateless operation, not supported atm</span>
+                <span class="c1"># would require splitting initialize layer mappings for stateless and stateful</span>
+            
+                <span class="n">Gposs</span><span class="p">,</span> <span class="n">Gnegs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">map_weights_to_array_stateless</span><span class="p">(</span><span class="n">sw_weight</span><span class="p">)</span>
+            
+                <span class="c1"># pass to the crossbar, perform VMM, averaging/summing over multiple instances</span>
+                <span class="n">pos_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">neg_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">input_encoding_scheme</span> <span class="o">==</span> <span class="s2">&quot;instant&quot;</span><span class="p">:</span>
+                    <span class="c1"># convert inputs to voltages, then quantize to DAC-based precision</span>
+                    <span class="n">input_voltages</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">*</span> <span class="n">v_read</span> <span class="o">*</span> <span class="n">gamma</span>
+                    <span class="n">input_voltages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">DAC_quantize</span><span class="p">(</span><span class="n">input_voltages</span><span class="p">)</span>
+
+                    <span class="c1"># Todo: can be possibly batched and made faster by using torch.bmm</span>
+                    <span class="k">for</span> <span class="n">Gpos</span> <span class="ow">in</span> <span class="n">Gposs</span><span class="p">:</span>
+                        <span class="n">gpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip_stateless</span><span class="p">(</span><span class="n">Gpos</span><span class="p">)</span>
+                        <span class="n">pos_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gpos</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">Gneg</span> <span class="ow">in</span> <span class="n">Gnegs</span><span class="p">:</span>
+                        <span class="n">gneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip_stateless</span><span class="p">(</span><span class="n">Gneg</span><span class="p">)</span>
+                        <span class="n">neg_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_voltages</span> <span class="o">@</span> <span class="n">gneg</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                    <span class="c1"># Convert the list of tensors to a single tensor</span>
+                    <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">)</span>
+                    <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Linear temporal bit-sliced encoding</span>
+                    <span class="n">input_slices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">DAC_quantize</span><span class="p">(</span>
+                        <span class="nb">input</span> <span class="o">*</span> <span class="n">v_read</span> <span class="o">*</span> <span class="n">gamma</span>
+                    <span class="p">)</span>
+
+                    <span class="n">pos_outputs_accum</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">neg_outputs_accum</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="k">for</span> <span class="n">bit_idx</span><span class="p">,</span> <span class="n">input_slice</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_slices</span><span class="p">):</span>
+                        <span class="n">bit_weight</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">bit_idx</span>
+
+                        <span class="n">pos_slice_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">neg_slice_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+
+                        <span class="k">for</span> <span class="n">Gpos</span> <span class="ow">in</span> <span class="n">Gposs</span><span class="p">:</span>
+                            <span class="n">gpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip_stateless</span><span class="p">(</span><span class="n">Gpos</span><span class="p">)</span>
+                            <span class="n">pos_slice_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_slice</span> <span class="o">@</span> <span class="n">gpos</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">Gneg</span> <span class="ow">in</span> <span class="n">Gnegs</span><span class="p">:</span>
+                            <span class="n">gneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">read_chip_stateless</span><span class="p">(</span><span class="n">Gneg</span><span class="p">)</span>
+                            <span class="n">neg_slice_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_slice</span> <span class="o">@</span> <span class="n">gneg</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                        <span class="n">pos_slice_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_slice_outputs</span><span class="p">)</span>
+                        <span class="n">neg_slice_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_slice_outputs</span><span class="p">)</span>
+
+                        <span class="n">pos_outputs_accum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bit_weight</span> <span class="o">*</span> <span class="n">pos_slice_outputs</span><span class="p">)</span>
+                        <span class="n">neg_outputs_accum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bit_weight</span> <span class="o">*</span> <span class="n">neg_slice_outputs</span><span class="p">)</span>
+
+                    <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">pos_outputs_accum</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">neg_outputs_accum</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                    <span class="c1"># normalize temporal accumulation</span>
+                    <span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">pos_outputs</span> <span class="o">=</span> <span class="n">pos_outputs</span> <span class="o">/</span> <span class="n">scale</span>
+                    <span class="n">neg_outputs</span> <span class="o">=</span> <span class="n">neg_outputs</span> <span class="o">/</span> <span class="n">scale</span>               
+
+                <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pos_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">neg_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="c1"># TODO: output polling modes are not implemented for now</span>
+
+                <span class="c1"># readback currents from ADC by simulated quantization again</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_accelerator</span><span class="o">.</span><span class="n">ADC_quantize</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="c1"># equivalent to optimizing the TIA potentiometer resistance. ADC quantization </span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="p">(</span><span class="n">gnorm_scale</span> <span class="o">*</span> <span class="n">g_norm</span> <span class="o">*</span> <span class="n">v_read</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span> <span class="n">output</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">return</span> <span class="n">output</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)):</span> 
                 <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="nb">input</span>

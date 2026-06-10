@@ -6,9 +6,9 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xbtorch.deployment.encoding &mdash; XBTorch  documentation</title>
+  <title>xbtorch.deployment.weight_encoding &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="xbtorch.deployment.mapping" href="xbtorch.deployment.mapping.html" />
-    <link rel="prev" title="xbtorch.deployment.correction" href="xbtorch.deployment.correction.html" /> 
+    <link rel="next" title="xbtorch.devices" href="xbtorch.devices.html" />
+    <link rel="prev" title="xbtorch.deployment.metrics" href="xbtorch.deployment.metrics.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -57,17 +57,17 @@
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.base.html">xbtorch.deployment.base</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.committee.html">xbtorch.deployment.committee</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.correction.html">xbtorch.deployment.correction</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.deployment.encoding</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.encoding.encode_LEA1"><code class="docutils literal notranslate"><span class="pre">encode_LEA1()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.encoding.encode_LEA2"><code class="docutils literal notranslate"><span class="pre">encode_LEA2()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.encoding.encode_MAO"><code class="docutils literal notranslate"><span class="pre">encode_MAO()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.encoding.encode_simple_binary"><code class="docutils literal notranslate"><span class="pre">encode_simple_binary()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.encoding.quantize_to_nearest"><code class="docutils literal notranslate"><span class="pre">quantize_to_nearest()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.mapping.html">xbtorch.deployment.mapping</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.metrics.html">xbtorch.deployment.metrics</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">xbtorch.deployment.weight_encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_LEA1"><code class="docutils literal notranslate"><span class="pre">encode_LEA1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_LEA2"><code class="docutils literal notranslate"><span class="pre">encode_LEA2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_MAO"><code class="docutils literal notranslate"><span class="pre">encode_MAO()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_simple_binary"><code class="docutils literal notranslate"><span class="pre">encode_simple_binary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.weight_encoding.quantize_to_nearest"><code class="docutils literal notranslate"><span class="pre">quantize_to_nearest()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
@@ -98,9 +98,9 @@
           <li class="breadcrumb-item"><a href="../api.html">XBTorch API</a></li>
           <li class="breadcrumb-item"><a href="xbtorch.html">xbtorch</a></li>
           <li class="breadcrumb-item"><a href="xbtorch.deployment.html">xbtorch.deployment</a></li>
-      <li class="breadcrumb-item active">xbtorch.deployment.encoding</li>
+      <li class="breadcrumb-item active">xbtorch.deployment.weight_encoding</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/xbtorch.deployment.encoding.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/xbtorch.deployment.weight_encoding.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -108,8 +108,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-xbtorch.deployment.encoding">
-<span id="xbtorch-deployment-encoding"></span><h1>xbtorch.deployment.encoding<a class="headerlink" href="#module-xbtorch.deployment.encoding" title="Link to this heading"></a></h1>
+  <section id="module-xbtorch.deployment.weight_encoding">
+<span id="xbtorch-deployment-weight-encoding"></span><h1>xbtorch.deployment.weight_encoding<a class="headerlink" href="#module-xbtorch.deployment.weight_encoding" title="Link to this heading"></a></h1>
 <p>Weight encoding schemes for mapping software weight matrices
 to crossbar conductance arrays.</p>
 <p>This module implements different strategies for converting
@@ -119,12 +119,12 @@ presence of device-level stuck-at defects.</p>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_simple_binary" title="xbtorch.deployment.encoding.encode_simple_binary"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_simple_binary()</span></code></a> : Basic 2-state binary encoding.</p></li>
-<li><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_LEA1" title="xbtorch.deployment.encoding.encode_LEA1"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_LEA1()</span></code></a> : Layer Ensemble Averaging (LEA-1) with row masking.</p></li>
-<li><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_LEA2" title="xbtorch.deployment.encoding.encode_LEA2"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_LEA2()</span></code></a> : Layer Ensemble Averaging (LEA-2) with defect-aware
+<li><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_simple_binary" title="xbtorch.deployment.weight_encoding.encode_simple_binary"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_simple_binary()</span></code></a> : Basic 2-state binary encoding.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_LEA1" title="xbtorch.deployment.weight_encoding.encode_LEA1"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_LEA1()</span></code></a> : Layer Ensemble Averaging (LEA-1) with row masking.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_LEA2" title="xbtorch.deployment.weight_encoding.encode_LEA2"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_LEA2()</span></code></a> : Layer Ensemble Averaging (LEA-2) with defect-aware
 adjustments.</p></li>
-<li><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_MAO" title="xbtorch.deployment.encoding.encode_MAO"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_MAO()</span></code></a> : Mapping Algorithm with inner Fault-tOlerance (MAO).</p></li>
-<li><p><a class="reference internal" href="#xbtorch.deployment.encoding.quantize_to_nearest" title="xbtorch.deployment.encoding.quantize_to_nearest"><code class="xref py py-func docutils literal notranslate"><span class="pre">quantize_to_nearest()</span></code></a> : Utility for nearest-level conductance quantization.</p></li>
+<li><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_MAO" title="xbtorch.deployment.weight_encoding.encode_MAO"><code class="xref py py-func docutils literal notranslate"><span class="pre">encode_MAO()</span></code></a> : Mapping Algorithm with inner Fault-tOlerance (MAO).</p></li>
+<li><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.quantize_to_nearest" title="xbtorch.deployment.weight_encoding.quantize_to_nearest"><code class="xref py py-func docutils literal notranslate"><span class="pre">quantize_to_nearest()</span></code></a> : Utility for nearest-level conductance quantization.</p></li>
 </ul>
 <p class="rubric">References</p>
 <ul class="simple">
@@ -137,26 +137,26 @@ Memristor Crossbar”</em>, IEEE TVLSI, 2016.</p></li>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_LEA1" title="xbtorch.deployment.encoding.encode_LEA1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_LEA1</span></code></a>(accelerator, sw_weight[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_LEA1" title="xbtorch.deployment.weight_encoding.encode_LEA1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_LEA1</span></code></a>(accelerator, sw_weight[, ...])</p></td>
 <td><p>Encode weights using Layer Ensemble Averaging (LEA-1).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_LEA2" title="xbtorch.deployment.encoding.encode_LEA2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_LEA2</span></code></a>(accelerator, sw_weight[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_LEA2" title="xbtorch.deployment.weight_encoding.encode_LEA2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_LEA2</span></code></a>(accelerator, sw_weight[, ...])</p></td>
 <td><p>Encode weights using Layer Ensemble Averaging (LEA-2).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_MAO" title="xbtorch.deployment.encoding.encode_MAO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_MAO</span></code></a>(accelerator, sw_weight[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_MAO" title="xbtorch.deployment.weight_encoding.encode_MAO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_MAO</span></code></a>(accelerator, sw_weight[, ...])</p></td>
 <td><p>Encode weights using the Mapping Algorithm with inner Fault-tOlerance (MAO).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.encoding.encode_simple_binary" title="xbtorch.deployment.encoding.encode_simple_binary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_simple_binary</span></code></a>(accelerator, sw_weight)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.encode_simple_binary" title="xbtorch.deployment.weight_encoding.encode_simple_binary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_simple_binary</span></code></a>(accelerator, sw_weight)</p></td>
 <td><p>Encode weights using a simple binary scheme.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.encoding.quantize_to_nearest" title="xbtorch.deployment.encoding.quantize_to_nearest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quantize_to_nearest</span></code></a>(x, G_min, d, n)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.weight_encoding.quantize_to_nearest" title="xbtorch.deployment.weight_encoding.quantize_to_nearest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quantize_to_nearest</span></code></a>(x, G_min, d, n)</p></td>
 <td><p>Quantize a conductance value to the nearest available state.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
-<dt class="sig sig-object py" id="xbtorch.deployment.encoding.encode_LEA1">
-<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.encoding.</span></span><span class="sig-name descname"><span class="pre">encode_LEA1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/encoding.html#encode_LEA1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.encoding.encode_LEA1" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="xbtorch.deployment.weight_encoding.encode_LEA1">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.weight_encoding.</span></span><span class="sig-name descname"><span class="pre">encode_LEA1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/weight_encoding.html#encode_LEA1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.weight_encoding.encode_LEA1" title="Link to this definition"></a></dt>
 <dd><p>Encode weights using Layer Ensemble Averaging (LEA-1).</p>
 <p>In LEA-1, each weight is redundantly mapped across multiple
 crossbar rows/columns (beta copies). Rows corresponding to the most
@@ -184,8 +184,8 @@ hardware variability impact.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="xbtorch.deployment.encoding.encode_LEA2">
-<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.encoding.</span></span><span class="sig-name descname"><span class="pre">encode_LEA2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/encoding.html#encode_LEA2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.encoding.encode_LEA2" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="xbtorch.deployment.weight_encoding.encode_LEA2">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.weight_encoding.</span></span><span class="sig-name descname"><span class="pre">encode_LEA2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/weight_encoding.html#encode_LEA2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.weight_encoding.encode_LEA2" title="Link to this definition"></a></dt>
 <dd><p>Encode weights using Layer Ensemble Averaging (LEA-2).</p>
 <p>LEA-2 adaptively adjusts conductances in the presence of
 stuck-at defects. Each weight is distributed across redundant
@@ -213,8 +213,8 @@ devices toward nearest available conductance states.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="xbtorch.deployment.encoding.encode_MAO">
-<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.encoding.</span></span><span class="sig-name descname"><span class="pre">encode_MAO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/encoding.html#encode_MAO"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.encoding.encode_MAO" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="xbtorch.deployment.weight_encoding.encode_MAO">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.weight_encoding.</span></span><span class="sig-name descname"><span class="pre">encode_MAO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/weight_encoding.html#encode_MAO"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.weight_encoding.encode_MAO" title="Link to this definition"></a></dt>
 <dd><p>Encode weights using the Mapping Algorithm with inner Fault-tOlerance (MAO).</p>
 <p>MAO (Yu et al., 2016) is a defect-aware mapping scheme
 where conductance values are analytically adjusted in redundant
@@ -242,8 +242,8 @@ devices are stuck.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="xbtorch.deployment.encoding.encode_simple_binary">
-<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.encoding.</span></span><span class="sig-name descname"><span class="pre">encode_simple_binary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/encoding.html#encode_simple_binary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.encoding.encode_simple_binary" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="xbtorch.deployment.weight_encoding.encode_simple_binary">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.weight_encoding.</span></span><span class="sig-name descname"><span class="pre">encode_simple_binary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accelerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/weight_encoding.html#encode_simple_binary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.weight_encoding.encode_simple_binary" title="Link to this definition"></a></dt>
 <dd><p>Encode weights using a simple binary scheme.</p>
 <p>Each software weight is represented by two possible conductance states:
 - Positive weights → <cite>G_pos = g_max</cite>, <cite>G_neg = g_min</cite>
@@ -271,8 +271,8 @@ devices are stuck.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="xbtorch.deployment.encoding.quantize_to_nearest">
-<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.encoding.</span></span><span class="sig-name descname"><span class="pre">quantize_to_nearest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/encoding.html#quantize_to_nearest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.encoding.quantize_to_nearest" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="xbtorch.deployment.weight_encoding.quantize_to_nearest">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.weight_encoding.</span></span><span class="sig-name descname"><span class="pre">quantize_to_nearest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/weight_encoding.html#quantize_to_nearest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.weight_encoding.quantize_to_nearest" title="Link to this definition"></a></dt>
 <dd><p>Quantize a conductance value to the nearest available state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -298,8 +298,8 @@ devices are stuck.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="xbtorch.deployment.correction.html" class="btn btn-neutral float-left" title="xbtorch.deployment.correction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="xbtorch.deployment.mapping.html" class="btn btn-neutral float-right" title="xbtorch.deployment.mapping" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="xbtorch.deployment.metrics.html" class="btn btn-neutral float-left" title="xbtorch.deployment.metrics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xbtorch.devices.html" class="btn btn-neutral float-right" title="xbtorch.devices" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

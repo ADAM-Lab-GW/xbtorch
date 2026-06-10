@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xbtorch.deployment.base &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
@@ -102,10 +102,23 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch.deployment.mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_random</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch.deployment.encoding</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">encode_LEA1</span><span class="p">,</span> <span class="n">encode_LEA2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xbtorch.deployment.weight_encoding</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">encode_LEA1</span><span class="p">,</span> <span class="n">encode_LEA2</span>
+
+<span class="n">ACCELERATOR_REGISTRY</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="register_accelerator">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.register_accelerator">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_accelerator</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator to register a custom layer under a string name.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">ACCELERATOR_REGISTRY</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
 
 <div class="viewcode-block" id="GenericAccelerator">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator">[docs]</a>
+<span class="nd">@register_accelerator</span><span class="p">(</span><span class="s2">&quot;Generic&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GenericAccelerator</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract base class for hardware accelerator models in XBTorch.</span>
@@ -127,14 +140,21 @@
 <span class="sd">        Amplitude of uniform read noise applied during chip readout.</span>
 <span class="sd">    write_noise : float</span>
 <span class="sd">        Standard deviation of Gaussian noise applied during weight writes.</span>
+<span class="sd">    stateful: bool, optional</span>
+<span class="sd">        In stateful mode, a physical representation of the entire crossbar is maintained, and weights are mapped to these limited devices.</span>
+<span class="sd">        In stateless mode, weights are mapped and VMM is performed on the fly. This is more memory-efficient. Essentially behaves like an infinite size stateful crossbar.</span>
 <span class="sd">    xb_size : tuple of int, optional</span>
-<span class="sd">        Dimensions of the crossbar array (columns, rows). Default: (2500, 2500).</span>
+<span class="sd">        Dimensions of the crossbar array (columns, rows). Default: (2500, 2500). Utilized only when stateful is True.</span>
 <span class="sd">    stuck_percentage : float, optional</span>
 <span class="sd">        Fraction of devices randomly stuck at high or low values. Default: 0.0.</span>
 <span class="sd">    stuck_mode : {&quot;ideal&quot;, &quot;real&quot;}, optional</span>
 <span class="sd">        Mode for stuck-at defect modeling:</span>
 <span class="sd">        - &quot;ideal&quot;: stuck devices are fixed at g_min or g_max.</span>
 <span class="sd">        - &quot;real&quot;: stuck devices are fixed at predefined realistic values.</span>
+<span class="sd">    input_encoding_scheme : {&quot;instant&quot;, &quot;linear&quot;}, optional</span>
+<span class="sd">        Mode for stuck-at defect modeling:</span>
+<span class="sd">        - &quot;instant&quot;: Instantaneous voltage-amplitude encoding of inputs.</span>
+<span class="sd">        - &quot;linear&quot;: Linear, bit-sliced encoding of inputs.</span>
 <span class="sd">    weight_encoding_scheme : callable, optional</span>
 <span class="sd">        Function used to encode weights into conductance matrices.</span>
 <span class="sd">        Default: :func:`encode_simple_binary`.</span>
@@ -161,17 +181,36 @@
 <span class="sd">      read noise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">g_min</span><span class="p">,</span> 
+                 <span class="n">g_max</span><span class="p">,</span> 
+                 <span class="n">v_read</span><span class="p">,</span> 
+                 <span class="n">read_noise</span><span class="p">,</span> 
+                 <span class="n">write_noise</span><span class="p">,</span> 
+                 <span class="n">stateful</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> 
+                 <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> 
+                 <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> 
+                 <span class="n">input_encoding_scheme</span><span class="o">=</span><span class="s1">&#39;instant&#39;</span><span class="p">,</span>
+                 <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">encode_simple_binary</span><span class="p">,</span> 
+                 <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span>
+                 <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span> <span class="o">=</span> <span class="n">read_noise</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">=</span> <span class="n">write_noise</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">g_min</span> <span class="o">=</span> <span class="n">g_min</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">g_max</span> <span class="o">=</span> <span class="n">g_max</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">v_read</span> <span class="o">=</span> <span class="n">v_read</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_encoding_scheme</span> <span class="o">=</span> <span class="n">input_encoding_scheme</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span> <span class="o">=</span> <span class="n">weight_encoding_scheme</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">xb_mapping_scheme</span> <span class="o">=</span> <span class="n">xb_mapping_scheme</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span> <span class="o">=</span> <span class="n">stuck_percentage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stateful</span> <span class="o">=</span> <span class="n">stateful</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Stuck devices can not be simulated without a stateful representation of a crossbar. See examples for usage.&quot;</span><span class="p">)</span>
     
-        <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="n">xb_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="n">xb_size</span> <span class="k">if</span> <span class="n">stateful</span> <span class="k">else</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># self.stuck_low = 0</span>
         <span class="c1"># self.stuck_high = self.g_max * 2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stuck_mode</span> <span class="o">=</span> <span class="n">stuck_mode</span>
@@ -185,28 +224,33 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stuck mode </span><span class="si">{</span><span class="n">stuck_mode</span><span class="si">}</span><span class="s2"> not implemented&quot;</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">input_encoding_scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;instant&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IO Encoding mode </span><span class="si">{</span><span class="n">input_encoding_scheme</span><span class="si">}</span><span class="s2"> not implemented&quot;</span><span class="p">)</span>
 
         <span class="c1"># Create defect map</span>
-        <span class="c1"># TODO: Separate out defect maps</span>
+        <span class="c1"># TODO: Separate out defect maps;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;cols_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">_row_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s1">_stuck_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;stateful_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="si">}</span><span class="s1">_cols_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">_row_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s1">_stuck_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span><span class="si">}</span><span class="s1">&#39;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_chip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_chip</span><span class="p">()</span>
 
 <div class="viewcode-block" id="GenericAccelerator.initialize_chip">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.initialize_chip">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize_chip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialize the simulated chip state.</span>
+<span class="sd">        Initialize the simulated chip state, assuming stateful mode. </span>
+<span class="sd">        If stateless, defect maps will be patched on dynamically during operation.</span>
 
 <span class="sd">        - Fills the array with uninitialized values (-1).</span>
 <span class="sd">        - Generates a defect map based on the specified stuck percentage.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span> <span class="c1"># uninitialized devices</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_defect_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span><span class="p">)</span> <span class="c1"># defect map is a paired list of (defective indices, defective conductance states)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span> <span class="c1"># uninitialized devices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_defect_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stuck_percentage</span><span class="p">)</span> <span class="c1"># defect map is a paired list of (defective indices, defective conductance states)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="GenericAccelerator.get_xb_size">
@@ -223,6 +267,9 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">read_chip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">,</span> <span class="n">fast_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Read a subarray of the chip, optionally with read noise.</span>
+
+<span class="sd">        This method requires the object to be in a stateful mode.</span>
+<span class="sd">        If `self.stateful` is False, a RuntimeError is raised.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -241,10 +288,56 @@
 <span class="sd">        -------</span>
 <span class="sd">        torch.Tensor</span>
 <span class="sd">            Subarray with applied read noise (if configured).</span>
+
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            If `self.stateful` is False.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If `fast_mode` is False (not implemented yet).</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Cannot read chip when self.stateful is False.&quot;</span><span class="p">)</span>
+
         <span class="n">subarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="n">row</span><span class="p">:</span><span class="n">row</span><span class="o">+</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span><span class="n">col</span><span class="o">+</span><span class="n">n_cols</span><span class="p">]</span>
         <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">subarray</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">fast_mode</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not implemented&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span> <span class="o">+</span> <span class="n">noise</span>
+        <span class="k">return</span> <span class="n">subarray</span></div>
+
+    
+<div class="viewcode-block" id="GenericAccelerator.read_chip_stateless">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.read_chip_stateless">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_chip_stateless</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read a subarray of the chip, optionally with read noise.</span>
+
+<span class="sd">        This method requires the object to be in a stateful mode.</span>
+<span class="sd">        If `self.stateful` is False, a RuntimeError is raised.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        G</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Subarray with applied read noise (if configured).</span>
+
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            If `self.stateful` is False.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If `fast_mode` is False (not implemented yet).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">subarray</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span> <span class="o">+</span> <span class="n">noise</span>
         <span class="k">return</span> <span class="n">subarray</span></div>
 
@@ -267,6 +360,9 @@
 <span class="sd">            - indices are tensor indices of defective devices,</span>
 <span class="sd">            - values are their fixed conductances (stuck_high or stuck_low).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="k">return</span>
+        
         <span class="n">num_elements</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stuck_percentage</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">numel</span><span class="p">())</span>
         <span class="n">defect_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num_elements</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -275,6 +371,32 @@
         <span class="n">defect_values</span><span class="p">[</span><span class="n">defect_values</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stuck_low</span>
         <span class="n">defect_values</span><span class="p">[</span><span class="n">defect_values</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stuck_high</span>
         <span class="k">return</span> <span class="n">defect_indices</span><span class="p">,</span> <span class="n">defect_values</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GenericAccelerator.map_weights_to_array_stateless">
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.GenericAccelerator.map_weights_to_array_stateless">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">map_weights_to_array_stateless</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="n">encoded_return</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">)</span>
+        <span class="n">Gposs</span><span class="p">,</span> <span class="n">Gnegs</span> <span class="o">=</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">sw_weight_shape</span> <span class="o">=</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># write noise</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">Gpos</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Gposs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="c1"># 0 mean</span>
+                <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">noise</span>
+
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">Gneg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Gnegs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="c1"># 0 mean</span>
+                <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">noise</span>
+
+        <span class="k">return</span> <span class="n">Gposs</span><span class="p">,</span> <span class="n">Gnegs</span></div>
 
 
 <div class="viewcode-block" id="GenericAccelerator.map_weights_to_array">
@@ -305,6 +427,10 @@
 <span class="sd">        - Adds Gaussian write noise if configured.</span>
 <span class="sd">        - Defect map is reapplied to enforce stuck devices.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="k">return</span>
+
         <span class="n">encoded_return</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">weight_encoding_scheme</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="n">pos_idxs</span><span class="p">,</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="n">neg_idxs</span><span class="p">,</span> <span class="n">additional_args</span><span class="o">=</span><span class="n">additional_args</span><span class="p">)</span>
         <span class="n">Gposs</span><span class="p">,</span> <span class="n">Gnegs</span> <span class="o">=</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">encoded_return</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">sw_weight_shape</span> <span class="o">=</span> <span class="n">sw_weight</span><span class="o">.</span><span class="n">shape</span>
@@ -315,7 +441,7 @@
                 <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">noise</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> 
-                       <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">pos_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Gposs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">neg_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neg_idxs</span><span class="p">):</span>
             <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">write_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
@@ -323,7 +449,7 @@
                 <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">noise</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> 
-                       <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">neg_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">sw_weight_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Gnegs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
         <span class="c1"># Add back defect map information in case the outer method attempted to do an illegal assignment</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_chip</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">defect_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -397,6 +523,10 @@
 <span class="sd">        torch.Tensor</span>
 <span class="sd">            The read subarray.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateful</span><span class="p">):</span>
+            <span class="k">return</span>
+
         <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
         <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
@@ -426,6 +556,7 @@
 
 <div class="viewcode-block" id="SimpleFixedPoint">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.SimpleFixedPoint">[docs]</a>
+<span class="nd">@register_accelerator</span><span class="p">(</span><span class="s2">&quot;SimpleFixedPoint&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SimpleFixedPoint</span><span class="p">(</span><span class="n">GenericAccelerator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Simple fixed-point accelerator model.</span>
@@ -451,8 +582,24 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adc_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dac_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">encode_simple_binary</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="n">write_noise</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="n">xb_size</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="n">stuck_mode</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">weight_encoding_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">adc_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+                 <span class="n">dac_bits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+                 <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> 
+                 <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> 
+                 <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> 
+                 <span class="n">read_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
+                 <span class="n">stateful</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">xb_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">2500</span><span class="p">),</span> 
+                 <span class="n">write_noise</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
+                 <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> 
+                 <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> 
+                 <span class="n">input_encoding_scheme</span><span class="o">=</span><span class="s1">&#39;instant&#39;</span><span class="p">,</span>
+                 <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> 
+                 <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">encode_simple_binary</span><span class="p">,</span> 
+                 <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+                <span class="c1"># TODO: Input encoding modes and output encoding modes should go here</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="n">write_noise</span><span class="p">,</span> <span class="n">stateful</span><span class="o">=</span><span class="n">stateful</span><span class="p">,</span> <span class="n">xb_size</span><span class="o">=</span><span class="n">xb_size</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="n">stuck_mode</span><span class="p">,</span> <span class="n">input_encoding_scheme</span><span class="o">=</span><span class="n">input_encoding_scheme</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">weight_encoding_scheme</span><span class="o">=</span><span class="n">weight_encoding_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span> <span class="o">=</span> <span class="n">adc_bits</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">=</span> <span class="n">dac_bits</span>
 
@@ -472,8 +619,37 @@
 <span class="sd">        torch.Tensor</span>
 <span class="sd">            Quantized voltage vector.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">max_val</span> <span class="o">*</span> <span class="n">fixed_point_quantize</span><span class="p">(</span><span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">wl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span><span class="p">,</span> <span class="n">fl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vector</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_encoding_scheme</span> <span class="o">==</span> <span class="s2">&quot;instant&quot;</span><span class="p">:</span>
+        
+            <span class="k">return</span> <span class="n">max_val</span> <span class="o">*</span> <span class="n">fixed_point_quantize</span><span class="p">(</span>
+                <span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span>
+                <span class="n">wl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span><span class="p">,</span>
+                <span class="n">fl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_encoding_scheme</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+
+            <span class="n">normalized</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+            <span class="n">levels</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">quantized</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">normalized</span> <span class="o">*</span> <span class="n">levels</span><span class="p">)</span>
+
+            <span class="n">slices</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">sign</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">quantized</span><span class="p">)</span>
+            <span class="n">mag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">quantized</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dac_bits</span><span class="p">):</span>
+                <span class="n">bit_slice</span> <span class="o">=</span> <span class="p">((</span><span class="n">mag</span> <span class="o">&gt;&gt;</span> <span class="n">bit</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+                <span class="n">slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sign</span> <span class="o">*</span> <span class="n">bit_slice</span> <span class="o">*</span> <span class="n">max_val</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">slices</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported encoding scheme&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SimpleFixedPoint.ADC_quantize">
@@ -492,14 +668,23 @@
 <span class="sd">        torch.Tensor</span>
 <span class="sd">            Quantized current vector.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">max_val</span> <span class="o">*</span> <span class="n">fixed_point_quantize</span><span class="p">(</span><span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">wl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span><span class="p">,</span> <span class="n">fl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vector</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">max_val</span> <span class="o">*</span> <span class="n">fixed_point_quantize</span><span class="p">(</span>
+            <span class="n">vector</span> <span class="o">/</span> <span class="n">max_val</span><span class="p">,</span>
+            <span class="n">wl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span><span class="p">,</span>
+            <span class="n">fl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adc_bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span></div>
 </div>
 
 
+        <span class="c1"># TODO: Support for ADC per-slice is not implemented</span>
 
 <div class="viewcode-block" id="Daffodil">
 <a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.base.html#xbtorch.deployment.base.Daffodil">[docs]</a>
+<span class="nd">@register_accelerator</span><span class="p">(</span><span class="s2">&quot;Daffodil&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Daffodil</span><span class="p">(</span><span class="n">GenericAccelerator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Experimental Daffodil accelerator model.</span>
@@ -529,8 +714,8 @@
 <span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">g_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">v_read</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">write_noise</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">input_encoding_scheme</span><span class="o">=</span><span class="s1">&#39;instant&#39;</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="o">=</span><span class="n">map_random</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">g_min</span><span class="p">,</span> <span class="n">g_max</span><span class="p">,</span> <span class="n">v_read</span><span class="p">,</span> <span class="n">read_noise</span><span class="p">,</span> <span class="n">write_noise</span><span class="p">,</span> <span class="n">stuck_percentage</span><span class="p">,</span> <span class="n">stuck_mode</span><span class="p">,</span> <span class="n">input_encoding_scheme</span><span class="p">,</span> <span class="n">xb_mapping_scheme</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
         <span class="c1"># Board level parameters, calibrated from hardware experiments</span>
         <span class="c1"># Can be overridenn based on further experimentation</span>

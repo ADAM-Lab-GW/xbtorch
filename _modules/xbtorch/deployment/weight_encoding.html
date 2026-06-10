@@ -5,9 +5,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xbtorch.deployment.encoding &mdash; XBTorch  documentation</title>
+  <title>xbtorch.deployment.weight_encoding &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
@@ -67,7 +67,7 @@
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
           <li class="breadcrumb-item"><a href="../../xbtorch.html">xbtorch</a></li>
-      <li class="breadcrumb-item active">xbtorch.deployment.encoding</li>
+      <li class="breadcrumb-item active">xbtorch.deployment.weight_encoding</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -76,7 +76,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for xbtorch.deployment.encoding</h1><div class="highlight"><pre>
+  <h1>Source code for xbtorch.deployment.weight_encoding</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Weight encoding schemes for mapping software weight matrices</span>
 <span class="sd">to crossbar conductance arrays.</span>
@@ -110,7 +110,7 @@
 
 <span class="c1"># Weight encoding functions - how should a software weight matrix be converted to conductance matrices</span>
 <div class="viewcode-block" id="encode_simple_binary">
-<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_simple_binary">[docs]</a>
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_simple_binary">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">encode_simple_binary</span><span class="p">(</span><span class="n">accelerator</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">additional_args</span><span class="o">=</span><span class="p">{}):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Encode weights using a simple binary scheme.</span>
@@ -157,7 +157,7 @@
 
 <span class="c1"># Weight encoding functions - how should a software weight matrix be converted to conductance matrices</span>
 <div class="viewcode-block" id="encode_LEA1">
-<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_LEA1">[docs]</a>
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_LEA1">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">encode_LEA1</span><span class="p">(</span><span class="n">accelerator</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">additional_args</span><span class="o">=</span><span class="p">{}):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Encode weights using Layer Ensemble Averaging (LEA-1).</span>
@@ -256,7 +256,7 @@
 
 
 <div class="viewcode-block" id="encode_LEA2">
-<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_LEA2">[docs]</a>
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_LEA2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">encode_LEA2</span><span class="p">(</span><span class="n">accelerator</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">states</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">,</span> <span class="n">additional_args</span><span class="o">=</span><span class="p">{},</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Encode weights using Layer Ensemble Averaging (LEA-2).</span>
@@ -400,7 +400,7 @@
 
 
 <div class="viewcode-block" id="quantize_to_nearest">
-<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.quantize_to_nearest">[docs]</a>
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.quantize_to_nearest">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">quantize_to_nearest</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">G_min</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Quantize a conductance value to the nearest available state.</span>
@@ -425,7 +425,7 @@
 
 
 <div class="viewcode-block" id="encode_MAO">
-<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.encoding.html#xbtorch.deployment.encoding.encode_MAO">[docs]</a>
+<a class="viewcode-back" href="../../../_autosummary/xbtorch.deployment.weight_encoding.html#xbtorch.deployment.weight_encoding.encode_MAO">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">encode_MAO</span><span class="p">(</span><span class="n">accelerator</span><span class="p">,</span> <span class="n">sw_weight</span><span class="p">,</span> <span class="n">pos_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">neg_idxs</span><span class="o">=</span><span class="p">[],</span> <span class="n">states</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">,</span> <span class="n">additional_args</span><span class="o">=</span><span class="p">{},</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Encode weights using the Mapping Algorithm with inner Fault-tOlerance (MAO).</span>

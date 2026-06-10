@@ -13,6 +13,6 @@ xbtorch.deployment
    base
    committee
    correction
-   encoding
    mapping
    metrics
+   weight_encoding

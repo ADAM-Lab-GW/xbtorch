@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xbtorch.deployment.base &mdash; XBTorch  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -58,13 +58,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.Daffodil"><code class="docutils literal notranslate"><span class="pre">Daffodil</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator"><code class="docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.SimpleFixedPoint"><code class="docutils literal notranslate"><span class="pre">SimpleFixedPoint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xbtorch.deployment.base.register_accelerator"><code class="docutils literal notranslate"><span class="pre">register_accelerator()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.committee.html">xbtorch.deployment.committee</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.correction.html">xbtorch.deployment.correction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.encoding.html">xbtorch.deployment.encoding</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.mapping.html">xbtorch.deployment.mapping</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.metrics.html">xbtorch.deployment.metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xbtorch.deployment.weight_encoding.html">xbtorch.deployment.weight_encoding</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xbtorch.devices.html">xbtorch.devices</a></li>
@@ -121,6 +122,14 @@ simulating memristive crossbar arrays in XBTorch.</p>
 </ul>
 <p>This module provides a unified interface for simulating hardware
 effects on neural network training and inference.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xbtorch.deployment.base.register_accelerator" title="xbtorch.deployment.base.register_accelerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_accelerator</span></code></a>(name)</p></td>
+<td><p>Decorator to register a custom layer under a string name.</p></td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -137,7 +146,7 @@ effects on neural network training and inference.</p>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.deployment.base.Daffodil">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">Daffodil</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_min=50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read=0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise=10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise=10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">Daffodil</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_min=50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read=0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise=10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise=10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_encoding_scheme='instant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#Daffodil"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.Daffodil" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a></p>
 <p>Experimental Daffodil accelerator model.</p>
 <p>This accelerator simulates the Daffodil prototyping system
@@ -288,7 +297,7 @@ but is currently disabled in this implementation.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">GenericAccelerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_size=(2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2500)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_encoding_scheme=&lt;function</span> <span class="pre">encode_simple_binary&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">GenericAccelerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateful=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_size=(2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2500)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_encoding_scheme='instant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_encoding_scheme=&lt;function</span> <span class="pre">encode_simple_binary&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Abstract base class for hardware accelerator models in XBTorch.</p>
 <p>This class simulates memristive crossbar arrays, incorporating
@@ -303,11 +312,16 @@ Subclasses implement specific quantization methods for DAC and ADC.</p>
 <li><p><strong>v_read</strong> (<em>float</em>) – Voltage used for read operations.</p></li>
 <li><p><strong>read_noise</strong> (<em>float</em>) – Amplitude of uniform read noise applied during chip readout.</p></li>
 <li><p><strong>write_noise</strong> (<em>float</em>) – Standard deviation of Gaussian noise applied during weight writes.</p></li>
-<li><p><strong>xb_size</strong> (<em>tuple</em><em> of </em><em>int</em><em>, </em><em>optional</em>) – Dimensions of the crossbar array (columns, rows). Default: (2500, 2500).</p></li>
+<li><p><strong>stateful</strong> (<em>bool</em><em>, </em><em>optional</em>) – In stateful mode, a physical representation of the entire crossbar is maintained, and weights are mapped to these limited devices.
+In stateless mode, weights are mapped and VMM is performed on the fly. This is more memory-efficient. Essentially behaves like an infinite size stateful crossbar.</p></li>
+<li><p><strong>xb_size</strong> (<em>tuple</em><em> of </em><em>int</em><em>, </em><em>optional</em>) – Dimensions of the crossbar array (columns, rows). Default: (2500, 2500). Utilized only when stateful is True.</p></li>
 <li><p><strong>stuck_percentage</strong> (<em>float</em><em>, </em><em>optional</em>) – Fraction of devices randomly stuck at high or low values. Default: 0.0.</p></li>
 <li><p><strong>stuck_mode</strong> (<em>{&quot;ideal&quot;</em><em>, </em><em>&quot;real&quot;}</em><em>, </em><em>optional</em>) – Mode for stuck-at defect modeling:
 - “ideal”: stuck devices are fixed at g_min or g_max.
 - “real”: stuck devices are fixed at predefined realistic values.</p></li>
+<li><p><strong>input_encoding_scheme</strong> (<em>{&quot;instant&quot;</em><em>, </em><em>&quot;linear&quot;}</em><em>, </em><em>optional</em>) – Mode for stuck-at defect modeling:
+- “instant”: Instantaneous voltage-amplitude encoding of inputs.
+- “linear”: Linear, bit-sliced encoding of inputs.</p></li>
 <li><p><strong>weight_encoding_scheme</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function used to encode weights into conductance matrices.
 Default: <code class="xref py py-func docutils literal notranslate"><span class="pre">encode_simple_binary()</span></code>.</p></li>
 <li><p><strong>xb_mapping_scheme</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function for mapping weights to crossbar positions.
@@ -418,7 +432,8 @@ read noise.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.initialize_chip">
 <span class="sig-name descname"><span class="pre">initialize_chip</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.initialize_chip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.initialize_chip" title="Link to this definition"></a></dt>
-<dd><p>Initialize the simulated chip state.</p>
+<dd><p>Initialize the simulated chip state, assuming stateful mode.
+If stateless, defect maps will be patched on dynamically during operation.</p>
 <ul class="simple">
 <li><p>Fills the array with uninitialized values (-1).</p></li>
 <li><p>Generates a defect map based on the specified stuck percentage.</p></li>
@@ -454,6 +469,11 @@ averaging schemes. Returns (None, None) otherwise.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.map_weights_to_array_stateless">
+<span class="sig-name descname"><span class="pre">map_weights_to_array_stateless</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sw_weight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.map_weights_to_array_stateless"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.map_weights_to_array_stateless" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.plot_array">
 <span class="sig-name descname"><span class="pre">plot_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.plot_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.plot_array" title="Link to this definition"></a></dt>
 <dd><p>Visualize the conductance state of the array.</p>
@@ -481,6 +501,8 @@ averaging schemes. Returns (None, None) otherwise.</p>
 <dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.read_chip">
 <span class="sig-name descname"><span class="pre">read_chip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.read_chip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.read_chip" title="Link to this definition"></a></dt>
 <dd><p>Read a subarray of the chip, optionally with read noise.</p>
+<p>This method requires the object to be in a stateful mode.
+If <cite>self.stateful</cite> is False, a RuntimeError is raised.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -497,6 +519,37 @@ averaging schemes. Returns (None, None) otherwise.</p>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>RuntimeError</strong> – If <cite>self.stateful</cite> is False.</p></li>
+<li><p><strong>ValueError</strong> – If <cite>fast_mode</cite> is False (not implemented yet).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.GenericAccelerator.read_chip_stateless">
+<span class="sig-name descname"><span class="pre">read_chip_stateless</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#GenericAccelerator.read_chip_stateless"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.GenericAccelerator.read_chip_stateless" title="Link to this definition"></a></dt>
+<dd><p>Read a subarray of the chip, optionally with read noise.</p>
+<p>This method requires the object to be in a stateful mode.
+If <cite>self.stateful</cite> is False, a RuntimeError is raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>G</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Subarray with applied read noise (if configured).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>RuntimeError</strong> – If <cite>self.stateful</cite> is False.</p></li>
+<li><p><strong>ValueError</strong> – If <cite>fast_mode</cite> is False (not implemented yet).</p></li>
+</ul>
+</dd>
 </dl>
 </dd></dl>
 
@@ -504,7 +557,7 @@ averaging schemes. Returns (None, None) otherwise.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xbtorch.deployment.base.SimpleFixedPoint">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">SimpleFixedPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adc_bits=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dac_bits=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_min=50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read=0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_size=(2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2500)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_encoding_scheme=&lt;function</span> <span class="pre">encode_simple_binary&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#SimpleFixedPoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.SimpleFixedPoint" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">SimpleFixedPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adc_bits=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dac_bits=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_min=50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_max=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_read=0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_noise=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateful=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_size=(2500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2500)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_noise=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_percentage=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stuck_mode='real'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_encoding_scheme='instant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xb_mapping_scheme=&lt;function</span> <span class="pre">map_random&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_encoding_scheme=&lt;function</span> <span class="pre">encode_simple_binary&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device='cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#SimpleFixedPoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.SimpleFixedPoint" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xbtorch.deployment.base.GenericAccelerator" title="xbtorch.deployment.base.GenericAccelerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenericAccelerator</span></code></a></p>
 <p>Simple fixed-point accelerator model.</p>
 <p>This accelerator simulates fixed-point DAC and ADC quantization
@@ -558,6 +611,12 @@ with configurable bitwidths.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xbtorch.deployment.base.register_accelerator">
+<span class="sig-prename descclassname"><span class="pre">xbtorch.deployment.base.</span></span><span class="sig-name descname"><span class="pre">register_accelerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xbtorch/deployment/base.html#register_accelerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xbtorch.deployment.base.register_accelerator" title="Link to this definition"></a></dt>
+<dd><p>Decorator to register a custom layer under a string name.</p>
 </dd></dl>
 
 </section>

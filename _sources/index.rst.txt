@@ -44,15 +44,15 @@ New to XBTorch? Start with these sections:
 Links
 -----
 - GitHub: https://github.com/ADAM-Lab-GW/xbtorch
-- Paper: [to be updated with arXiv/NeurIPS link]
+- Paper: https://arxiv.org/abs/2601.07086
 
 XBTorch was introduced in:
 
 .. note::
 
-    O. Yousuf.
+    O. Yousuf, et al.
     *"XBTorch: XBTorch: A Unified Framework for Modeling and Co-Design of Crossbar-Based Deep Learning Accelerators"*.  
-    TBD. https://arxiv.org/abs/XYZ
+    https://arxiv.org/abs/2601.07086
 
 .. toctree::
     :maxdepth: 2
