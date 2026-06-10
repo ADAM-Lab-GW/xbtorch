@@ -28,7 +28,22 @@ class SimpleMLP(nn.Module):
         x = x.view(-1, self.input_size)  # Flatten the image
         x = self.model(x)
         return x
+    
+class SimpleMLPNoModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        self.input_size = input_size
+        super(SimpleMLPNoModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size, bias=False)
+        self.fc2 = nn.Linear(hidden_size, output_size, bias=False)
+        self.a1 = nn.ReLU()
 
+    def forward(self, x):
+        x = x.view(-1, self.input_size)  # Flatten the image
+        x = self.fc1(x)
+        x = self.a1(x)
+        x = self.fc2(x)
+        return x
+    
 # -----------------------
 # General Utilities
 # -----------------------
@@ -85,6 +100,15 @@ def mlp_model(device):
     hidden_size = 150
     output_size = 10
     model = SimpleMLP(input_size, hidden_size, output_size).to(device)
+    return model
+
+@pytest.fixture
+def mlp_model_regular(device):
+    """Return a fresh 2-layer MLP patched for XBTorch."""
+    input_size = 28*28
+    hidden_size = 150
+    output_size = 10
+    model = SimpleMLPNoModel(input_size, hidden_size, output_size).to(device)
     return model
 
 # -----------------------

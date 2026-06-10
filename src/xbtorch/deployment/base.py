@@ -23,8 +23,18 @@ from qtorch.quant import fixed_point_quantize
 import numpy as np
 
 from xbtorch.deployment.mapping import map_random
-from xbtorch.deployment.encoding import encode_simple_binary, encode_LEA1, encode_LEA2
+from xbtorch.deployment.weight_encoding import encode_simple_binary, encode_LEA1, encode_LEA2
 
+ACCELERATOR_REGISTRY = {}
+
+def register_accelerator(name: str):
+    """Decorator to register a custom layer under a string name."""
+    def decorator(cls):
+        ACCELERATOR_REGISTRY[name] = cls
+        return cls
+    return decorator
+
+@register_accelerator("Generic")
 class GenericAccelerator(metaclass=abc.ABCMeta):
     """
     Abstract base class for hardware accelerator models in XBTorch.
@@ -46,14 +56,21 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         Amplitude of uniform read noise applied during chip readout.
     write_noise : float
         Standard deviation of Gaussian noise applied during weight writes.
+    stateful: bool, optional
+        In stateful mode, a physical representation of the entire crossbar is maintained, and weights are mapped to these limited devices.
+        In stateless mode, weights are mapped and VMM is performed on the fly. This is more memory-efficient. Essentially behaves like an infinite size stateful crossbar.
     xb_size : tuple of int, optional
-        Dimensions of the crossbar array (columns, rows). Default: (2500, 2500).
+        Dimensions of the crossbar array (columns, rows). Default: (2500, 2500). Utilized only when stateful is True.
     stuck_percentage : float, optional
         Fraction of devices randomly stuck at high or low values. Default: 0.0.
     stuck_mode : {"ideal", "real"}, optional
         Mode for stuck-at defect modeling:
         - "ideal": stuck devices are fixed at g_min or g_max.
         - "real": stuck devices are fixed at predefined realistic values.
+    input_encoding_scheme : {"instant", "linear"}, optional
+        Mode for stuck-at defect modeling:
+        - "instant": Instantaneous voltage-amplitude encoding of inputs.
+        - "linear": Linear, bit-sliced encoding of inputs.
     weight_encoding_scheme : callable, optional
         Function used to encode weights into conductance matrices.
         Default: :func:`encode_simple_binary`.
@@ -80,17 +97,36 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
       read noise.
     """
     
-    def __init__(self, g_min, g_max, v_read, read_noise, write_noise, xb_size=(2500, 2500), stuck_percentage=0.0, stuck_mode='real', weight_encoding_scheme=encode_simple_binary, xb_mapping_scheme=map_random, device="cpu"):
+    def __init__(self, 
+                 g_min, 
+                 g_max, 
+                 v_read, 
+                 read_noise, 
+                 write_noise, 
+                 stateful=True,
+                 xb_size=(2500, 2500), 
+                 stuck_percentage=0.0, 
+                 stuck_mode='real', 
+                 input_encoding_scheme='instant',
+                 weight_encoding_scheme=encode_simple_binary, 
+                 xb_mapping_scheme=map_random,
+                 device="cpu"):
+
         self.read_noise = read_noise
         self.write_noise = write_noise
         self.g_min = g_min
         self.g_max = g_max
         self.v_read = v_read
+        self.input_encoding_scheme = input_encoding_scheme
         self.weight_encoding_scheme = weight_encoding_scheme
         self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
+        self.stateful = stateful
+
+        if (self.stuck_percentage > 0 and not self.stateful):
+            raise ValueError("Stuck devices can not be simulated without a stateful representation of a crossbar. See examples for usage.")
     
-        self.columns, self.rows = xb_size
+        self.columns, self.rows = xb_size if stateful else (-1, -1)
         # self.stuck_low = 0
         # self.stuck_high = self.g_max * 2
         self.stuck_mode = stuck_mode
@@ -104,26 +140,31 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         else:
             raise ValueError(f"Stuck mode {stuck_mode} not implemented")
 
+        if input_encoding_scheme not in ["instant", "linear"]:
+            raise ValueError(f"IO Encoding mode {input_encoding_scheme} not implemented")
 
         # Create defect map
-        # TODO: Separate out defect maps
+        # TODO: Separate out defect maps;
 
-        self.name = f'cols_{self.columns}_row_{self.rows}_stuck_{self.stuck_percentage}'
+        self.name = f'stateful_{self.stateful}_cols_{self.columns}_row_{self.rows}_stuck_{self.stuck_percentage}'
 
         self.device = device
 
-        self.initialize_chip()
+        if (self.stateful):
+            self.initialize_chip()
 
     def initialize_chip(self):
         """
-        Initialize the simulated chip state.
+        Initialize the simulated chip state, assuming stateful mode. 
+        If stateless, defect maps will be patched on dynamically during operation.
 
         - Fills the array with uninitialized values (-1).
         - Generates a defect map based on the specified stuck percentage.
         """
-        self._chip = torch.ones((self.columns, self.rows)).to(self.device) * -1 # uninitialized devices
-        self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
-        self._chip[self.defect_map[0]] = self.defect_map[1]
+        if (self.stateful):
+            self._chip = torch.ones((self.columns, self.rows)).to(self.device) * -1 # uninitialized devices
+            self.defect_map = self.gen_defect_map(self.stuck_percentage) # defect map is a paired list of (defective indices, defective conductance states)
+            self._chip[self.defect_map[0]] = self.defect_map[1]
 
     def get_xb_size(self):
         """
@@ -134,6 +175,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
     def read_chip(self, row, n_rows, col, n_cols, fast_mode=True):
         """
         Read a subarray of the chip, optionally with read noise.
+
+        This method requires the object to be in a stateful mode.
+        If `self.stateful` is False, a RuntimeError is raised.
 
         Parameters
         ----------
@@ -152,10 +196,53 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         -------
         torch.Tensor
             Subarray with applied read noise (if configured).
+
+
+        Raises
+        ------
+        RuntimeError
+            If `self.stateful` is False.
+        ValueError
+            If `fast_mode` is False (not implemented yet).
+
         """
+
+        if not self.stateful:
+            raise RuntimeError("Cannot read chip when self.stateful is False.")
+
         subarray = self._chip[row:row+n_rows, col:col+n_cols]
         noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
         if (not fast_mode): raise ValueError("Not implemented")
+        if (self.read_noise > 0): subarray = subarray + noise
+        return subarray
+    
+    def read_chip_stateless(self, subarray):
+        """
+        Read a subarray of the chip, optionally with read noise.
+
+        This method requires the object to be in a stateful mode.
+        If `self.stateful` is False, a RuntimeError is raised.
+
+        Parameters
+        ----------
+        G
+
+        Returns
+        -------
+        torch.Tensor
+            Subarray with applied read noise (if configured).
+
+
+        Raises
+        ------
+        RuntimeError
+            If `self.stateful` is False.
+        ValueError
+            If `fast_mode` is False (not implemented yet).
+
+        """
+
+        noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
         if (self.read_noise > 0): subarray = subarray + noise
         return subarray
 
@@ -175,6 +262,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
             - indices are tensor indices of defective devices,
             - values are their fixed conductances (stuck_high or stuck_low).
         """
+        if (not self.stateful):
+            return
+        
         num_elements = int(stuck_percentage * self._chip.numel())
         defect_indices = np.unravel_index(
             np.random.choice(self._chip.shape[0] * self._chip.shape[1], num_elements, replace=False), (self._chip.shape[0], self._chip.shape[1])
@@ -183,6 +273,29 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         defect_values[defect_values == 0] = self.stuck_low
         defect_values[defect_values == 1] = self.stuck_high
         return defect_indices, defect_values.to(self.device)
+
+    def map_weights_to_array_stateless(self, sw_weight):
+
+        if (self.stateful):
+            return
+
+        encoded_return =  self.weight_encoding_scheme(self, sw_weight)
+        Gposs, Gnegs = encoded_return[0], encoded_return[1]
+        sw_weight_shape = sw_weight.shape
+
+        # write noise
+        for i, Gpos in enumerate(Gposs):
+            if (self.write_noise > 0):
+                noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
+                Gposs[i] = Gposs[i] + noise
+
+
+        for i, Gneg in enumerate(Gnegs):
+            if (self.write_noise > 0):
+                noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
+                Gnegs[i] = Gnegs[i] + noise
+
+        return Gposs, Gnegs
 
     def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):        
         """
@@ -210,6 +323,10 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         - Adds Gaussian write noise if configured.
         - Defect map is reapplied to enforce stuck devices.
         """
+
+        if (not self.stateful):
+            return
+
         encoded_return =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs, additional_args=additional_args)
         Gposs, Gnegs = encoded_return[0], encoded_return[1]
         sw_weight_shape = sw_weight.shape
@@ -220,7 +337,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 Gposs[i] = Gposs[i] + noise
 
             self._chip[pos_idx[0]:pos_idx[0]+sw_weight_shape[0], 
-                       pos_idx[1]:pos_idx[1]+sw_weight_shape[1]] = Gposs[i]
+                    pos_idx[1]:pos_idx[1]+sw_weight_shape[1]] = Gposs[i]
 
         for i, neg_idx in enumerate(neg_idxs):
             if (self.write_noise > 0):
@@ -228,7 +345,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                 Gnegs[i] = Gnegs[i] + noise
 
             self._chip[neg_idx[0]:neg_idx[0]+sw_weight_shape[0], 
-                       neg_idx[1]:neg_idx[1]+sw_weight_shape[1]] = Gnegs[i]
+                    neg_idx[1]:neg_idx[1]+sw_weight_shape[1]] = Gnegs[i]
 
         # Add back defect map information in case the outer method attempted to do an illegal assignment
         self._chip[self.defect_map[0]] = self.defect_map[1]
@@ -293,6 +410,10 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         torch.Tensor
             The read subarray.
         """
+
+        if (not self.stateful):
+            return
+
         import matplotlib.pyplot as plt
 
         fig = plt.figure()
@@ -318,6 +439,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         if show: plt.show()
         return read_chip
 
+@register_accelerator("SimpleFixedPoint")
 class SimpleFixedPoint(GenericAccelerator):
     """
     Simple fixed-point accelerator model.
@@ -343,8 +465,24 @@ class SimpleFixedPoint(GenericAccelerator):
 
     """
 
-    def __init__(self, adc_bits=5, dac_bits=5, g_min=50, g_max=100, v_read=0.3, read_noise=0, xb_size=(2500, 2500), write_noise=0, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, weight_encoding_scheme=encode_simple_binary, device='cpu'):
-        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
+    def __init__(self, 
+                 adc_bits=5, 
+                 dac_bits=5, 
+                 g_min=50, 
+                 g_max=100, 
+                 v_read=0.3, 
+                 read_noise=0, 
+                 stateful=True,
+                 xb_size=(2500, 2500), 
+                 write_noise=0, 
+                 stuck_percentage=0.0, 
+                 stuck_mode='real', 
+                 input_encoding_scheme='instant',
+                 xb_mapping_scheme=map_random, 
+                 weight_encoding_scheme=encode_simple_binary, 
+                 device='cpu'):
+                # TODO: Input encoding modes and output encoding modes should go here
+        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stateful=stateful, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, input_encoding_scheme=input_encoding_scheme, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
 
@@ -362,8 +500,37 @@ class SimpleFixedPoint(GenericAccelerator):
         torch.Tensor
             Quantized voltage vector.
         """
-        max_val = torch.max(vector)
-        return max_val * fixed_point_quantize(vector / max_val, wl=self.dac_bits, fl=self.dac_bits-1, symmetric=True)
+
+        max_val = torch.max(torch.abs(vector))
+
+        if self.input_encoding_scheme == "instant":
+        
+            return max_val * fixed_point_quantize(
+                vector / max_val,
+                wl=self.dac_bits,
+                fl=self.dac_bits - 1,
+                symmetric=True
+            )
+
+        elif self.input_encoding_scheme == "linear":
+
+            normalized = torch.clamp(vector / max_val, -1.0, 1.0)
+
+            levels = 2 ** self.dac_bits - 1
+            quantized = torch.round(normalized * levels)
+
+            slices = []
+            sign = torch.sign(quantized)
+            mag = torch.abs(quantized).long()
+
+            for bit in range(self.dac_bits):
+                bit_slice = ((mag >> bit) & 1).float()
+                slices.append(sign * bit_slice * max_val)
+
+            return slices
+
+        else:
+            raise ValueError("Unsupported encoding scheme")
 
     def ADC_quantize(self, vector):
         """
@@ -379,10 +546,19 @@ class SimpleFixedPoint(GenericAccelerator):
         torch.Tensor
             Quantized current vector.
         """
-        max_val = torch.max(vector)
-        return max_val * fixed_point_quantize(vector / max_val, wl=self.adc_bits, fl=self.adc_bits-1, symmetric=True)
 
+        max_val = torch.max(torch.abs(vector))
 
+        return max_val * fixed_point_quantize(
+            vector / max_val,
+            wl=self.adc_bits,
+            fl=self.adc_bits - 1,
+            symmetric=True
+        )
+
+        # TODO: Support for ADC per-slice is not implemented
+
+@register_accelerator("Daffodil")
 class Daffodil(GenericAccelerator):
     """
     Experimental Daffodil accelerator model.
@@ -412,8 +588,8 @@ class Daffodil(GenericAccelerator):
     
     """
 
-    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', xb_mapping_scheme=map_random, device='cpu'):
-        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, xb_mapping_scheme, device=device)
+    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', input_encoding_scheme='instant', xb_mapping_scheme=map_random, device='cpu'):
+        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, input_encoding_scheme, xb_mapping_scheme, device=device)
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation

@@ -4,15 +4,9 @@ with XBTorch operations.
 """
 from xbtorch import get_xbtorch_param
 
-import xbtorch.quant.wage_init as wage_init
+from .utils import replace_all_layers_stateful, replace_all_layers_stateless, toggle_xb_eval_all_layers_stateless
 
-import torch.nn as nn
-import xbtorch.nn as xbnn
-import xbtorch
-
-import torch
-
-def xbtorch_model(original_model):
+def xbtorch_model(original_model, replace_all=False, exclude=None):
     """
     Patch a PyTorch model for XBTorch compatibility.
 
@@ -71,8 +65,6 @@ def xbtorch_model(original_model):
     - Inference accelerator mappings assume that crossbar dimensions and
       encoding/mapping schemes are defined during initialization.
     """
-    # TODO: .model shouldn't be required, should have an option to specify layers
-    # TODO: This should be used if a model was already created i.e. on an instance
     # Copies state dictionary as well
     if (not get_xbtorch_param('initialized')): raise RuntimeError('XBTorch needs to be initialized, please refer to API for instructions.')
 
@@ -80,90 +72,32 @@ def xbtorch_model(original_model):
     xb_inference_accelerator = get_xbtorch_param('inference_accelerator')
     original_model.xb_forward = False # declare this to be false, xb_eval() has to be explicitly called
     
-    # detect the device from the original model
-    try:
-        device = next(original_model.parameters()).device
-    except StopIteration:
-        device = torch.device("cpu")  # fallback if model has no parameters
-    
-    if (wage_quantize):
-        wage_params = get_xbtorch_param('wage_params')
-        quantizer_act_error = wage_params['quantizer_act_error']
-        wl_activation = wage_params['wl_activation']
-        wl_error = wage_params['wl_error']
-        wl_weight = wage_params['wl_weight']
-
-    if (not hasattr(original_model, 'model')): raise RuntimeError('Unable to find module list for patching, see network training example for correct patching workflow.')
-
-    new_model = []
-    if (wage_quantize): 
-        new_model.append(quantizer_act_error(wl_activation, -1))
-
-    for module in original_model.model:
-        # TODO: A cleaner way to implement this could be to specify regex patterns for layers to be patched, or just specify them as a list
-        # This should simplify model definitions, as well as patched re-creations here
-        if (type(module) in xbtorch.layer_types):
-            if (type(module)) == nn.Linear:
-                args = (module.in_features, module.out_features, module.bias is not None)
-                xbnn_layer = xbnn.Linear(*args)
-            elif (type(module)) == nn.Conv2d:
-                args = (module.in_channels, module.out_channels, module.kernel_size, module.stride, module.padding, module.dilation, module.groups, module.bias is not None, module.padding_mode)
-                xbnn_layer = xbnn.Conv2d(*args)
-
-            elif (type(module)) == nn.RNN:
-                args = (module.input_size, module.hidden_size, module.num_layers, module.nonlinearity, module.bias, module.batch_first, module.dropout, module.bidirectional)
-                xbnn_layer = xbnn.RNN(*args)
-
-            elif (type(module)) == nn.LSTM:
-                args = (module.input_size, module.hidden_size, module.num_layers, module.bias, module.batch_first, module.dropout, module.bidirectional, module.proj_size)
-                xbnn_layer = xbnn.LSTM(*args)
-            else:
-                raise ValueError(f"An xbtorch supported layer, {type(module)}, is missing an implementation.")
-
-            # move to device before loading weights
-            xbnn_layer = xbnn_layer.to(device)
-            xbnn_layer.load_state_dict(module.state_dict())
-            xbnn_layer._array_mappings = {} # we add this to make initialization easier later, since pre-trained weights would be loaded after patching
-            new_model.append(xbnn_layer)
-
-        # activations
-        elif (type(module) in xbtorch.activation_types): 
-            new_model.append(module)
-            if (wage_quantize): new_model.append(quantizer_act_error(wl_activation, wl_error))
-
-        elif (type(module) in xbtorch.misc_types): 
-            new_model.append(module)
-
-        # else copy unpatched module, but notify user
-        else:
-            print(f'XBPatching for module {module} is not defined, using as is.')
-            new_model.append(module)
-            # exit()
-
-    if (wage_quantize and new_model[-1] not in xbtorch.activation_types): 
-        # add act/error quantizer if the last module is an activation
-        new_model.append(quantizer_act_error(-1, wl_error))
-
-    original_model.model = nn.Sequential(*new_model)
-
-    if (wage_quantize):
-        # wage parameters
-        original_model.weight_scale = {}
-        original_model.weight_acc = {}
-        for name, param in original_model.named_parameters():
-            if ("weight" in name): wage_init.wage_init_(param, wl_weight, factor=1.0)
-            param.weight_acc = param.data
-
-    # print('Patched XBTorch Model', original_model.model)
+    # How to replace layers? stateless or stateful.
+    if (replace_all):
+        # stateless
+        replace_all_layers_stateless(model=original_model,
+                                     exclude=[] if exclude is None else exclude)
+    else:
+        # stateful
+        replace_all_layers_stateful(model=original_model, wage_quantize=wage_quantize)
 
     if (xb_inference_accelerator):
         # if initialization included an inference accelerator
         def toggle(enable=True):
             original_model.xb_forward = enable
-            for module in original_model.model:
-                module._xb_inference = enable
+            if not replace_all:
+                # stateless
+                for module in original_model.model:
+                    module._xb_inference = enable
+            else:
+                toggle_xb_eval_all_layers_stateless(original_model, enable=enable)
 
         def initialize_array_mappings(output_polling_mode='avg', existing_mappings=[], additional_args={}):
+            
+            if replace_all or not xb_inference_accelerator.stateful:
+                raise ValueError("Can not map to array in stateless operation.")
+                # return
+            
             # existing_mappings can be used as a reference to avoid conflicting mappings across unique models on the xb (primary use case: committee machines)
             # reset/initialize mappings of this layer on the simulated crossbar
             original_model._array_mappings_all = existing_mappings
@@ -177,12 +111,12 @@ def xbtorch_model(original_model):
                     # get indices where the conductance matrices will be mapped on the simulated xbar
                     # xb_mapping_schemes = ['random', 'layer_ensemble'] etc.
                     pos_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 
-                                                                          layer_shape=sw_weight.shape, 
-                                                                          current_mappings=original_model._array_mappings_all)
+                                                                        layer_shape=sw_weight.shape, 
+                                                                        current_mappings=original_model._array_mappings_all)
                     
                     neg_idxs = xb_inference_accelerator.xb_mapping_scheme(accelerator=xb_inference_accelerator, 
-                                                                          layer_shape=sw_weight.shape,
-                                                                          current_mappings=original_model._array_mappings_all)
+                                                                        layer_shape=sw_weight.shape,
+                                                                        current_mappings=original_model._array_mappings_all)
 
                     # map the sw_weight matrix to the simulated array as device conductances at indices extracted above
                     # internally handles conversion of the sw_weight matrix to conductance matrices

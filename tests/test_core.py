@@ -19,6 +19,9 @@ def test_device_initialization(simple_fixedpoint_accelerator):
 
 def test_model_patching(mlp_model, simple_fixedpoint_accelerator):
     """Test that xbtorch_model patches models correctly."""
+
+    # Stateful
+    
     # Model without HWA enabled
     model = mlp_model
     xbtorch.initialize()  # baseline initialization
