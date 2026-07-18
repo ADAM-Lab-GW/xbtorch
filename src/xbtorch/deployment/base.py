@@ -10,6 +10,7 @@ Features include:
 - DAC and ADC quantization (fixed-point or board-specific)
 - Noise modeling (read/write)
 - Stuck-at defect simulation
+- Input encoding schemes
 - Weight encoding and mapping schemes
 - Array visualization and utility functions
 
@@ -41,8 +42,8 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
     This class simulates memristive crossbar arrays, incorporating
     hardware non-idealities such as stuck devices, read/write noise,
-    limited precision DAC/ADC, and weight encoding/mapping schemes.
-    Subclasses implement specific quantization methods for DAC and ADC.
+    limited precision DAC/ADC, input encoding schemes, and weight encoding/mapping schemes.
+    Provided subclasses implement specific quantization methods for DAC and ADC. 
 
     Parameters
     ----------
@@ -55,7 +56,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
     read_noise : float
         Amplitude of uniform read noise applied during chip readout.
     write_noise : float
-        Standard deviation of Gaussian noise applied during weight writes.
+        Standard deviation of Gaussian noise applied during weight writes. Simulates device programming error.
     stateful: bool, optional
         In stateful mode, a physical representation of the entire crossbar is maintained, and weights are mapped to these limited devices.
         In stateless mode, weights are mapped and VMM is performed on the fly. This is more memory-efficient. Essentially behaves like an infinite size stateful crossbar.
@@ -77,6 +78,19 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
     xb_mapping_scheme : callable, optional
         Function for mapping weights to crossbar positions.
         Default: :func:`map_random`.
+    retention_time : float, optional
+        elapsed deployment time.
+        Default: 1.0.
+    drift_coefficient : float, optional
+        nominal ν.
+        Default: 0.0.
+    drift_t0 : float, optional
+        reference time.
+        Default: 1.0.
+    drift_variation : float, optional
+        device-to-device spread in ν.
+        Default: 0.0.
+
     device : str, optional
         PyTorch device for simulation (e.g., "cpu" or "cuda").
 
@@ -110,6 +124,10 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                  input_encoding_scheme='instant',
                  weight_encoding_scheme=encode_simple_binary, 
                  xb_mapping_scheme=map_random,
+                 retention_time=1.0,
+                 drift_coefficient=0.0,
+                 drift_t0=1.0,
+                 drift_variation=0.0,
                  device="cpu"):
 
         self.read_noise = read_noise
@@ -122,6 +140,11 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         self.xb_mapping_scheme = xb_mapping_scheme
         self.stuck_percentage = stuck_percentage
         self.stateful = stateful
+
+        self.retention_time = retention_time
+        self.drift_coefficient = drift_coefficient
+        self.drift_t0 = drift_t0
+        self.drift_variation = drift_variation
 
         if (self.stuck_percentage > 0 and not self.stateful):
             raise ValueError("Stuck devices can not be simulated without a stateful representation of a crossbar. See examples for usage.")
@@ -172,6 +195,43 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         """
         return (self.columns, self.rows)
 
+    def apply_conductance_drift(self, G):
+        """
+        Apply retention-induced conductance drift.
+
+        Parameters
+        ----------
+        G
+
+        Returns
+        -------
+        torch.Tensor
+            Subarray with applied drift.
+
+        """
+
+        if self.drift_coefficient == 0:
+            return G
+
+        if self.drift_variation > 0:
+            # device-to-device variation
+            nu = torch.normal(
+                mean=self.drift_coefficient,
+                std=self.drift_variation,
+                size=G.shape,
+                device=G.device
+            )
+        else:
+            # deterministic global drift
+            nu = self.drift_coefficient
+
+        drift_factor = (self.retention_time / self.drift_t0) ** (-nu)
+
+        G_drifted = G * drift_factor
+        G_drifted = torch.clamp(G_drifted, self.g_min, self.g_max)
+
+        return G_drifted
+
     def read_chip(self, row, n_rows, col, n_cols, fast_mode=True):
         """
         Read a subarray of the chip, optionally with read noise.
@@ -211,11 +271,16 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
             raise RuntimeError("Cannot read chip when self.stateful is False.")
 
         subarray = self._chip[row:row+n_rows, col:col+n_cols]
+
+        # conductance drift
+        subarray = self.apply_conductance_drift(subarray)
+
+        # read noise
         noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
         if (not fast_mode): raise ValueError("Not implemented")
         if (self.read_noise > 0): subarray = subarray + noise
-        return subarray
-    
+        return torch.clamp(subarray, self.g_min, self.g_max)
+
     def read_chip_stateless(self, subarray):
         """
         Read a subarray of the chip, optionally with read noise.
@@ -243,8 +308,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         """
 
         noise = torch.empty_like(subarray).uniform_(-self.read_noise, self.read_noise)
+        subarray = self.apply_conductance_drift(subarray)
         if (self.read_noise > 0): subarray = subarray + noise
-        return subarray
+        return torch.clamp(subarray, self.g_min, self.g_max)
 
     def gen_defect_map(self, stuck_percentage):
         """
@@ -287,13 +353,12 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         for i, Gpos in enumerate(Gposs):
             if (self.write_noise > 0):
                 noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
-                Gposs[i] = Gposs[i] + noise
-
+                Gposs[i] = torch.clamp(Gposs[i] + noise, self.g_min, self.g_max)
 
         for i, Gneg in enumerate(Gnegs):
             if (self.write_noise > 0):
                 noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
-                Gnegs[i] = Gnegs[i] + noise
+                Gnegs[i] = torch.clamp(Gnegs[i] + noise, self.g_min, self.g_max)
 
         return Gposs, Gnegs
 
@@ -334,7 +399,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         for i, pos_idx in enumerate(pos_idxs):
             if (self.write_noise > 0):
                 noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
-                Gposs[i] = Gposs[i] + noise
+                Gposs[i] = torch.clamp(Gposs[i] + noise, self.g_min, self.g_max)
 
             self._chip[pos_idx[0]:pos_idx[0]+sw_weight_shape[0], 
                     pos_idx[1]:pos_idx[1]+sw_weight_shape[1]] = Gposs[i]
@@ -342,7 +407,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         for i, neg_idx in enumerate(neg_idxs):
             if (self.write_noise > 0):
                 noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
-                Gnegs[i] = Gnegs[i] + noise
+                Gnegs[i] = torch.clamp(Gnegs[i] + noise, self.g_min, self.g_max)
 
             self._chip[neg_idx[0]:neg_idx[0]+sw_weight_shape[0], 
                     neg_idx[1]:neg_idx[1]+sw_weight_shape[1]] = Gnegs[i]
@@ -479,10 +544,30 @@ class SimpleFixedPoint(GenericAccelerator):
                  stuck_mode='real', 
                  input_encoding_scheme='instant',
                  xb_mapping_scheme=map_random, 
-                 weight_encoding_scheme=encode_simple_binary, 
+                 weight_encoding_scheme=encode_simple_binary,
+                 retention_time=1.0,
+                 drift_coefficient=0.0,
+                 drift_t0=1.0,
+                 drift_variation=0.0, 
                  device='cpu'):
                 # TODO: Input encoding modes and output encoding modes should go here
-        super().__init__(g_min, g_max, v_read, read_noise=read_noise, write_noise=write_noise, stateful=stateful, xb_size=xb_size, stuck_percentage=stuck_percentage, stuck_mode=stuck_mode, input_encoding_scheme=input_encoding_scheme, xb_mapping_scheme=xb_mapping_scheme, weight_encoding_scheme=weight_encoding_scheme, device=device)
+        super().__init__(g_min, 
+                         g_max, 
+                         v_read, 
+                         read_noise=read_noise, 
+                         write_noise=write_noise, 
+                         stateful=stateful, 
+                         xb_size=xb_size, 
+                         stuck_percentage=stuck_percentage,
+                         stuck_mode=stuck_mode,
+                         input_encoding_scheme=input_encoding_scheme,
+                         xb_mapping_scheme=xb_mapping_scheme,
+                         weight_encoding_scheme=weight_encoding_scheme, 
+                         retention_time=retention_time,
+                         drift_coefficient=drift_coefficient,
+                         drift_t0=drift_t0,
+                         drift_variation=drift_variation,
+                         device=device)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
 
@@ -588,8 +673,35 @@ class Daffodil(GenericAccelerator):
     
     """
 
-    def __init__(self, g_min=50, g_max=100, v_read=0.3, read_noise=10, write_noise=10, stuck_percentage=0.0, stuck_mode='real', input_encoding_scheme='instant', xb_mapping_scheme=map_random, device='cpu'):
-        super().__init__(g_min, g_max, v_read, read_noise, write_noise, stuck_percentage, stuck_mode, input_encoding_scheme, xb_mapping_scheme, device=device)
+    def __init__(self,
+                 g_min=50,
+                 g_max=100,
+                 v_read=0.3,
+                 read_noise=10,
+                 write_noise=10,
+                 stuck_percentage=0.0,
+                 stuck_mode='real',
+                 input_encoding_scheme='instant',
+                 xb_mapping_scheme=map_random,
+                 retention_time=1.0,
+                 drift_coefficient=0.0,
+                 drift_t0=1.0,
+                 drift_variation=0.0, 
+                 device='cpu'):
+        super().__init__(g_min,
+                         g_max,
+                         v_read,
+                         read_noise,
+                         write_noise,
+                         stuck_percentage,
+                         stuck_mode,
+                         input_encoding_scheme,
+                         xb_mapping_scheme,
+                         retention_time=retention_time,
+                         drift_coefficient=drift_coefficient,
+                         drift_t0=drift_t0,
+                         drift_variation=drift_variation,
+                         device=device)
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation
