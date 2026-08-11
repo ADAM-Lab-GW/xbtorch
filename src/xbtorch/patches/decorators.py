@@ -82,7 +82,8 @@ def xbtorch_layer(cls):
 
                 sw_weight = self.weight.data
 
-                gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
+                # gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
+                gamma = torch.max(torch.abs(sw_weight))
 
                 pos_idxs = self._array_mappings['Gpos']
                 neg_idxs = self._array_mappings['Gneg']

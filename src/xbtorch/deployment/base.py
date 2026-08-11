@@ -24,7 +24,7 @@ from qtorch.quant import fixed_point_quantize
 import numpy as np
 
 from xbtorch.deployment.mapping import map_random
-from xbtorch.deployment.weight_encoding import encode_simple_binary, encode_LEA1, encode_LEA2
+from xbtorch.deployment.weight_encoding import encode_simple_binary, encode_LEA1, encode_LEA2, encode_multilevel_differential
 
 ACCELERATOR_REGISTRY = {}
 
@@ -74,7 +74,7 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         - "linear": Linear, bit-sliced encoding of inputs.
     weight_encoding_scheme : callable, optional
         Function used to encode weights into conductance matrices.
-        Default: :func:`encode_simple_binary`.
+        Default: :func:`encode_multilevel_differential`.
     xb_mapping_scheme : callable, optional
         Function for mapping weights to crossbar positions.
         Default: :func:`map_random`.
@@ -544,7 +544,7 @@ class SimpleFixedPoint(GenericAccelerator):
                  stuck_mode='real', 
                  input_encoding_scheme='instant',
                  xb_mapping_scheme=map_random, 
-                 weight_encoding_scheme=encode_simple_binary,
+                 weight_encoding_scheme=encode_multilevel_differential,
                  retention_time=1.0,
                  drift_coefficient=0.0,
                  drift_t0=1.0,

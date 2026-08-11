@@ -73,6 +73,63 @@ def encode_simple_binary(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], addit
     # Create copies corresponding to the times the matrix would be mapped
     return [torch.clone(Gpos) for _ in range(max(1, len(pos_idxs)))], [torch.clone(Gneg) for _ in range(max(1, len(pos_idxs)))]
 
+def encode_multilevel_differential(
+    accelerator,
+    sw_weight,
+    pos_idxs=[],
+    neg_idxs=[],
+    additional_args={},
+):
+    """Encode a weight matrix with eight-bit differential conductances."""
+
+    bits = int(additional_args.get("bits", 8))
+    zero_tol = float(additional_args.get("zero_tol", 0.0))
+
+    if bits < 2:
+        raise ValueError("Multilevel encoding requires bits >= 2")
+    if zero_tol < 0.0:
+        raise ValueError("zero_tol must be nonnegative")
+    if not torch.isfinite(sw_weight).all():
+        raise ValueError("Software weights must be finite")
+
+    gamma = torch.max(torch.abs(sw_weight))
+    baseline = torch.full_like(sw_weight, accelerator.g_min)
+    mapping_count = max(1, len(pos_idxs), len(neg_idxs))
+
+    if gamma.item() == 0.0:
+        return (
+            [torch.clone(baseline) for _ in range(mapping_count)],
+            [torch.clone(baseline) for _ in range(mapping_count)],
+        )
+
+    normalized_weight = torch.clamp(sw_weight / gamma, -1.0, 1.0)
+    intervals = (1 << bits) - 1
+    quantized_magnitude = (
+        torch.round(torch.abs(normalized_weight) * intervals) / intervals
+    )
+    quantized_magnitude = torch.where(
+        torch.abs(sw_weight) <= zero_tol,
+        torch.zeros_like(quantized_magnitude),
+        quantized_magnitude,
+    )
+
+    conductance_delta = quantized_magnitude * (
+        accelerator.g_max - accelerator.g_min
+    )
+    zeros = torch.zeros_like(conductance_delta)
+
+    Gpos = baseline + torch.where(
+        normalized_weight > 0.0, conductance_delta, zeros
+    )
+    Gneg = baseline + torch.where(
+        normalized_weight < 0.0, conductance_delta, zeros
+    )
+
+    return (
+        [torch.clone(Gpos) for _ in range(mapping_count)],
+        [torch.clone(Gneg) for _ in range(mapping_count)],
+    )
+
 # Weight encoding functions - how should a software weight matrix be converted to conductance matrices
 def encode_LEA1(accelerator, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):
     """
