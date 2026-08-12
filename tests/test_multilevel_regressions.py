@@ -263,7 +263,7 @@ def test_negative_dominant_weights_use_maximum_absolute_scale():
     model = patch_stateless(model, accelerator)
     output = model(torch.ones(1, 2))
 
-    # Two-bit magnitude encoding maps +1/2 to +2/3. Scaling by gamma=2
+    # Two-bit magnitude encoding maps 1/2 to 2/3. Scaling by gamma=2
     # therefore realizes [-2, 4/3], whose dot product with [1, 1] is -2/3.
     torch.testing.assert_close(
         output,
@@ -295,3 +295,40 @@ def test_fixed_point_converter_is_deterministic(converter_name):
     outputs = [converter(values) for _ in range(32)]
 
     assert all(torch.equal(outputs[0], output) for output in outputs[1:])
+
+
+
+@pytest.mark.parametrize("converter_name", ["DAC_quantize", "ADC_quantize"])
+@pytest.mark.parametrize("shape", [(2, 4), (2, 3, 4)])
+def test_converter_scale_is_independent_per_vmm_vector(
+    converter_name,
+    shape,
+):
+    accelerator = make_stateless_accelerator(adc_bits=4, dac_bits=4)
+    converter = getattr(accelerator, converter_name)
+
+    values = torch.tensor([0.50, 0.19, -0.31, 0.07])
+    baseline_input = values.expand(shape).clone()
+    perturbed_input = baseline_input.clone()
+
+    # Change only the last VMM vector's full scale. With a tensor-global
+    # maximum this also changes unrelated batch items/tokens.
+    perturbed_input.reshape(-1, shape[-1])[-1] *= 100.0
+
+    baseline = converter(baseline_input)
+    perturbed = converter(perturbed_input)
+
+    torch.testing.assert_close(
+        perturbed.reshape(-1, shape[-1])[:-1],
+        baseline.reshape(-1, shape[-1])[:-1],
+        rtol=0.0,
+        atol=0.0,
+    )
+
+
+@pytest.mark.parametrize("converter_name", ["DAC_quantize", "ADC_quantize"])
+def test_converter_preserves_shape_for_single_vector(converter_name):
+    accelerator = make_stateless_accelerator(adc_bits=4, dac_bits=4)
+    values = torch.tensor([0.50, 0.19, -0.31, 0.07])
+
+    assert getattr(accelerator, converter_name)(values).shape == values.shape

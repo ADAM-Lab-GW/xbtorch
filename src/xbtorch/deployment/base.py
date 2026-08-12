@@ -634,7 +634,12 @@ class SimpleFixedPoint(GenericAccelerator):
             Quantized voltage vector.
         """
 
-        max_val = torch.max(torch.abs(vector))
+        # Calibrate each VMM vector independently. For batched and sequence
+        # inputs, a global maximum would couple one sample/token's converter
+        # range to every other sample/token in the tensor.
+        max_val = torch.amax(
+            torch.abs(vector), dim=-1, keepdim=True
+        )
 
         scale = torch.where(
             max_val > 0,
@@ -687,7 +692,12 @@ class SimpleFixedPoint(GenericAccelerator):
             Quantized current vector.
         """
 
-        max_val = torch.max(torch.abs(vector))
+        # ADC full-scale selection is likewise local to each output vector.
+        # Keeping the last dimension makes the scale broadcast correctly for
+        # 1D, 2D, and 3D inputs.
+        max_val = torch.amax(
+            torch.abs(vector), dim=-1, keepdim=True
+        )
 
         scale = torch.where(
             max_val > 0,
