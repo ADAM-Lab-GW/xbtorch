@@ -13,10 +13,10 @@ def test_stuck_faults_applied():
     xbtorch.initialize(pytorch_device=device, inference_accelerator=acc)
     acc.initialize_chip()
 
-    read_chip = acc.read_chip(0, 10, 0, 10)
-
-    total_stuck = (read_chip != -1).sum() # counts the number of uninitialized devices, since stuck map must have initialized stuck devices
-    expected_stuck = int(0.2 * read_chip.shape[0] * read_chip.shape[1]) # -1 because of the rounding
+    # Inspect the stored chip before readout. read_chip() clamps the -1
+    # uninitialized sentinel to g_min, so it cannot distinguish unmapped cells.
+    total_stuck = (acc._chip != -1).sum()
+    expected_stuck = int(0.2 * acc._chip.numel())
     assert total_stuck == expected_stuck
 
 @pytest.mark.parametrize("alpha_beta", [1, 3])

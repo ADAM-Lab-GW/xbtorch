@@ -82,13 +82,13 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         elapsed deployment time.
         Default: 1.0.
     drift_coefficient : float, optional
-        nominal ν.
+        nominal Î½.
         Default: 0.0.
     drift_t0 : float, optional
         reference time.
         Default: 1.0.
     drift_variation : float, optional
-        device-to-device spread in ν.
+        device-to-device spread in Î½.
         Default: 0.0.
 
     device : str, optional
@@ -568,7 +568,7 @@ class SimpleFixedPoint(GenericAccelerator):
     Notes
     -----
 
-    - Quantization is symmetric, using QTorch’s
+    - Quantization is symmetric, using QTorch's
       :func:`fixed_point_quantize`.
 
     """
@@ -648,7 +648,8 @@ class SimpleFixedPoint(GenericAccelerator):
                 vector / scale,
                 wl=self.dac_bits,
                 fl=self.dac_bits - 1,
-                symmetric=True
+                symmetric=True,
+                rounding="nearest",
             )
 
         elif self.input_encoding_scheme == "linear":
@@ -698,7 +699,8 @@ class SimpleFixedPoint(GenericAccelerator):
             vector / scale,
             wl=self.adc_bits,
             fl=self.adc_bits - 1,
-            symmetric=True
+            symmetric=True,
+            rounding="nearest",
         )
 
         # TODO: Support for ADC per-slice is not implemented
@@ -892,7 +894,7 @@ class Daffodil(GenericAccelerator):
 
         - Converts crossbar current to voltage using a transimpedance
           amplifier model.
-        - Clips voltages to the ADC’s operating range.
+        - Clips voltages to the ADC's operating range.
         - Maps voltages to ADC register values.
         - Converts registers back to voltages.
         - Reconstructs quantized currents.
