@@ -72,14 +72,33 @@ def xbtorch_model(original_model, replace_all=False, exclude=None):
     xb_inference_accelerator = get_xbtorch_param('inference_accelerator')
     original_model.xb_forward = False # declare this to be false, xb_eval() has to be explicitly called
     
+    def assign_programming_seeds(seed):
+        layer_index = 0
+
+        for module in original_model.modules():
+            if hasattr(module, "_xb_programming_seed"):
+                module._xb_programming_seed = int(seed) + layer_index
+                layer_index += 1
+
     # How to replace layers? stateless or stateful.
-    if (replace_all):
-        # stateless
-        replace_all_layers_stateless(model=original_model,
-                                     exclude=[] if exclude is None else exclude)
+    if replace_all:
+        replace_all_layers_stateless(
+            model=original_model,
+            exclude=[] if exclude is None else exclude,
+        )
+
+        if (
+            xb_inference_accelerator is not None
+            and not xb_inference_accelerator.stateful
+        ):
+            assign_programming_seeds(
+                xb_inference_accelerator.programming_seed
+            )
     else:
-        # stateful
-        replace_all_layers_stateful(model=original_model, wage_quantize=wage_quantize)
+        replace_all_layers_stateful(
+            model=original_model,
+            wage_quantize=wage_quantize,
+        )
 
     if (xb_inference_accelerator):
         # if initialization included an inference accelerator
@@ -142,9 +161,20 @@ def xbtorch_model(original_model, replace_all=False, exclude=None):
                     output_dict.append({"Gpos": module._array_mappings["Gpos"], "Gneg": module._array_mappings["Gneg"],})
             return output_dict
 
+        def reprogram_xb(seed):
+            if xb_inference_accelerator.stateful:
+                raise RuntimeError(
+                    "reprogram_xb() currently supports stateless simulation only."
+                )
+
+            seed = int(seed)
+            xb_inference_accelerator.programming_seed = seed
+            assign_programming_seeds(seed)
+
         # attach new methods to the model
         original_model.xb_eval = toggle
         original_model.initialize_array_mappings = initialize_array_mappings
         original_model.get_array_mappings = get_array_mappings
+        original_model.reprogram_xb = reprogram_xb
 
     return original_model

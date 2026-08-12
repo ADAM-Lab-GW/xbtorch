@@ -65,6 +65,7 @@ def xbtorch_layer(cls):
         # deployment (inference accleration)
         self._xb_inference = False
         self.inference_accelerator = get_xbtorch_param('inference_accelerator')
+        self._xb_programming_seed = None
 
     def xbtorch_forward(self, input):
         # TODO: Add support for non-linear layers
@@ -82,8 +83,7 @@ def xbtorch_layer(cls):
 
                 sw_weight = self.weight.data
 
-                # gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
-                gamma = torch.max(torch.abs(sw_weight))
+                gamma = sw_weight.detach().abs().amax()
 
                 pos_idxs = self._array_mappings['Gpos']
                 neg_idxs = self._array_mappings['Gneg']
@@ -175,6 +175,12 @@ def xbtorch_layer(cls):
             else:
                 # stateless forward, weights were never encoded and mapped to a crossbar. Here, we'll do everything on-the-fly.
 
+                if self._xb_programming_seed is None:
+                    raise RuntimeError(
+                        "Stateless layer has no programming seed. "
+                        "Patch the model with xbtorch_model(..., replace_all=True)."
+                    )
+
                 gnorm_scale = 1.0
                 if (not self.inference_accelerator): raise ValueError('XB inference called without proper initialization of an accelerator profile.')
 
@@ -184,16 +190,20 @@ def xbtorch_layer(cls):
 
                 sw_weight = self.weight.data
 
-                gamma = torch.unique(sw_weight)[-1] # WAGE quantization learns matrices [-gamma, 0, gamma], and so it's important to scale either G matrices or input voltage vector
-
+                gamma = sw_weight.detach().abs().amax()
 
                 # stateless operation
                 # first, let's convert weights to conductances
                 # TODO: raise error if redundnancy based scheme required with stateless operation, not supported atm
                 # would require splitting initialize layer mappings for stateless and stateful
             
-                Gposs, Gnegs = self.inference_accelerator.map_weights_to_array_stateless(sw_weight)
-            
+                Gposs, Gnegs = (
+                    self.inference_accelerator.map_weights_to_array_stateless(
+                        sw_weight,
+                        programming_seed=self._xb_programming_seed,
+                    )
+                )
+
                 # pass to the crossbar, perform VMM, averaging/summing over multiple instances
                 pos_outputs = []
                 neg_outputs = []

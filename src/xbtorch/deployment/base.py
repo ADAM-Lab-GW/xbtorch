@@ -128,7 +128,9 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
                  drift_coefficient=0.0,
                  drift_t0=1.0,
                  drift_variation=0.0,
-                 device="cpu"):
+                 device="cpu",
+                programming_seed=0,
+                weight_encoding_args=None,):
 
         self.read_noise = read_noise
         self.write_noise = write_noise
@@ -165,6 +167,10 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
 
         if input_encoding_scheme not in ["instant", "linear"]:
             raise ValueError(f"IO Encoding mode {input_encoding_scheme} not implemented")
+
+        # seed to ensure programming error remains unchanged for a single layer
+        self.programming_seed = int(programming_seed)
+        self.weight_encoding_args = dict(weight_encoding_args or {})
 
         # Create defect map
         # TODO: Separate out defect maps;
@@ -340,29 +346,53 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         defect_values[defect_values == 1] = self.stuck_high
         return defect_indices, defect_values.to(self.device)
 
-    def map_weights_to_array_stateless(self, sw_weight):
-
-        if (self.stateful):
+    def map_weights_to_array_stateless(
+        self,
+        sw_weight,
+        *,
+        programming_seed,
+        additional_args=None,
+    ):
+        if self.stateful:
             return
 
-        encoded_return =  self.weight_encoding_scheme(self, sw_weight)
-        Gposs, Gnegs = encoded_return[0], encoded_return[1]
-        sw_weight_shape = sw_weight.shape
+        encoding_args = dict(self.weight_encoding_args)
+        encoding_args.update(additional_args or {})
 
-        # write noise
-        for i, Gpos in enumerate(Gposs):
-            if (self.write_noise > 0):
-                noise = torch.randn_like(Gposs[i]) * self.write_noise + 0.0 # 0 mean
-                Gposs[i] = torch.clamp(Gposs[i] + noise, self.g_min, self.g_max)
+        encoded_return = self.weight_encoding_scheme(
+            self,
+            sw_weight,
+            additional_args=encoding_args,
+        )
+        Gposs, Gnegs = encoded_return[:2]
 
-        for i, Gneg in enumerate(Gnegs):
-            if (self.write_noise > 0):
-                noise = torch.randn_like(Gnegs[i]) * self.write_noise + 0.0 # 0 mean
-                Gnegs[i] = torch.clamp(Gnegs[i] + noise, self.g_min, self.g_max)
+        if self.write_noise <= 0:
+            return Gposs, Gnegs
 
+        generator = torch.Generator(device=sw_weight.device)
+        generator.manual_seed(int(programming_seed))
+
+        def apply_programming_error(G):
+            noise = torch.randn(
+                G.shape,
+                dtype=G.dtype,
+                device=G.device,
+                generator=generator,
+            ) * self.write_noise
+
+            return torch.clamp(G + noise, self.g_min, self.g_max)
+
+        Gposs = [apply_programming_error(G) for G in Gposs]
+        Gnegs = [apply_programming_error(G) for G in Gnegs]
         return Gposs, Gnegs
 
-    def map_weights_to_array(self, sw_weight, pos_idxs=[], neg_idxs=[], additional_args={}):        
+    def map_weights_to_array(
+        self,
+        sw_weight,
+        pos_idxs=None,
+        neg_idxs=None,
+        additional_args=None,
+    ):
         """
         Map software weights onto the hardware array.
 
@@ -389,10 +419,23 @@ class GenericAccelerator(metaclass=abc.ABCMeta):
         - Defect map is reapplied to enforce stuck devices.
         """
 
-        if (not self.stateful):
+        if not self.stateful:
             return
 
-        encoded_return =  self.weight_encoding_scheme(self, sw_weight, pos_idxs=pos_idxs, neg_idxs=neg_idxs, additional_args=additional_args)
+        pos_idxs = [] if pos_idxs is None else pos_idxs
+        neg_idxs = [] if neg_idxs is None else neg_idxs
+
+        encoding_args = dict(self.weight_encoding_args)
+        encoding_args.update(additional_args or {})
+
+        encoded_return = self.weight_encoding_scheme(
+            self,
+            sw_weight,
+            pos_idxs=pos_idxs,
+            neg_idxs=neg_idxs,
+            additional_args=encoding_args,
+        )
+
         Gposs, Gnegs = encoded_return[0], encoded_return[1]
         sw_weight_shape = sw_weight.shape
 
@@ -549,13 +592,16 @@ class SimpleFixedPoint(GenericAccelerator):
                  drift_coefficient=0.0,
                  drift_t0=1.0,
                  drift_variation=0.0, 
-                 device='cpu'):
+                 device='cpu',
+                 programming_seed=0,
+                 weight_encoding_args=None,):
                 # TODO: Input encoding modes and output encoding modes should go here
         super().__init__(g_min, 
                          g_max, 
                          v_read, 
                          read_noise=read_noise, 
                          write_noise=write_noise, 
+
                          stateful=stateful, 
                          xb_size=xb_size, 
                          stuck_percentage=stuck_percentage,
@@ -567,6 +613,8 @@ class SimpleFixedPoint(GenericAccelerator):
                          drift_coefficient=drift_coefficient,
                          drift_t0=drift_t0,
                          drift_variation=drift_variation,
+                         weight_encoding_args=weight_encoding_args,
+                         programming_seed=programming_seed,
                          device=device)
         self.adc_bits = adc_bits
         self.dac_bits = dac_bits
@@ -588,10 +636,16 @@ class SimpleFixedPoint(GenericAccelerator):
 
         max_val = torch.max(torch.abs(vector))
 
+        scale = torch.where(
+            max_val > 0,
+            max_val,
+            torch.ones_like(max_val),
+        )
+
         if self.input_encoding_scheme == "instant":
         
             return max_val * fixed_point_quantize(
-                vector / max_val,
+                vector / scale,
                 wl=self.dac_bits,
                 fl=self.dac_bits - 1,
                 symmetric=True
@@ -599,7 +653,7 @@ class SimpleFixedPoint(GenericAccelerator):
 
         elif self.input_encoding_scheme == "linear":
 
-            normalized = torch.clamp(vector / max_val, -1.0, 1.0)
+            normalized = torch.clamp(vector / scale, -1.0, 1.0)
 
             levels = 2 ** self.dac_bits - 1
             quantized = torch.round(normalized * levels)
@@ -634,8 +688,14 @@ class SimpleFixedPoint(GenericAccelerator):
 
         max_val = torch.max(torch.abs(vector))
 
+        scale = torch.where(
+            max_val > 0,
+            max_val,
+            torch.ones_like(max_val),
+        )
+
         return max_val * fixed_point_quantize(
-            vector / max_val,
+            vector / scale,
             wl=self.adc_bits,
             fl=self.adc_bits - 1,
             symmetric=True
@@ -688,20 +748,23 @@ class Daffodil(GenericAccelerator):
                  drift_t0=1.0,
                  drift_variation=0.0, 
                  device='cpu'):
-        super().__init__(g_min,
-                         g_max,
-                         v_read,
-                         read_noise,
-                         write_noise,
-                         stuck_percentage,
-                         stuck_mode,
-                         input_encoding_scheme,
-                         xb_mapping_scheme,
-                         retention_time=retention_time,
-                         drift_coefficient=drift_coefficient,
-                         drift_t0=drift_t0,
-                         drift_variation=drift_variation,
-                         device=device)
+        super().__init__(
+            g_min=g_min,
+            g_max=g_max,
+            v_read=v_read,
+            read_noise=read_noise,
+            write_noise=write_noise,
+            stateful=True,
+            stuck_percentage=stuck_percentage,
+            stuck_mode=stuck_mode,
+            input_encoding_scheme=input_encoding_scheme,
+            xb_mapping_scheme=xb_mapping_scheme,
+            retention_time=retention_time,
+            drift_coefficient=drift_coefficient,
+            drift_t0=drift_t0,
+            drift_variation=drift_variation,
+            device=device,
+        )
 
         # Board level parameters, calibrated from hardware experiments
         # Can be overridenn based on further experimentation
